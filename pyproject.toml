@@ -1,0 +1,118 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "feregion"
+version = "0.1.1a1"
+description = "Fast vectorized Flinn-Engdahl region lookup"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "LGPL-3.0-only"
+license-files = ["LICENSE", "LICENSES/GPL-3.0.txt", "THIRD_PARTY_NOTICES.md"]
+authors = [{name = "awiol"}, {name = "OpenAI"}]
+dependencies = ["numpy>=1.26"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Scientific/Engineering :: GIS",
+]
+
+[project.optional-dependencies]
+pandas = ["pandas>=2.1"]
+geo = ["shapely>=2.0"]
+# Compatibility extras retained from earlier alpha releases. Repository development
+# uses dependency groups below.
+test = [
+  "pytest>=8,<9",
+  "pytest-cov>=5,<8",
+  "pandas>=2.1,<4",
+  "shapely>=2,<3",
+]
+benchmark = [
+  "pytest>=8,<9",
+  "pytest-benchmark>=4,<6",
+  "pandas>=2.1,<4",
+  "obspy>=1.4.2,<1.6",
+]
+dev = [
+  "pytest>=8,<9",
+  "pytest-cov>=5,<8",
+  "pytest-benchmark>=4,<6",
+  "pandas>=2.1,<4",
+  "shapely>=2,<3",
+  "obspy>=1.4.2,<1.6",
+  "ruff>=0.15,<0.17",
+  "mypy>=1.17,<2",
+]
+
+[dependency-groups]
+test = [
+  "pytest>=8,<9",
+  "pytest-cov>=5,<8",
+  "pandas>=2.1,<4",
+  "shapely>=2,<3",
+]
+lint = [
+  "ruff>=0.15,<0.17",
+  "mypy>=1.17,<2",
+]
+benchmark = [
+  "pytest>=8,<9",
+  "pytest-benchmark>=4,<6",
+  "pandas>=2.1,<4",
+  "obspy>=1.4.2,<1.6",
+]
+dev = [
+  {include-group = "test"},
+  {include-group = "lint"},
+]
+
+[project.scripts]
+fe-region = "feregion.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+feregion = ["data/*.npy", "data/*.json", "py.typed"]
+
+[tool.pytest.ini_options]
+addopts = "-ra --strict-config --strict-markers"
+testpaths = ["tests"]
+markers = [
+  "integration: crosses a package, subprocess, external-library, or retrieved-source boundary",
+  "obspy: requires ObsPy as a development-only reference oracle",
+  "geo: requires the optional Shapely dependency",
+]
+filterwarnings = ["error"]
+
+[tool.coverage.run]
+branch = true
+source = ["feregion"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+fail_under = 95
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
+
+[tool.mypy]
+python_version = "3.11"
+warn_unused_configs = true
+warn_return_any = true
+warn_unused_ignores = true
+no_implicit_optional = true

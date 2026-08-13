@@ -1,20 +1,30 @@
+# Python bytecode and test/tool caches
 __pycache__/
 *.py[cod]
 .pytest_cache/
-.coverage
-htmlcov/
-coverage.xml
 .mypy_cache/
 .ruff_cache/
+.hypothesis/
+
+# Coverage and benchmark output
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+.benchmarks/
+/benchmark.json
+/benchmark-*.json
+
+# Local environments and build products
 .venv/
 venv/
 build/
 dist/
 *.egg-info/
-benchmark*.json
-benchmark-*.json
-.benchmarks/
-*.geojson
+
+# Retrieved upstream data. Fetch it with:
+# uv run python -m tools.fetch_obspy_fe_data
+.cache/
 
 
 ### JetBrains template

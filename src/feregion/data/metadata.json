@@ -1,0 +1,48 @@
+{
+  "assets": {
+    "fe_names.npy": {
+      "dtype": "<U32",
+      "sha256": "353338177cca76c3ab49ba3dcef13e1db94449ba6a6981a023b5359012ce47c8",
+      "shape": [
+        758
+      ]
+    },
+    "fe_table.npy": {
+      "dtype": "uint16",
+      "sha256": "3ae32ea1c78b9963ac09da48886de64c4081b60218dc13af5fbf003b70a046c2",
+      "shape": [
+        4,
+        91,
+        181
+      ]
+    }
+  },
+  "schema_version": 1,
+  "source": {
+    "files": {
+      "names.asc": {
+        "sha256": "4b827d5f66bf47256fed52bd0bbf265751d0e34e3356477d2bbda1fcca980ce7"
+      },
+      "nesect.asc": {
+        "sha256": "201316b895c2da2e373dce1f5e20e0bd0df6ce730cf40ad2f607c5f34b5f4728"
+      },
+      "nwsect.asc": {
+        "sha256": "dcbca0ae4fe2c020d6e9ce5406b40466271e79dcc8785acf285e7fd6046ad29d"
+      },
+      "quadsidx.asc": {
+        "sha256": "3e3a7553780c2233f11c2ebef014393a7bd32617a353de4e7f1214dd2f68e9e0"
+      },
+      "sesect.asc": {
+        "sha256": "831256e2c4c2fd5543816a62a7d68840987200bd13bf8633b6ae628fecd739d8"
+      },
+      "swsect.asc": {
+        "sha256": "f041077c0ea68add8d9d67ace0b3548bf969650c4efdd2ad4dfabb528d28b4bf"
+      }
+    },
+    "license": "LGPL-3.0",
+    "path": "obspy/geodetics/data",
+    "project": "ObsPy",
+    "repository": "https://github.com/obspy/obspy",
+    "revision": "1.4.2"
+  }
+}
