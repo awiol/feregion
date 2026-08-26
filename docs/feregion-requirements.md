@@ -2,11 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Requirements document version | `0.1.1a3` |
 | Behavioral contract series | `0.1` |
-| Implementation target | `0.1.1a3` |
-| Document date | `2026-08-26` |
-| Current filename | `feregion-requirements-v0.1.1a3-2026-08-26.md` |
 | Status | Implemented alpha contract |
 
 ## Normative profile and terminology
@@ -28,12 +24,12 @@ The package does not claim that the packaged region name is the unique authorita
 
 Related contracts:
 
-- `feregion-engineering-requirements-v0.1.1a3-2026-08-26.md` defines test,
+- `feregion-engineering-requirements.md` defines test,
   provenance, packaging, and development requirements.
-- `feregion-repository-delivery-requirements-v0.1.1a3-2026-08-26.md`
+- `feregion-repository-delivery-requirements.md`
   defines repository and source-delivery requirements.
-- `feregion-design-v0.1.1a3-2026-08-26.md` records the selected design.
-- `feregion-verification-traceability-v0.1.1a3-2026-08-26.md` maps
+- `feregion-design.md` records the selected design.
+- `feregion-verification-traceability.md` maps
   requirements to verification evidence.
 
 ## Purpose and terms

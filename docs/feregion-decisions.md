@@ -2,9 +2,6 @@
 
 | Field | Value |
 |---|---|
-| Document version | `0.1.1a3` |
-| Implementation target | `0.1.1a3` |
-| Document date | `2026-08-26` |
 | Status | Current decision record |
 
 This document records consequential current decisions. Requirements remain in
@@ -101,14 +98,40 @@ changed rationale as historical fact.
 - **Review trigger:** Crash durability, fsync, ownership, ACL, or cross-filesystem
   publication becomes a product requirement.
 
-## `DEC-008` — Keep `0.1.1a3` at alpha maturity
+## `DEC-008` — Keep alpha maturity until promotion gates pass
 
 - **Context:** Core behavior is mature relative to earlier iterations, but
   release evidence is incomplete across static checks, dependency locking,
   hosted compatibility jobs, and source-data license disposition.
-- **Decision:** Deliver the next correction as `0.1.1a3`; do not promote to beta.
-- **Alternatives considered:** `0.1.1b1`; a new minor line; final `0.1.1`.
+- **Decision:** Keep alpha maturity until the documented beta-promotion gates pass on one candidate state.
+- **Alternatives considered:** beta promotion; a new development line; final release.
 - **Compatibility consequence:** The public API remains backward-compatible;
   this iteration fixes boundary failures and strengthens assurance.
 - **Review trigger:** Apply the beta conditions in the current quality-assurance
   document to one exact candidate source state.
+
+## `DEC-009` — Keep maintained documents at stable Git paths
+
+- **Context:** Version/date-stamped filenames duplicated revision identity that Git
+  already provides and forced broad documentation churn for every release.
+- **Decision:** Keep maintained requirements, design, quality-assurance, decision,
+  and traceability documents at stable filenames. Keep release identity in Git,
+  `CHANGELOG.md`, package metadata, and delivery-side artifacts.
+- **Alternatives considered:** rename all maintained documents on every release;
+  keep both stable aliases and versioned copies.
+- **Compatibility consequence:** Repository links remain stable across releases.
+- **Review trigger:** The repository stops using revision-controlled history or a
+  downstream publication system requires immutable document filenames.
+
+## `DEC-010` — Use pre-commit as the commit-time quality entry point
+
+- **Context:** Maintainers need the same formatter, linter, and tests before a
+  commit without maintaining another dependency environment.
+- **Decision:** Declare `pre-commit` in the `uv` development toolchain and use
+  local hooks that run Ruff format, Ruff check, and pytest through `uv --no-sync`.
+- **Alternatives considered:** hook-managed Ruff environments; a custom shell
+  script; no commit-time checks.
+- **Compatibility consequence:** Developers must run `uv sync --group dev` before
+  installing hooks. Package runtime dependencies do not change.
+- **Review trigger:** Commit-time full pytest becomes materially too expensive or
+  repository tooling moves away from `uv`/pre-commit.

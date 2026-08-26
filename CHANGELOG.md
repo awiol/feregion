@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.2a1 — 2026-08-26
+
+- Adopt stable Git-tracked filenames for maintained requirements, design, decisions, quality assurance, and traceability documents.
+- Remove current release version/date banners from maintained documentation.
+- Add `pre-commit` to the development toolchain with Ruff format, Ruff check, and pytest hooks.
+- Apply the Ruff formatting changes supplied after `0.1.1a3` and the missing NumPy import correction in `tests/test_pandas.py`.
+- Synchronize package version metadata to `0.1.2a1`.
+
+## 0.1.1a4 — 2026-08-26
+
+- Ruff-formatting checkpoint recorded by the user-supplied patch; not delivered separately by this workflow.
+
 ## 0.1.1a3 — 2026-08-26
 
 - Preserved pandas extended-floating validation semantics by avoiding premature `float64` narrowing in the adapter.

@@ -65,28 +65,31 @@ def test_compatibility_dev_extra_covers_all_development_groups() -> None:
     assert set(data["project"]["optional-dependencies"]["dev"]) == expected
 
 
-def test_current_contract_documents_match_runtime_version_and_are_traceable() -> None:
-    """Only one current versioned contract set exists and every requirement is mapped."""
+def test_current_contract_documents_use_stable_names_and_are_traceable() -> None:
+    """Maintained contracts use stable Git-tracked paths and map every requirement."""
 
-    version = feregion.__version__
-    contract_files = sorted(
-        path
-        for path in DOCS.glob("feregion-*-v*.md")
-        if "requirements" in path.name
-        or "design" in path.name
-        or "quality-assurance" in path.name
-        or "decisions" in path.name
-        or "verification-traceability" in path.name
-    )
-    assert len(contract_files) == 7
-    assert all(f"-v{version}-" in path.name for path in contract_files)
+    expected = {
+        "feregion-requirements.md",
+        "feregion-engineering-requirements.md",
+        "feregion-repository-delivery-requirements.md",
+        "feregion-design.md",
+        "feregion-quality-assurance.md",
+        "feregion-decisions.md",
+        "feregion-verification-traceability.md",
+    }
+    contract_files = {path.name for path in DOCS.glob("feregion-*.md")}
+    assert expected <= contract_files
+    assert not list(DOCS.glob("feregion-*-v*.md"))
 
-    traceability = next(DOCS.glob("feregion-verification-traceability-v*.md"))
-    trace_text = traceability.read_text(encoding="utf-8")
+    trace_text = (DOCS / "feregion-verification-traceability.md").read_text(encoding="utf-8")
     requirement_id_list: list[str] = []
-    for path in DOCS.glob("feregion-*requirements-v*.md"):
+    for name in (
+        "feregion-requirements.md",
+        "feregion-engineering-requirements.md",
+        "feregion-repository-delivery-requirements.md",
+    ):
         requirement_id_list.extend(
-            re.findall(r"\bREQ-[A-Z]+-\d{3}\b", path.read_text(encoding="utf-8"))
+            re.findall(r"\bREQ-[A-Z]+-\d{3}\b", (DOCS / name).read_text(encoding="utf-8"))
         )
     requirement_ids = set(requirement_id_list)
     assert requirement_ids
@@ -94,20 +97,45 @@ def test_current_contract_documents_match_runtime_version_and_are_traceable() ->
     assert all(trace_text.count(f"`{requirement_id}`") == 1 for requirement_id in requirement_ids)
 
 
-def test_readme_lists_every_current_versioned_contract_document() -> None:
-    """The repository entry point must not point maintainers at superseded contracts."""
+def test_readme_lists_every_maintained_contract_document() -> None:
+    """The repository entry point links every maintained contract by its stable path."""
 
     readme = (PROJECT_ROOT / "README.md").read_text(encoding="utf-8")
-    for path in DOCS.glob("feregion-*-v*.md"):
-        is_contract = (
-            "requirements" in path.name
-            or "design" in path.name
-            or "quality-assurance" in path.name
-            or "decisions" in path.name
-            or "verification-traceability" in path.name
-        )
-        if is_contract:
-            assert f"docs/{path.name}" in readme
+    for name in (
+        "feregion-requirements.md",
+        "feregion-engineering-requirements.md",
+        "feregion-repository-delivery-requirements.md",
+        "feregion-design.md",
+        "feregion-quality-assurance.md",
+        "feregion-decisions.md",
+        "feregion-verification-traceability.md",
+    ):
+        assert f"docs/{name}" in readme
+
+
+def test_maintained_contracts_do_not_embed_current_release_identity() -> None:
+    """Git history owns document revision identity; maintained contracts stay release-agnostic."""
+
+    version = _pyproject()["project"]["version"]
+    for path in DOCS.glob("feregion-*.md"):
+        assert version not in path.read_text(encoding="utf-8")
+
+
+def test_pre_commit_is_in_uv_development_toolchain() -> None:
+    """The commit-time runner is installed through the authoritative uv development group."""
+
+    data = _pyproject()
+    assert "pre-commit>=4,<5" in _requirements_for_group(data, "dev")
+
+
+def test_pre_commit_runs_ruff_format_check_and_pytest_through_uv() -> None:
+    """Commit-time hooks reuse the synchronized project environment and required checks."""
+
+    config = (PROJECT_ROOT / ".pre-commit-config.yaml").read_text(encoding="utf-8")
+    assert "entry: uv run --no-sync ruff format" in config
+    assert "entry: uv run --no-sync ruff check" in config
+    assert "entry: uv run --no-sync pytest -q" in config
+    assert "pass_filenames: false" in config
 
 
 def test_ci_matrix_covers_declared_python_versions() -> None:

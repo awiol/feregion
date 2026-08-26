@@ -13,11 +13,11 @@ from tools.verify_wheel import REQUIRED_PACKAGE_FILES, inspect_wheel
 def _write_valid_synthetic_wheel(path: Path) -> None:
     """Create the smallest ZIP archive that satisfies wheel inspection fields."""
 
-    dist = "feregion-0.1.1a3.dist-info"
+    dist = "feregion-9.8.7.dist-info"
     metadata = [
         "Metadata-Version: 2.4",
         "Name: feregion",
-        "Version: 0.1.1a3",
+        "Version: 9.8.7",
         "Requires-Python: >=3.11",
     ]
     metadata.extend(
@@ -39,19 +39,19 @@ def _write_valid_synthetic_wheel(path: Path) -> None:
 def test_wheel_inspection_accepts_complete_runtime_archive(tmp_path: Path) -> None:
     """A wheel with the runtime contract, extras, entry point, and notices passes."""
 
-    wheel = tmp_path / "feregion-0.1.1a3-py3-none-any.whl"
+    wheel = tmp_path / "feregion-9.8.7-py3-none-any.whl"
     _write_valid_synthetic_wheel(wheel)
 
-    assert inspect_wheel(wheel, expected_version="0.1.1a3") == "0.1.1a3"
+    assert inspect_wheel(wheel, expected_version="9.8.7") == "9.8.7"
 
 
 def test_wheel_inspection_rejects_repository_only_source(tmp_path: Path) -> None:
     """Tests and developer tooling must not leak into the runtime wheel."""
 
-    wheel = tmp_path / "feregion-0.1.1a3-py3-none-any.whl"
+    wheel = tmp_path / "feregion-9.8.7-py3-none-any.whl"
     _write_valid_synthetic_wheel(wheel)
     with zipfile.ZipFile(wheel, "a") as archive:
         archive.writestr("tests/test_example.py", "pass\n")
 
     with pytest.raises(ValueError, match="repository-only"):
-        inspect_wheel(wheel, expected_version="0.1.1a3")
+        inspect_wheel(wheel, expected_version="9.8.7")

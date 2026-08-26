@@ -2,9 +2,6 @@
 
 | Field | Value |
 |---|---|
-| Document version | `0.1.1a3` |
-| Implementation target | `0.1.1a3` |
-| Document date | `2026-08-26` |
 | Status | Current alpha quality contract |
 
 ## Purpose
@@ -56,7 +53,7 @@ stronger product claim by itself.
 
 ## Maturity decision
 
-Version `0.1.1a3` remains **alpha**. The core lookup design is stable, but the
+The project remains **alpha** until the beta-promotion gates pass. The core lookup design is stable, but the
 project does not yet have enough observed release evidence to call the intended
 functionality substantially stabilized across its declared development and
 compatibility surfaces.
@@ -76,13 +73,9 @@ source state:
    distribution. This document does not provide that legal determination.
 5. No open major behavioral or data-loss defect remains.
 
-## Current limitations at document issue
+## Evidence recording rule
 
-- No hosted CI result for `0.1.1a3` exists at source-generation time.
-- The local environment used for this iteration has Python 3.13.5 only.
-- Ruff and mypy are configured but are not locally installed.
-- PyPI DNS failure prevents dependency resolution and `uv.lock` generation.
-- The historical FE source-data license status remains unresolved.
-
-These limitations constrain the verification claim. They do not change the
-observed correctness results from checks that did run.
+Release-specific unavailable checks, local environment limits, skips, and
+dependency-resolution failures belong in delivery or CI evidence. This
+maintained document defines the required gates; it must not claim that a gate
+passed merely because the repository contains its configuration.

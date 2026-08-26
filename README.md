@@ -147,6 +147,22 @@ source-table license is not established by that statement and is recorded as
 unresolved provenance in `src/feregion/data/metadata.json` and
 `THIRD_PARTY_NOTICES.md`.
 
+## Development checks
+
+Use the repository development environment and install the Git hooks once:
+
+```bash
+uv sync --group dev
+uv run pre-commit install
+```
+
+The pre-commit pipeline formats Python files with Ruff, runs Ruff lint checks,
+and then runs the full pytest suite. Run the same pipeline manually with:
+
+```bash
+uv run pre-commit run --all-files
+```
+
 ## Benchmarks
 
 Install benchmark dependencies and run the repository harnesses:
@@ -163,20 +179,19 @@ Routine benchmarks cover in-process scalar, batch, name-conversion, and pandas
 interfaces. They exclude CLI and GeoJSON timing. Generated benchmark results are
 delivery evidence and are not repository source.
 
-## Current project documents
+## Project documents
 
-The current versioned contract set is:
+The maintained contract set uses stable filenames. Git history records document revisions:
 
-- `docs/feregion-requirements-v0.1.1a3-2026-08-26.md`;
-- `docs/feregion-engineering-requirements-v0.1.1a3-2026-08-26.md`;
-- `docs/feregion-repository-delivery-requirements-v0.1.1a3-2026-08-26.md`;
-- `docs/feregion-design-v0.1.1a3-2026-08-26.md`;
-- `docs/feregion-quality-assurance-v0.1.1a3-2026-08-26.md`;
-- `docs/feregion-decisions-v0.1.1a3-2026-08-26.md`; and
-- `docs/feregion-verification-traceability-v0.1.1a3-2026-08-26.md`.
+- `docs/feregion-requirements.md`;
+- `docs/feregion-engineering-requirements.md`;
+- `docs/feregion-repository-delivery-requirements.md`;
+- `docs/feregion-design.md`;
+- `docs/feregion-quality-assurance.md`;
+- `docs/feregion-decisions.md`; and
+- `docs/feregion-verification-traceability.md`.
 
-`docs/testing.md` is the stable maintainer procedure. Future iterative
-deliveries replace the complete versioned contract set in one change.
+`docs/testing.md` is the maintainer procedure. When behavior changes, update the affected maintained documents in the same repository change.
 
 ## License and provenance
 

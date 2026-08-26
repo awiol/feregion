@@ -2,11 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Design document version | `0.1.1a3` |
 | Behavioral contract series | `0.1` |
-| Implementation target | `0.1.1a3` |
-| Document date | `2026-08-26` |
-| Current filename | `feregion-design-v0.1.1a3-2026-08-26.md` |
 | Status | Implemented alpha design |
 
 ## 1. Design result
@@ -19,8 +15,8 @@ The **batch lookup** path validates a numeric `(n, 2)` coordinate array and uses
 a vectorized dense-table implementation. It has no Python loop over points. The
 scalar path validates two values directly and indexes the same table.
 
-The design retains the dense-table architecture. The extensive v0.1.1a1 review
-found boundary-contract defects, not a reason to replace the numeric core.
+The design retains the dense-table architecture. Prior extensive review found
+boundary-contract defects, not a reason to replace the numeric core.
 
 ## 2. Behavioral model
 
@@ -208,21 +204,25 @@ notices. It then creates a fresh uv virtual environment without system site
 packages, installs the wheel with dependencies, and exercises Python and CLI
 APIs.
 
+The repository uses local pre-commit hooks that execute the synchronized `uv`
+development environment. The hooks run Ruff formatting, Ruff linting, and the
+full pytest suite. This keeps commit-time checks aligned with repository tooling
+without creating independent hook-specific Python environments.
+
 The repository also contains synchronization and integrity tests for:
 
 - package runtime version versus `pyproject.toml`;
 - compatibility extras versus authoritative dependency groups;
 - generated runtime asset hashes versus packaged metadata; and
-- current versioned contract filenames and verification traceability.
+- stable maintained contract filenames and verification traceability.
 
-Named defect regressions retain sensitivity evidence. For the v0.1.1a3 pandas
-and UTF-8 corrections, the targeted tests were executed against the unchanged
-v0.1.1a2 baseline and failed for the reviewed defect before the fixes were
-applied.
+Named defect regressions retain sensitivity evidence in delivery-side review
+records when a predecessor can safely reproduce the defect.
 
-`uv.lock` is not ignored. It remains absent from this iteration because the
-current execution environment cannot resolve the package index. That absence is
-a recorded verification limitation, not a claim that locking is unnecessary.
+`uv.lock` is not ignored. The repository should commit a resolved lock when the
+maintenance environment can generate it. If lock generation is unavailable, the
+release verification record must state that limitation instead of treating the
+dependency graph as locked.
 
 ## 11. Maintained knowledge structure
 
@@ -238,20 +238,20 @@ decision document records consequential choices and review triggers. A separate
 verification-traceability document maps every requirement ID to tests or release
 checks. `docs/testing.md` provides stable maintainer procedures.
 
-Only the current versioned contract set remains in the repository. Delivery
-manifests, checksum lists, raw benchmark results, verification logs, and
-per-iteration review reports remain outside the source tree.
+The maintained contract set uses stable repository paths. Git history records
+contract revisions. Delivery manifests, checksum lists, raw benchmark results,
+verification logs, and per-iteration review reports remain outside the source
+tree.
 
 ## 12. Compatibility and residual limits
 
-The numeric FE mapping and public function names remain compatible with
-v0.1.1a1. This iteration intentionally makes previously ambiguous structured
-input fail instead of silently losing data. Explicit engine construction now
-copies input arrays to make the immutability contract real.
+The numeric FE mapping and public function names follow the declared public
+contract. Ambiguous structured input fails instead of silently losing data.
+Explicit engine construction copies input arrays to make the immutability
+contract real.
 
-The source-data license remains unresolved in project provenance. The
-development dependency graph also remains unlocked because the current local
-environment cannot resolve PyPI. Hosted Python 3.11/3.12/3.13, lower-bound
-dependency, direct ObsPy oracle, Ruff, mypy, and clean-install results are
-required release evidence but are not claimed from workflow configuration
-alone. These open evidence conditions keep this iteration at alpha maturity.
+The source-data license remains unresolved in project provenance. Release
+records must state whether dependency locking, the supported-Python matrix,
+lower-bound dependency checks, the direct ObsPy oracle, Ruff, mypy, and clean
+installation were actually observed. Workflow configuration alone is not a
+verification result.

@@ -2,13 +2,9 @@
 
 | Field | Value |
 |---|---|
-| Requirements document version | `0.1.1a3` |
-| Implementation target | `0.1.1a3` |
-| Document date | `2026-08-26` |
-| Current filename | `feregion-repository-delivery-requirements-v0.1.1a3-2026-08-26.md` |
 | Status | Implemented alpha repository/delivery contract |
 
-This document uses the normative profile defined by `feregion-requirements-v0.1.1a3-2026-08-26.md`.
+This document uses the normative profile defined by `feregion-requirements.md`.
 
 ## Repository boundary
 
@@ -16,21 +12,22 @@ This document uses the normative profile defined by `feregion-requirements-v0.1.
 `feregion/` repository root. Project version and delivery date must appear in
 outer delivery filenames, not in that root name.
 
-**REQ-REPO-002** — Requirements and design documents are versioned project
-artifacts. Their filenames must contain project version and UTC date. For this
-iteration they are:
+**REQ-REPO-002** — Maintained requirements, design, quality-assurance, decision,
+and verification-traceability documents must use stable repository filenames.
+Git history records their revisions. The maintained files are:
 
-- `docs/feregion-requirements-v0.1.1a3-2026-08-26.md`;
-- `docs/feregion-engineering-requirements-v0.1.1a3-2026-08-26.md`;
-- `docs/feregion-repository-delivery-requirements-v0.1.1a3-2026-08-26.md`;
-- `docs/feregion-design-v0.1.1a3-2026-08-26.md`;
-- `docs/feregion-quality-assurance-v0.1.1a3-2026-08-26.md`;
-- `docs/feregion-decisions-v0.1.1a3-2026-08-26.md`; and
-- `docs/feregion-verification-traceability-v0.1.1a3-2026-08-26.md`.
+- `docs/feregion-requirements.md`;
+- `docs/feregion-engineering-requirements.md`;
+- `docs/feregion-repository-delivery-requirements.md`;
+- `docs/feregion-design.md`;
+- `docs/feregion-quality-assurance.md`;
+- `docs/feregion-decisions.md`; and
+- `docs/feregion-verification-traceability.md`.
 
-A new iteration must intentionally rename the versioned contract set and update
-repository references in the same change. This is an explicit project naming
-policy for these documents.
+A repository change that affects one of these contracts must update the stable
+file in the same change. Release version and date belong in Git history,
+`CHANGELOG.md`, package metadata, and exported delivery artifacts instead of the
+maintained document filename or banner.
 
 **REQ-REPO-003** — Benchmark harnesses must remain source-controlled developer
 tooling. Generated benchmark reports, raw benchmark result files, coverage
@@ -51,11 +48,11 @@ caches, coverage output, benchmark output, build products, and retrieved
 upstream source data. It must not ignore requirements, design documents,
 generated runtime assets, tests, project metadata, or a future `uv.lock`.
 
-**REQ-REPO-007** — The repository must contain only the current versioned
-requirements, design, quality-assurance, decision, and verification-traceability
-iteration. A new delivery must rename those files, update their version/date
-metadata, remove superseded filenames, and update all internal references in
-the same change.
+**REQ-REPO-007** — The repository must contain one active maintained contract
+set at the stable paths defined in this document. Superseded versions must remain
+recoverable through Git history instead of being copied into new version-named
+repository files. Historical delivery-side artifacts remain outside the source
+tree.
 
 **REQ-REPO-008** — Consequential architecture, compatibility, provenance, and
 release-maturity decisions must be recorded in the current decision document

@@ -2,13 +2,9 @@
 
 | Field | Value |
 |---|---|
-| Requirements document version | `0.1.1a3` |
-| Implementation target | `0.1.1a3` |
-| Document date | `2026-08-26` |
-| Current filename | `feregion-engineering-requirements-v0.1.1a3-2026-08-26.md` |
 | Status | Implemented alpha engineering contract |
 
-This document uses the normative profile defined by `feregion-requirements-v0.1.1a3-2026-08-26.md`.
+This document uses the normative profile defined by `feregion-requirements.md`.
 
 ## Runtime data and dependency behavior
 
@@ -177,8 +173,9 @@ patch release. Repository development must use dependency groups as the
 authoritative dependency source for `uv` workflows.
 
 **REQ-PKG-008** — GitHub Actions CI must run the full test suite with branch
-coverage on Python 3.11, 3.12, and 3.13. A separate quality job must run Ruff,
-mypy, distribution builds, and dependency-isolated wheel verification.
+coverage on Python 3.11, 3.12, and 3.13. A separate quality job must check Ruff
+formatting, run Ruff linting and mypy, build distributions, and run
+dependency-isolated wheel verification.
 
 **REQ-PKG-009** — The repository must contain automated synchronization checks
 for the package version and duplicated compatibility dependency declarations.
@@ -214,3 +211,9 @@ run for the exact candidate source state, including the supported-Python matrix,
 static checks, direct ObsPy oracle, lower-bound dependency compatibility, build,
 and clean wheel verification. Promotion also requires a committed `uv.lock` or
 an explicitly approved alternative resolved-dependency record.
+
+**REQ-PKG-016** — Repository development must include `pre-commit` in the `uv`
+development toolchain. The repository pre-commit configuration must run Ruff
+formatting, Ruff linting, and the full pytest suite. The hooks must use the
+project `uv` environment rather than maintaining independent Python tool
+environments.

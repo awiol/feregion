@@ -120,3 +120,21 @@ coordinates for candidate and baseline.
 Reports retain workload, environment, repetitions, median duration, throughput,
 and speedup. Generated benchmark JSON and human-readable reports are delivery
 artifacts and should not be committed to the source repository.
+
+## Commit-time checks
+
+Install the development environment and hooks once:
+
+```bash
+uv sync --group dev
+uv run pre-commit install
+```
+
+Run the complete commit-time pipeline manually with:
+
+```bash
+uv run pre-commit run --all-files
+```
+
+The hooks use the synchronized project environment. Ruff formatting can modify
+Python files; review and re-stage those changes before committing.

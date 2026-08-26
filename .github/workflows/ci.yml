@@ -98,6 +98,8 @@ jobs:
         run: uv python install "$UV_PYTHON"
       - name: Install development environment
         run: uv sync --group test --group lint
+      - name: Check Ruff formatting
+        run: uv run ruff format --check .
       - name: Run Ruff
         run: uv run ruff check .
       - name: Run mypy
