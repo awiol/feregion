@@ -2,71 +2,92 @@ name: CI
 
 on:
   push:
+    branches: [main]
   pull_request:
 
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  UV_VERSION: "0.12.6"
+
 jobs:
   test:
     name: Python ${{ matrix.python-version }}
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.11", "3.12", "3.13"]
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
     env:
       UV_PYTHON: ${{ matrix.python-version }}
     steps:
       - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Install uv
         uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
         with:
+          version: ${{ env.UV_VERSION }}
           enable-cache: true
       - name: Install Python
         run: uv python install "$UV_PYTHON"
-      - name: Install test environment
-        run: uv sync --group test
+      - name: Install test environment from lock
+        run: uv sync --locked --group test
       - name: Fetch hash-verified FE source tables
-        run: uv run python -m tools.fetch_obspy_fe_data
+        run: uv run --locked python -m tools.fetch_obspy_fe_data
       - name: Run tests with branch coverage
         run: >-
-          uv run pytest -q
+          uv run --locked pytest -q
           --ignore=tests/test_obspy_oracle.py
           --cov=feregion --cov-branch --cov-report=term-missing
 
   reference-oracle:
     name: Independent ObsPy oracle
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     env:
       UV_PYTHON: "3.13"
     steps:
       - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Install uv
         uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
         with:
+          version: ${{ env.UV_VERSION }}
           enable-cache: true
       - name: Install Python
         run: uv python install "$UV_PYTHON"
-      - name: Install test and oracle dependencies
-        run: uv sync --group test --group benchmark
+      - name: Install test and oracle dependencies from lock
+        run: uv sync --locked --group test --group benchmark
       - name: Fetch hash-verified FE source tables
-        run: uv run python -m tools.fetch_obspy_fe_data
+        run: uv run --locked python -m tools.fetch_obspy_fe_data
       - name: Run source and installed-ObsPy reference tests
         run: >-
-          uv run pytest -q
+          uv run --locked pytest -q
           tests/test_source_reproduction.py tests/test_obspy_oracle.py
 
   minimum-dependencies:
     name: Minimum declared dependencies
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Install uv
         uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: ${{ env.UV_VERSION }}
       - name: Install Python 3.11
         run: uv python install 3.11
       - name: Create lower-bound environment
@@ -85,29 +106,33 @@ jobs:
   quality:
     name: Static quality and packaging
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     env:
       UV_PYTHON: "3.11"
     steps:
       - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Install uv
         uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
         with:
+          version: ${{ env.UV_VERSION }}
           enable-cache: true
       - name: Install Python
         run: uv python install "$UV_PYTHON"
-      - name: Install development environment
-        run: uv sync --group test --group lint
+      - name: Install development environment from lock
+        run: uv sync --locked --group test --group lint
       - name: Check Ruff formatting
-        run: uv run ruff format --check .
+        run: uv run --locked ruff format --check .
       - name: Run Ruff
-        run: uv run ruff check .
+        run: uv run --locked ruff check .
       - name: Run mypy
-        run: uv run mypy src/feregion tools benchmarks
+        run: uv run --locked mypy src/feregion tools benchmarks
       - name: Build distributions
-        run: uv build
+        run: uv build --locked
       - name: Verify wheel in an isolated environment
         run: >-
-          uv run python -m tools.verify_wheel
+          uv run --locked python -m tools.verify_wheel
           "$(find dist -maxdepth 1 -name '*.whl' -print -quit)"
           --python 3.11

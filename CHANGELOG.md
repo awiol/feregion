@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.2a2 — 2026-08-26
+
+- Add explicit CPython 3.14 support while preserving Python 3.11 as the minimum supported version.
+- Harden GitHub Actions with a Python 3.11–3.14 matrix, pinned uv 0.12.6, lock-preserving sync/run commands, workflow concurrency cancellation, and bounded job timeouts.
+- Extend repository metadata checks and maintained quality/design documentation for the supported-Python and CI contracts.
+
 ## 0.1.2a1 — 2026-08-26
 
 - Adopt stable Git-tracked filenames for maintained requirements, design, decisions, quality assurance, and traceability documents.

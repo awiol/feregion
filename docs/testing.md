@@ -94,11 +94,19 @@ regression against the unchanged faulty baseline when practical, or record a
 credible alternative sensitivity demonstration. A passing test that also passed
 before the fix does not establish regression protection for that defect.
 
+## Locked CI environment
+
+CI pins uv `0.12.6`. Normal matrix, oracle, and quality jobs use the committed
+`uv.lock` with `uv sync --locked` and `uv run --locked`. The minimum-dependency
+job intentionally creates a separate environment at declared direct lower bounds.
+Workflow jobs have explicit timeouts, and workflow concurrency cancels obsolete
+runs for the same pull request or branch.
+
 ## CI authority
 
 `.github/workflows/ci.yml` is the intended automated authority for:
 
-- Python 3.11, 3.12, and 3.13 test execution;
+- Python 3.11, 3.12, 3.13, and 3.14 test execution;
 - branch coverage;
 - source-reproduction checks;
 - a direct installed-ObsPy oracle job;
@@ -126,7 +134,7 @@ artifacts and should not be committed to the source repository.
 Install the development environment and hooks once:
 
 ```bash
-uv sync --group dev
+uv sync --locked --group dev
 uv run pre-commit install
 ```
 

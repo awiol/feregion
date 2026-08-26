@@ -117,13 +117,14 @@ uv run pytest -q --cov=feregion --cov-branch --cov-report=term-missing
 uv build
 ```
 
-GitHub Actions verifies Python 3.11, 3.12, and 3.13. Dedicated jobs also run the
+GitHub Actions verifies Python 3.11, 3.12, 3.13, and 3.14. Dedicated jobs also run the
 installed ObsPy oracle and the declared lower dependency bounds. A separate
 quality job runs Ruff, mypy, distribution builds, wheel archive inspection, and
 dependency-isolated wheel verification.
 
-`uv.lock` is not ignored. This source iteration does not contain a lock because
-the environment used to prepare it could not resolve the package index.
+`uv.lock` is committed and is the dependency-resolution authority for normal
+repository and CI environments. Use `--locked` in verification workflows so a
+stale lock fails instead of being refreshed implicitly.
 
 ## Upstream FE source data
 
@@ -152,15 +153,15 @@ unresolved provenance in `src/feregion/data/metadata.json` and
 Use the repository development environment and install the Git hooks once:
 
 ```bash
-uv sync --group dev
-uv run pre-commit install
+uv sync --locked --group dev
+uv run --locked pre-commit install
 ```
 
 The pre-commit pipeline formats Python files with Ruff, runs Ruff lint checks,
 and then runs the full pytest suite. Run the same pipeline manually with:
 
 ```bash
-uv run pre-commit run --all-files
+uv run --locked pre-commit run --all-files
 ```
 
 ## Benchmarks
@@ -168,7 +169,7 @@ uv run pre-commit run --all-files
 Install benchmark dependencies and run the repository harnesses:
 
 ```bash
-uv sync --group benchmark
+uv sync --locked --group benchmark
 uv run --group benchmark pytest benchmarks --benchmark-only \
   --benchmark-json=benchmark.json
 uv run --group benchmark python -m benchmarks.run_benchmark \

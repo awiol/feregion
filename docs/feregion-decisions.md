@@ -135,3 +135,19 @@ changed rationale as historical fact.
   installing hooks. Package runtime dependencies do not change.
 - **Review trigger:** Commit-time full pytest becomes materially too expensive or
   repository tooling moves away from `uv`/pre-commit.
+
+## `DEC-011` — Support CPython 3.11 through 3.14 and harden hosted CI
+
+- **Context:** Python 3.14 is used successfully by maintainers, but the declared
+  hosted compatibility matrix stopped at 3.13. CI also allowed uv and the lock
+  state to change implicitly during normal jobs.
+- **Decision:** Keep Python 3.11 as the minimum supported version and verify
+  CPython 3.11, 3.12, 3.13, and 3.14. Pin uv to `0.12.6`, require locked sync for
+  normal jobs, bound job runtimes, and cancel obsolete workflow runs.
+- **Alternatives considered:** raise the minimum Python version; treat 3.14 as
+  unverified; install latest uv on each run; allow normal CI to refresh the lock.
+- **Compatibility consequence:** Python 3.11 remains supported. Python 3.14 becomes
+  an explicit compatibility target. The lower-bound dependency job remains on
+  Python 3.11.
+- **Review trigger:** a supported Python or pinned uv version reaches end of
+  project support, or hosted CI shows a dependency/packaging incompatibility.

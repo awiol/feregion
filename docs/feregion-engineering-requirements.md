@@ -145,9 +145,10 @@ hot path without corresponding evidence.
 ## Packaging, development environment, and license
 
 **REQ-PKG-001** — The package must require Python 3.11 or newer. Automated
-repository verification must cover Python 3.11, 3.12, and 3.13. Newer Python
-versions are permitted by package metadata but are not verified by this matrix
-until the matrix is extended.
+repository verification must cover Python 3.11, 3.12, 3.13, and 3.14. Python
+3.11 remains the minimum supported interpreter. Newer Python versions are
+permitted by package metadata but are not verified by this matrix until the
+matrix is extended.
 
 **REQ-PKG-002** — NumPy must be the only mandatory third-party runtime
 dependency.
@@ -173,17 +174,17 @@ patch release. Repository development must use dependency groups as the
 authoritative dependency source for `uv` workflows.
 
 **REQ-PKG-008** — GitHub Actions CI must run the full test suite with branch
-coverage on Python 3.11, 3.12, and 3.13. A separate quality job must check Ruff
+coverage on Python 3.11, 3.12, 3.13, and 3.14. A separate quality job must check Ruff
 formatting, run Ruff linting and mypy, build distributions, and run
 dependency-isolated wheel verification.
 
 **REQ-PKG-009** — The repository must contain automated synchronization checks
 for the package version and duplicated compatibility dependency declarations.
 
-**REQ-PKG-010** — `uv.lock` must not be ignored. The project should generate
-and commit it when dependency resolution is available in the maintenance
-environment. Until then, verification records must state that the development
-dependency graph is not locked.
+**REQ-PKG-010** — `uv.lock` must be committed and must not be ignored. Normal
+repository and CI environments must treat the committed lock as the resolved
+dependency authority. A dependency or project-metadata change that makes the
+lock stale must update the lock before locked verification can pass.
 
 **REQ-PKG-011** — Hosted CI must execute the independently installed ObsPy
 reference oracle in a job where ObsPy is actually installed. A skip in another
@@ -216,4 +217,18 @@ an explicitly approved alternative resolved-dependency record.
 development toolchain. The repository pre-commit configuration must run Ruff
 formatting, Ruff linting, and the full pytest suite. The hooks must use the
 project `uv` environment rather than maintaining independent Python tool
-environments.
+environments, and they must reject a stale project lock instead of refreshing it
+implicitly.
+
+**REQ-PKG-017** — CI must pin the uv executable to the exact version declared by
+`[tool.uv].required-version`. Normal test, oracle, and quality environments must
+use `uv sync --locked`, and commands executed in those environments must use a
+lock-preserving `uv run --locked` path. The lower-bound compatibility job may
+intentionally bypass the project lock because its purpose is to exercise the
+declared minimum direct dependencies.
+
+**REQ-PKG-018** — CI must bound job runtime and cancel obsolete runs for the same
+workflow and pull request or branch. Push-triggered CI must run on the default
+branch; pull-request CI must run before integration. These controls are resource
+and feedback protections, not substitutes for test or compatibility evidence.
+Checkout steps must not persist the workflow token when later steps do not need Git credentials.

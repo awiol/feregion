@@ -20,7 +20,7 @@ stronger product claim by itself.
 | Users | Python callers, data-processing users, CLI users, and project maintainers |
 | Runtime context | Offline lookup from packaged generated assets; no runtime network dependency |
 | Development context | `uv`-managed Python project; upstream FE source tables are fetched only for regeneration/reference verification |
-| Declared Python environment | Python 3.11 or newer; hosted verification is required for 3.11, 3.12, and 3.13 in this iteration |
+| Declared Python environment | Python 3.11 or newer; hosted verification is required for 3.11, 3.12, 3.13, and 3.14 |
 | Public contracts | Python API, exception semantics, pandas adapter, CLI behavior and exit status, generated GeoJSON semantics, package metadata and extras |
 | Specialist concerns | Upstream-data provenance and redistribution status; general review does not provide legal advice or specialist license approval |
 | Release evidence | Contract-linked tests, reference-oracle comparisons, branch coverage as an omission signal, static checks, dependency compatibility, package inspection/install, benchmarks, documentation consistency, and source-delivery replay |
@@ -43,12 +43,13 @@ stronger product claim by itself.
 | Gate | Claim controlled | Required evidence | Acceptance condition | Exception authority | Retained evidence |
 |---|---|---|---|---|---|
 | `QG-FUNC` | Specified FE behavior is implemented | Full runtime suite plus source-table reproduction; direct ObsPy oracle in hosted CI | Required tests pass on the exact target source; skips are separately identified | Project decision owner | verification record and CI result |
-| `QG-COMP` | Declared compatibility has evidence | Supported-Python matrix, lower-bound dependency job, public-boundary regressions | All configured compatibility jobs pass or an exception records the lost guarantee | Project decision owner | CI result and release review |
+| `QG-COMP` | Declared compatibility has evidence | Python 3.11–3.14 matrix, lower-bound dependency job, public-boundary regressions | All configured compatibility jobs pass or an exception records the lost guarantee | Project decision owner | CI result and release review |
 | `QG-STATIC` | Configured static checks are clean | Ruff and mypy on the exact target source | Both checks pass | Project decision owner; exception must identify unchecked rule/type scope | CI/static-check log |
+| `QG-CI` | CI executes a reproducible declared tool/dependency state | Pinned uv, committed `uv.lock`, `uv sync --locked`, bounded job timeouts, and concurrency cancellation | Workflow syntax is valid; lock-preserving jobs pass on the exact candidate state | Project decision owner | workflow, lock, and CI run |
 | `QG-PKG` | Built distributions contain and install the intended product | `uv build`, wheel archive inspection, dependency-isolated wheel installation and smoke checks | Build succeeds; wheel contents/metadata meet the package contract; installed smoke checks pass | Project decision owner | verification record and package hashes |
 | `QG-PERF` | Performance claims remain bounded by evidence | Repeated benchmark table and source-table comparison | Report exists and correctness checks pass; review trigger above is not crossed without disposition | Project decision owner | benchmark JSON and report |
 | `QG-PROV` | Upstream and generated-data identity is known to the stated level | Pinned ObsPy commit and source SHA-256 checks; generated-asset SHA-256 checks; third-party notice review | Identity checks pass and unresolved license/provenance limitations remain explicit | Source-data license disposition requires qualified/human decision | metadata, notices, verification record |
-| `QG-DOC` | Maintained knowledge matches the target behavior | Version/document synchronization tests plus semantic review | Current requirements/design/quality/decision/traceability set matches target version and changed public behavior | Project decision owner | source documents and review record |
+| `QG-DOC` | Maintained knowledge matches the target behavior | Contract/document synchronization tests plus semantic review | Current requirements/design/quality/decision/traceability set matches the changed public and repository behavior | Project decision owner | source documents and review record |
 | `QG-DELIVERY` | The exported source handoff is replayable | Full source archive, exact-baseline patch, manifest, checksums, patch application and tree comparison | Patch reconstructs target byte-for-byte; archive safety and checksums pass | Project decision owner | delivery manifest, checksums, patch, verification record |
 
 ## Maturity decision
@@ -65,9 +66,8 @@ source state:
    `QG-DELIVERY` pass with no undisclosed skip or unavailable required check.
 2. The direct installed-ObsPy oracle runs successfully rather than being
    represented only by an optional skip.
-3. `uv.lock` is generated and committed, or the project owner explicitly
-   approves another resolved-dependency record that provides equivalent
-   maintenance intent.
+3. The committed `uv.lock` is current for the exact candidate source and locked
+   CI verification passes.
 4. The unresolved historical FE source-data license/provenance question has an
    explicit human or qualified disposition appropriate to the intended
    distribution. This document does not provide that legal determination.

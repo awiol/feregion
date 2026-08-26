@@ -3,17 +3,17 @@ repos:
     hooks:
       - id: ruff-format
         name: Ruff format
-        entry: uv run --no-sync ruff format
+        entry: uv run --locked --no-sync ruff format
         language: system
         types_or: [python, pyi]
       - id: ruff-check
         name: Ruff check
-        entry: uv run --no-sync ruff check
+        entry: uv run --locked --no-sync ruff check
         language: system
         types_or: [python, pyi]
       - id: pytest
         name: pytest
-        entry: uv run --no-sync pytest -q
+        entry: uv run --locked --no-sync pytest -q
         language: system
         pass_filenames: false
         always_run: true

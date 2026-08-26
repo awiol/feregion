@@ -46,7 +46,7 @@ can determine it.
 **REQ-REPO-006** — `.gitignore` must cover local environments, Python/tool
 caches, coverage output, benchmark output, build products, and retrieved
 upstream source data. It must not ignore requirements, design documents,
-generated runtime assets, tests, project metadata, or a future `uv.lock`.
+generated runtime assets, tests, project metadata, or the committed `uv.lock`.
 
 **REQ-REPO-007** — The repository must contain one active maintained contract
 set at the stable paths defined in this document. Superseded versions must remain

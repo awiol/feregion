@@ -132,9 +132,9 @@ def test_pre_commit_runs_ruff_format_check_and_pytest_through_uv() -> None:
     """Commit-time hooks reuse the synchronized project environment and required checks."""
 
     config = (PROJECT_ROOT / ".pre-commit-config.yaml").read_text(encoding="utf-8")
-    assert "entry: uv run --no-sync ruff format" in config
-    assert "entry: uv run --no-sync ruff check" in config
-    assert "entry: uv run --no-sync pytest -q" in config
+    assert "entry: uv run --locked --no-sync ruff format" in config
+    assert "entry: uv run --locked --no-sync ruff check" in config
+    assert "entry: uv run --locked --no-sync pytest -q" in config
     assert "pass_filenames: false" in config
 
 
@@ -142,7 +142,7 @@ def test_ci_matrix_covers_declared_python_versions() -> None:
     """The hosted test matrix includes every explicitly verified Python version."""
 
     workflow = (PROJECT_ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
-    for version in ("3.11", "3.12", "3.13"):
+    for version in ("3.11", "3.12", "3.13", "3.14"):
         assert f'"{version}"' in workflow
 
 
@@ -155,3 +155,41 @@ def test_ci_declares_direct_oracle_and_lower_bound_jobs() -> None:
     assert "minimum-dependencies:" in workflow
     for requirement in ("numpy==1.26.0", "pandas==2.1.0", "shapely==2.0.0"):
         assert requirement in workflow
+
+
+def test_python_314_is_explicitly_supported_without_raising_minimum() -> None:
+    """Metadata must advertise 3.14 while preserving Python 3.11 as the floor."""
+
+    data = _pyproject()
+    assert data["project"]["requires-python"] == ">=3.11"
+    classifiers = data["project"]["classifiers"]
+    assert "Programming Language :: Python :: 3.14" in classifiers
+
+
+def test_uv_version_is_pinned_for_repository_and_ci() -> None:
+    """The repository and setup action must resolve the same exact uv version."""
+
+    data = _pyproject()
+    assert data["tool"]["uv"]["required-version"] == "==0.12.6"
+    workflow = (PROJECT_ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    assert 'UV_VERSION: "0.12.6"' in workflow
+    assert "version: ${{ env.UV_VERSION }}" in workflow
+
+
+def test_ci_uses_locked_normal_environments_and_bounds_runs() -> None:
+    """Normal CI jobs must preserve the lock and bound obsolete or hung work."""
+
+    workflow = (PROJECT_ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    assert "uv sync --locked --group test" in workflow
+    assert "uv sync --locked --group test --group benchmark" in workflow
+    assert "uv sync --locked --group test --group lint" in workflow
+    assert "uv run --locked pytest" in workflow
+    assert "uv run --locked ruff format --check ." in workflow
+    assert "uv run --locked ruff check ." in workflow
+    assert "uv run --locked mypy" in workflow
+    assert "concurrency:" in workflow
+    assert "cancel-in-progress: true" in workflow
+    assert workflow.count("timeout-minutes:") == 4
+    assert "branches: [main]" in workflow
+    assert workflow.count("persist-credentials: false") == 4
+    assert "uv build --locked" in workflow

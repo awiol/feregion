@@ -189,7 +189,9 @@ The repository uses `uv` as the development and build frontend.
 
 GitHub Actions contains:
 
-- a Python 3.11, 3.12, and 3.13 matrix that fetches the hash-verified pinned FE
+GitHub Actions pins uv `0.12.6`, validates normal environments against the committed lock, bounds job runtimes, and cancels obsolete runs for the same branch or pull request.
+
+- a Python 3.11, 3.12, 3.13, and 3.14 matrix that fetches the hash-verified pinned FE
   source tables and runs the runtime suite with branch coverage;
 - an independent-oracle job that installs ObsPy and executes both source-table
   reproduction and direct ObsPy comparison tests;
