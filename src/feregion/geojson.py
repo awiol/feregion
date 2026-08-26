@@ -85,7 +85,22 @@ def write_regions_geojson(
     lookup: FlinnEngdahlLookup | None = None,
     indent: int | None = None,
 ) -> None:
-    """Write :func:`regions_geojson` output as UTF-8 GeoJSON."""
+    """Write area-equivalent FE geometry as UTF-8 GeoJSON.
+
+    Args:
+        path: Destination filesystem path. Existing content is replaced.
+        lookup: Optional lookup engine used to derive cell ownership and names.
+        indent: Optional JSON indentation passed to :func:`json.dumps`.
+
+    Raises:
+        GeoJSONDependencyError: If Shapely is not installed.
+        OSError: If the destination cannot be written.
+
+    Notes:
+        This helper does not provide atomic filesystem publication. Generate
+        the in-memory object with :func:`regions_geojson` first when the caller
+        needs separate publication or recovery semantics.
+    """
 
     destination = Path(path)
     destination.write_text(

@@ -80,3 +80,19 @@ def test_packaged_table_contains_754_active_regions_and_excludes_retired_ids() -
     used = set(map(int, np.unique(table)))
     assert len(used) == 754
     assert used.isdisjoint({172, 299, 550})
+
+
+def test_packaged_asset_hashes_match_recorded_metadata() -> None:
+    """Tracked runtime assets match the hashes recorded by their generator.
+
+    This check detects accidental or unreviewed asset replacement even when the
+    replacement still satisfies the structural shape and dtype checks.
+    """
+
+    import hashlib
+
+    data = files("feregion").joinpath("data")
+    metadata = json.loads(data.joinpath("metadata.json").read_text(encoding="utf-8"))
+    for name in ("fe_table.npy", "fe_names.npy"):
+        observed = hashlib.sha256(data.joinpath(name).read_bytes()).hexdigest()
+        assert observed == metadata["assets"][name]["sha256"]

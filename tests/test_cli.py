@@ -367,3 +367,48 @@ def test_cli_csv_new_destination_uses_process_umask(tmp_path: Path) -> None:
         os.umask(previous_umask)
 
     assert stat.S_IMODE(output.stat().st_mode) == 0o644
+
+
+def test_cli_csv_invalid_utf8_returns_bounded_error_without_traceback(
+    tmp_path: Path, capsys
+) -> None:
+    """Invalid UTF-8 input returns the CSV failure status and diagnostic.
+
+    The command owns the text-decoding contract for filesystem CSV input. A
+    decoding failure must not escape as ``UnicodeDecodeError`` or publish a
+    filesystem destination.
+    """
+
+    source = tmp_path / "input.csv"
+    output = tmp_path / "output.csv"
+    source.write_bytes(b"longitude,latitude\n12,\xff\n")
+
+    status = main(["csv", str(source), "-o", str(output)])
+    captured = capsys.readouterr()
+
+    assert status == 2
+    assert captured.out == ""
+    assert "CSV input must be valid UTF-8" in captured.err
+    assert "Traceback" not in captured.err
+    assert not output.exists()
+
+
+def test_cli_csv_malformed_quoting_returns_csv_error_without_publishing(
+    tmp_path: Path, capsys
+) -> None:
+    """Malformed CSV syntax is reported through the package CSV boundary.
+
+    Strict CSV parsing detects an unterminated quoted field. A file destination
+    must not be published after the parse failure.
+    """
+
+    source = tmp_path / "input.csv"
+    output = tmp_path / "output.csv"
+    source.write_text('longitude,latitude\n"12,48\n', encoding="utf-8")
+
+    status = main(["csv", str(source), "-o", str(output)])
+    captured = capsys.readouterr()
+
+    assert status == 2
+    assert "CSV input is malformed:" in captured.err
+    assert not output.exists()

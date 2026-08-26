@@ -34,10 +34,15 @@ def lookup_dataframe(
 
     Region names are not added unless ``include_names`` is true. The default
     operation returns a copy. Set ``inplace`` to update and return ``frame``.
+    Numeric coordinate values retain their source NumPy precision until the
+    core batch validator has classified finiteness and coordinate range.
 
     Output columns are additive. They must be distinct from coordinate columns,
     from each other when names are enabled, and from every pre-existing input
     column. The adapter never silently overwrites caller data.
+
+    Returns:
+        The annotated copy, or ``frame`` itself when ``inplace`` is true.
 
     Raises:
         DataFrameTypeError: If ``frame`` is not a pandas DataFrame.
@@ -93,11 +98,9 @@ def lookup_dataframe(
             raise CoordinateTypeError(f"DataFrame column {column!r} must be numeric")
 
     target = frame if inplace else frame.copy()
-    coordinates = target[[longitude_column, latitude_column]].to_numpy(
-        dtype=np.float64,
-        na_value=np.nan,
-        copy=False,
-    )
+    longitude = target[longitude_column].to_numpy(copy=False)
+    latitude = target[latitude_column].to_numpy(copy=False)
+    coordinates = np.column_stack((longitude, latitude))
     engine = lookup if lookup is not None else get_default_lookup()
     numbers = engine.lookup_numbers(coordinates)
     target[number_column] = numbers

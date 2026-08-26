@@ -75,8 +75,10 @@ result_with_names = lookup_dataframe(frame, include_names=True)
 ```
 
 The adapter requires distinct, unique longitude and latitude columns. Boolean
-coordinate columns are rejected. Output columns are additive and cannot replace
-existing input columns.
+coordinate columns are rejected. Supported numeric dtypes retain their source
+precision through finiteness and range classification, including extended
+floating dtypes. Output columns are additive and cannot replace existing input
+columns.
 
 ## Command line
 
@@ -86,7 +88,8 @@ uv run fe-region csv input.csv -o output.csv --include-names
 uv run --extra geo fe-region geojson .cache/regions.geojson
 ```
 
-CSV headers must contain unique field names. Every data row must contain exactly
+Filesystem CSV input must be valid UTF-8 and satisfy strict CSV syntax. CSV
+headers must contain unique field names. Every data row must contain exactly
 the number of fields declared by the header. Filesystem output uses atomic
 publication through a temporary sibling and `os.replace()`. Existing destination
 permission bits are preserved. New files use normal process-umask semantics.
@@ -114,8 +117,10 @@ uv run pytest -q --cov=feregion --cov-branch --cov-report=term-missing
 uv build
 ```
 
-GitHub Actions verifies Python 3.11, 3.12, and 3.13. A separate quality job runs
-Ruff, mypy, distribution builds, and dependency-isolated wheel verification.
+GitHub Actions verifies Python 3.11, 3.12, and 3.13. Dedicated jobs also run the
+installed ObsPy oracle and the declared lower dependency bounds. A separate
+quality job runs Ruff, mypy, distribution builds, wheel archive inspection, and
+dependency-isolated wheel verification.
 
 `uv.lock` is not ignored. This source iteration does not contain a lock because
 the environment used to prepare it could not resolve the package index.
@@ -162,11 +167,13 @@ delivery evidence and are not repository source.
 
 The current versioned contract set is:
 
-- `docs/feregion-requirements-v0.1.1a2-2026-08-23.md`;
-- `docs/feregion-engineering-requirements-v0.1.1a2-2026-08-23.md`;
-- `docs/feregion-repository-delivery-requirements-v0.1.1a2-2026-08-23.md`;
-- `docs/feregion-design-v0.1.1a2-2026-08-23.md`; and
-- `docs/feregion-verification-traceability-v0.1.1a2-2026-08-23.md`.
+- `docs/feregion-requirements-v0.1.1a3-2026-08-26.md`;
+- `docs/feregion-engineering-requirements-v0.1.1a3-2026-08-26.md`;
+- `docs/feregion-repository-delivery-requirements-v0.1.1a3-2026-08-26.md`;
+- `docs/feregion-design-v0.1.1a3-2026-08-26.md`;
+- `docs/feregion-quality-assurance-v0.1.1a3-2026-08-26.md`;
+- `docs/feregion-decisions-v0.1.1a3-2026-08-26.md`; and
+- `docs/feregion-verification-traceability-v0.1.1a3-2026-08-26.md`.
 
 `docs/testing.md` is the stable maintainer procedure. Future iterative
 deliveries replace the complete versioned contract set in one change.

@@ -2,13 +2,13 @@
 
 | Field | Value |
 |---|---|
-| Requirements document version | `0.1.1a2` |
-| Implementation target | `0.1.1a2` |
-| Document date | `2026-08-23` |
-| Current filename | `feregion-repository-delivery-requirements-v0.1.1a2-2026-08-23.md` |
+| Requirements document version | `0.1.1a3` |
+| Implementation target | `0.1.1a3` |
+| Document date | `2026-08-26` |
+| Current filename | `feregion-repository-delivery-requirements-v0.1.1a3-2026-08-26.md` |
 | Status | Implemented alpha repository/delivery contract |
 
-This document uses the normative profile defined by `feregion-requirements-v0.1.1a2-2026-08-23.md`.
+This document uses the normative profile defined by `feregion-requirements-v0.1.1a3-2026-08-26.md`.
 
 ## Repository boundary
 
@@ -20,11 +20,13 @@ outer delivery filenames, not in that root name.
 artifacts. Their filenames must contain project version and UTC date. For this
 iteration they are:
 
-- `docs/feregion-requirements-v0.1.1a2-2026-08-23.md`;
-- `docs/feregion-engineering-requirements-v0.1.1a2-2026-08-23.md`;
-- `docs/feregion-repository-delivery-requirements-v0.1.1a2-2026-08-23.md`;
-- `docs/feregion-design-v0.1.1a2-2026-08-23.md`; and
-- `docs/feregion-verification-traceability-v0.1.1a2-2026-08-23.md`.
+- `docs/feregion-requirements-v0.1.1a3-2026-08-26.md`;
+- `docs/feregion-engineering-requirements-v0.1.1a3-2026-08-26.md`;
+- `docs/feregion-repository-delivery-requirements-v0.1.1a3-2026-08-26.md`;
+- `docs/feregion-design-v0.1.1a3-2026-08-26.md`;
+- `docs/feregion-quality-assurance-v0.1.1a3-2026-08-26.md`;
+- `docs/feregion-decisions-v0.1.1a3-2026-08-26.md`; and
+- `docs/feregion-verification-traceability-v0.1.1a3-2026-08-26.md`.
 
 A new iteration must intentionally rename the versioned contract set and update
 repository references in the same change. This is an explicit project naming
@@ -50,9 +52,23 @@ upstream source data. It must not ignore requirements, design documents,
 generated runtime assets, tests, project metadata, or a future `uv.lock`.
 
 **REQ-REPO-007** — The repository must contain only the current versioned
-requirements, design, and verification-traceability iteration. A new delivery
-must rename those files, update their version/date metadata, remove superseded
-filenames, and update all internal references in the same change.
+requirements, design, quality-assurance, decision, and verification-traceability
+iteration. A new delivery must rename those files, update their version/date
+metadata, remove superseded filenames, and update all internal references in
+the same change.
+
+**REQ-REPO-008** — Consequential architecture, compatibility, provenance, and
+release-maturity decisions must be recorded in the current decision document
+with context, selected option, relevant alternatives, evidence or assumptions,
+compatibility consequences, and a review trigger. A later change must preserve
+supersession rather than rewriting the prior rationale as if the new decision
+had always applied.
+
+**REQ-REPO-009** — Verification traceability must distinguish the intended
+assessment method from the observed release result. Environment-dependent or
+delivery-dependent requirements must identify their required environment or
+release evidence instead of being marked verified solely because a related
+test or workflow exists.
 
 ## Iterative delivery contract
 

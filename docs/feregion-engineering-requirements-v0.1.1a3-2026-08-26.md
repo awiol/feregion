@@ -2,13 +2,13 @@
 
 | Field | Value |
 |---|---|
-| Requirements document version | `0.1.1a2` |
-| Implementation target | `0.1.1a2` |
-| Document date | `2026-08-23` |
-| Current filename | `feregion-engineering-requirements-v0.1.1a2-2026-08-23.md` |
+| Requirements document version | `0.1.1a3` |
+| Implementation target | `0.1.1a3` |
+| Document date | `2026-08-26` |
+| Current filename | `feregion-engineering-requirements-v0.1.1a3-2026-08-26.md` |
 | Status | Implemented alpha engineering contract |
 
-This document uses the normative profile defined by `feregion-requirements-v0.1.1a2-2026-08-23.md`.
+This document uses the normative profile defined by `feregion-requirements-v0.1.1a3-2026-08-26.md`.
 
 ## Runtime data and dependency behavior
 
@@ -112,6 +112,16 @@ version and `pyproject.toml`, between retained compatibility extras and
 authoritative dependency groups, and between the current contract filenames and
 the implementation version.
 
+**REQ-TEST-014** — A regression test for a corrected defect must demonstrate
+sensitivity to the targeted incorrect behavior before the correction, or the
+release evidence must record another credible sensitivity demonstration when
+direct pre-fix execution is unavailable or unsafe.
+
+**REQ-TEST-015** — Tests must verify that the tracked runtime asset bytes match
+the SHA-256 values recorded for those generated assets in packaged provenance
+metadata. Structural shape and dtype checks alone are not sufficient evidence
+for asset identity.
+
 **REQ-PERF-001** — The repository must contain automated benchmarks for the
 implemented in-process lookup interfaces: scalar number lookup, scalar region
 lookup, scalar number-to-name conversion, batch number lookup, batch
@@ -177,3 +187,30 @@ for the package version and duplicated compatibility dependency declarations.
 and commit it when dependency resolution is available in the maintenance
 environment. Until then, verification records must state that the development
 dependency graph is not locked.
+
+**REQ-PKG-011** — Hosted CI must execute the independently installed ObsPy
+reference oracle in a job where ObsPy is actually installed. A skip in another
+job must not be reported as direct-oracle verification.
+
+**REQ-PKG-012** — Hosted CI must test the package on Python 3.11 against the
+declared lower bounds of NumPy, pandas, Shapely, pytest, and pytest-cov. This
+lower-bound job is compatibility evidence for the declared ranges; it does not
+replace the normal current-dependency matrix.
+
+**REQ-PKG-013** — Wheel verification must inspect the built archive for required
+runtime modules, generated assets, metadata, optional-extra declarations, the
+`fe-region` entry point, and license/provenance notices before installing the
+wheel in a clean dependency-isolated environment. Repository-only tests, tools,
+and benchmark harnesses must not appear in the runtime wheel.
+
+**REQ-PKG-014** — The project must maintain an explicit software-quality and
+release-gate document. Each material gate must state the claim it controls, the
+required evidence, its acceptance condition, exception authority, and retained
+evidence. A passing process check must not be promoted into a stronger product
+claim.
+
+**REQ-PKG-015** — Promotion from alpha to beta requires an observed hosted-CI
+run for the exact candidate source state, including the supported-Python matrix,
+static checks, direct ObsPy oracle, lower-bound dependency compatibility, build,
+and clean wheel verification. Promotion also requires a committed `uv.lock` or
+an explicitly approved alternative resolved-dependency record.

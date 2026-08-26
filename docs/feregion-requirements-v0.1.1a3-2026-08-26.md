@@ -2,11 +2,11 @@
 
 | Field | Value |
 |---|---|
-| Requirements document version | `0.1.1a2` |
+| Requirements document version | `0.1.1a3` |
 | Behavioral contract series | `0.1` |
-| Implementation target | `0.1.1a2` |
-| Document date | `2026-08-23` |
-| Current filename | `feregion-requirements-v0.1.1a2-2026-08-23.md` |
+| Implementation target | `0.1.1a3` |
+| Document date | `2026-08-26` |
+| Current filename | `feregion-requirements-v0.1.1a3-2026-08-26.md` |
 | Status | Implemented alpha contract |
 
 ## Normative profile and terminology
@@ -28,12 +28,12 @@ The package does not claim that the packaged region name is the unique authorita
 
 Related contracts:
 
-- `feregion-engineering-requirements-v0.1.1a2-2026-08-23.md` defines test,
+- `feregion-engineering-requirements-v0.1.1a3-2026-08-26.md` defines test,
   provenance, packaging, and development requirements.
-- `feregion-repository-delivery-requirements-v0.1.1a2-2026-08-23.md`
+- `feregion-repository-delivery-requirements-v0.1.1a3-2026-08-26.md`
   defines repository and source-delivery requirements.
-- `feregion-design-v0.1.1a2-2026-08-23.md` records the selected design.
-- `feregion-verification-traceability-v0.1.1a2-2026-08-23.md` maps
+- `feregion-design-v0.1.1a3-2026-08-26.md` records the selected design.
+- `feregion-verification-traceability-v0.1.1a3-2026-08-26.md` maps
   requirements to verification evidence.
 
 ## Purpose and terms
@@ -125,6 +125,12 @@ modified.
 unique DataFrame columns. Boolean coordinate columns must be rejected with
 `CoordinateTypeError`, consistent with the core coordinate type contract.
 
+**REQ-PD-007** — The pandas adapter must preserve supported numeric source
+dtypes until the core batch validator classifies finiteness and coordinate
+range. In particular, a finite extended floating value that is outside the FE
+coordinate range must raise `CoordinateRangeError` without an overflow warning
+caused by premature `float64` narrowing.
+
 ## Errors and invalid input
 
 **REQ-ERR-001** — Public package failures must use package-specific exception
@@ -194,6 +200,12 @@ of discarding or synthesizing input data.
 **REQ-CLI-011** — When atomic filesystem publication replaces an existing CSV,
 the replacement must preserve the destination permission bits. A new CSV must
 use normal file-creation permissions as modified by the process umask.
+
+**REQ-CLI-012** — Filesystem CSV input must be valid UTF-8 and must satisfy
+strict CSV syntax. Text-decoding and CSV-parser failures must be reported
+through the package CSV failure boundary. The installed command must return
+status 2 with a bounded diagnostic and must not expose a Python traceback for
+these input failures. Atomic filesystem publication rules continue to apply.
 
 ## GeoJSON feature
 

@@ -32,8 +32,10 @@ available:
 uv run python -m tools.verify_wheel dist/feregion-*.whl --python 3.11
 ```
 
-The wheel verifier creates a new uv virtual environment without system site
-packages and installs wheel dependencies into that environment.
+The wheel verifier inspects package contents, metadata, extras, console entry
+points, and license/provenance notices before installation. It then creates a
+new uv virtual environment without system site packages and installs wheel
+dependencies into that environment.
 
 ## Test layers
 
@@ -44,8 +46,9 @@ packages and installs wheel dependencies into that environment.
    pinned ObsPy source tables through an independent source-table scanner.
 4. Optional ObsPy oracle tests compare package behavior with the reference
    implementation when ObsPy is installed.
-5. pandas and CSV tests verify selector identity, semantic type parity,
-   structured-input preservation, additive output, and failure behavior.
+5. pandas and CSV tests verify selector identity, source-dtype validation
+   parity, structured-input preservation, UTF-8/CSV parser failures, additive
+   output, and publication behavior.
 6. GeoJSON tests verify area-cell coverage and the explicit boundary limitation.
 7. Repository metadata tests detect version, dependency, contract-file, CI
    matrix, and traceability drift.
@@ -74,6 +77,7 @@ CSV tests cover:
 - input/output path aliases;
 - duplicate headers;
 - surplus and missing row fields;
+- invalid UTF-8 and malformed CSV syntax;
 - distinct coordinate selectors;
 - output-column collisions;
 - preservation of existing files after early and late failures;
@@ -82,8 +86,13 @@ CSV tests cover:
 - partial stdout behavior after a late failure.
 
 pandas tests cover duplicate coordinate labels, identical coordinate selectors,
-Boolean coordinate dtypes, output collisions, missing values, and copy versus
-in-place behavior.
+Boolean coordinate dtypes, wide finite out-of-range values, output collisions,
+missing values, and copy versus in-place behavior.
+
+For a corrected defect, preserve sensitivity evidence: execute the targeted
+regression against the unchanged faulty baseline when practical, or record a
+credible alternative sensitivity demonstration. A passing test that also passed
+before the fix does not establish regression protection for that defect.
 
 ## CI authority
 
@@ -92,6 +101,8 @@ in-place behavior.
 - Python 3.11, 3.12, and 3.13 test execution;
 - branch coverage;
 - source-reproduction checks;
+- a direct installed-ObsPy oracle job;
+- a Python 3.11 lower-bound dependency job;
 - Ruff;
 - mypy;
 - distribution builds; and

@@ -102,29 +102,34 @@ def _csv(args: argparse.Namespace) -> int:
     if args.input != "-" and args.output != "-":
         _reject_csv_path_alias(Path(args.input), Path(args.output))
 
-    with _csv_input(args.input) as input_stream:
-        if args.output == "-":
-            _process_csv(
-                input_stream,
-                sys.stdout,
-                longitude_column=args.longitude_column,
-                latitude_column=args.latitude_column,
-                number_column=args.number_column,
-                include_names=args.include_names,
-                name_column=args.name_column,
-                chunk_size=args.chunk_size,
-            )
-        else:
-            _process_csv_to_file(
-                input_stream,
-                Path(args.output),
-                longitude_column=args.longitude_column,
-                latitude_column=args.latitude_column,
-                number_column=args.number_column,
-                include_names=args.include_names,
-                name_column=args.name_column,
-                chunk_size=args.chunk_size,
-            )
+    try:
+        with _csv_input(args.input) as input_stream:
+            if args.output == "-":
+                _process_csv(
+                    input_stream,
+                    sys.stdout,
+                    longitude_column=args.longitude_column,
+                    latitude_column=args.latitude_column,
+                    number_column=args.number_column,
+                    include_names=args.include_names,
+                    name_column=args.name_column,
+                    chunk_size=args.chunk_size,
+                )
+            else:
+                _process_csv_to_file(
+                    input_stream,
+                    Path(args.output),
+                    longitude_column=args.longitude_column,
+                    latitude_column=args.latitude_column,
+                    number_column=args.number_column,
+                    include_names=args.include_names,
+                    name_column=args.name_column,
+                    chunk_size=args.chunk_size,
+                )
+    except UnicodeError as exc:
+        raise CsvInputError("CSV input must be valid UTF-8") from exc
+    except csv.Error as exc:
+        raise CsvInputError(f"CSV input is malformed: {exc}") from exc
     return 0
 
 
@@ -247,7 +252,7 @@ def _process_csv(
     written before a later input error because a stream cannot be rolled back.
     """
 
-    reader = csv.DictReader(input_stream)
+    reader = csv.DictReader(input_stream, strict=True)
     if reader.fieldnames is None:
         raise CsvInputError("CSV input has no header")
     duplicate_headers = _duplicate_csv_headers(reader.fieldnames)

@@ -4,6 +4,7 @@ import pandas as pd
 import pytest
 
 from feregion.exceptions import (
+    CoordinateRangeError,
     CoordinateTypeError,
     CoordinateValueError,
     DataFrameColumnError,
@@ -173,3 +174,29 @@ def test_dataframe_rejects_duplicate_longitude_label() -> None:
     frame = pd.DataFrame([[12.0, 13.0, 48.0]], columns=["longitude", "longitude", "latitude"])
     with raises_exact(DataFrameColumnError):
         lookup_dataframe(frame)
+
+
+def test_dataframe_wide_finite_out_of_range_preserves_core_error_precedence() -> None:
+    """Wide pandas floats are range-checked before float64 narrowing.
+
+    The setup uses a finite ``longdouble`` value that overflows ``float64`` on
+    platforms where ``longdouble`` has a wider exponent range. The pandas
+    adapter must preserve the core batch contract and raise exactly
+    ``CoordinateRangeError`` without a narrowing-overflow warning.
+    """
+
+    import warnings
+
+    if np.finfo(np.longdouble).max <= np.finfo(np.float64).max:
+        pytest.skip("longdouble does not have a wider exponent range than float64")
+
+    frame = pd.DataFrame(
+        {
+            "longitude": np.array([np.longdouble("1e400")], dtype=np.longdouble),
+            "latitude": np.array([0], dtype=np.longdouble),
+        }
+    )
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        with raises_exact(CoordinateRangeError):
+            lookup_dataframe(frame)

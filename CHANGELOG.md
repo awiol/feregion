@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.1a3 — 2026-08-26
+
+- Preserved pandas extended-floating validation semantics by avoiding premature `float64` narrowing in the adapter.
+- Converted invalid UTF-8 and strict CSV parser failures into bounded `CsvInputError` CLI failures.
+- Added regression-sensitivity evidence for the two corrected boundary defects.
+- Added generated-asset hash consistency checks against packaged provenance metadata.
+- Strengthened CI with a direct installed-ObsPy oracle job and a declared lower-bound dependency job.
+- Strengthened wheel verification to inspect runtime contents, metadata, extras, entry points, and license notices before clean installation.
+- Added an explicit quality-assurance plan, release gates, and a versioned decision ledger.
+- Expanded public Python docstrings and verification traceability under the current software-quality guidance.
+
 ## 0.1.1a2 — 2026-08-23
 
 - Rejected duplicate CSV headers and row-width mismatches instead of silently losing structured input.

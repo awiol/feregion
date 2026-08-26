@@ -2,11 +2,11 @@
 
 | Field | Value |
 |---|---|
-| Design document version | `0.1.1a2` |
+| Design document version | `0.1.1a3` |
 | Behavioral contract series | `0.1` |
-| Implementation target | `0.1.1a2` |
-| Document date | `2026-08-23` |
-| Current filename | `feregion-design-v0.1.1a2-2026-08-23.md` |
+| Implementation target | `0.1.1a3` |
+| Document date | `2026-08-26` |
+| Current filename | `feregion-design-v0.1.1a3-2026-08-26.md` |
 | Status | Implemented alpha design |
 
 ## 1. Design result
@@ -91,8 +91,9 @@ The pandas adapter follows the same semantic coordinate-type contract. It:
 - requires distinct longitude and latitude selectors;
 - requires each selected label to occur exactly once;
 - rejects Boolean coordinate columns;
-- rejects missing or ambiguous selectors with `DataFrameColumnError`; and
-- delegates value and range semantics to the core batch API.
+- rejects missing or ambiguous selectors with `DataFrameColumnError`;
+- converts each selected numeric Series without forcing `float64`; and
+- delegates source-dtype finiteness/range classification to the core batch API.
 
 Output columns are additive. They cannot replace coordinate columns or any
 existing input column. Number and name output columns must differ when names
@@ -109,6 +110,11 @@ Before row processing, the command validates that:
 - every header field name is unique;
 - longitude and latitude selectors are distinct and present; and
 - requested output fields do not collide with input or coordinate fields.
+
+Filesystem CSV input is decoded as UTF-8 and parsed with strict CSV syntax.
+Unicode decoding failures and `csv.Error` parser failures are converted to
+`CsvInputError` at the command boundary. The installed command returns status 2
+with a bounded diagnostic rather than leaking a Python traceback.
 
 For every row, the number of fields must exactly match the header width.
 Surplus fields and missing fields raise `CsvInputError`. The command does not
@@ -188,19 +194,31 @@ The repository uses `uv` as the development and build frontend.
 GitHub Actions contains:
 
 - a Python 3.11, 3.12, and 3.13 matrix that fetches the hash-verified pinned FE
-  source tables and runs the full test suite with branch coverage; and
-- a Python 3.11 quality job that runs Ruff, mypy, distribution builds, and
-  dependency-isolated wheel verification.
+  source tables and runs the runtime suite with branch coverage;
+- an independent-oracle job that installs ObsPy and executes both source-table
+  reproduction and direct ObsPy comparison tests;
+- a Python 3.11 lower-bound job that installs the declared minimum NumPy,
+  pandas, Shapely, pytest, and pytest-cov versions; and
+- a Python 3.11 quality job that runs Ruff, mypy, distribution builds, wheel
+  archive inspection, and dependency-isolated wheel verification.
 
-`tools/verify_wheel.py` creates a fresh uv virtual environment without system
-site packages and installs the wheel with its dependencies before exercising
-Python and CLI APIs.
+`tools/verify_wheel.py` first inspects the built archive for runtime files,
+package data, metadata, extras, the console entry point, and license/provenance
+notices. It then creates a fresh uv virtual environment without system site
+packages, installs the wheel with dependencies, and exercises Python and CLI
+APIs.
 
-The repository also contains synchronization tests for:
+The repository also contains synchronization and integrity tests for:
 
 - package runtime version versus `pyproject.toml`;
-- compatibility extras versus authoritative dependency groups; and
+- compatibility extras versus authoritative dependency groups;
+- generated runtime asset hashes versus packaged metadata; and
 - current versioned contract filenames and verification traceability.
+
+Named defect regressions retain sensitivity evidence. For the v0.1.1a3 pandas
+and UTF-8 corrections, the targeted tests were executed against the unchanged
+v0.1.1a2 baseline and failed for the reviewed defect before the fixes were
+applied.
 
 `uv.lock` is not ignored. It remains absent from this iteration because the
 current execution environment cannot resolve the package index. That absence is
@@ -214,9 +232,11 @@ The repository separates three requirement scopes:
 2. engineering, verification, provenance, and packaging; and
 3. repository and source-delivery rules.
 
-The design is recorded in this document. A separate verification-traceability
-document maps every requirement ID to tests or release checks. `docs/testing.md`
-provides stable maintainer procedures.
+The design is recorded in this document. The current quality-assurance document
+defines selected quality scenarios, release gates, and maturity conditions. The
+decision document records consequential choices and review triggers. A separate
+verification-traceability document maps every requirement ID to tests or release
+checks. `docs/testing.md` provides stable maintainer procedures.
 
 Only the current versioned contract set remains in the repository. Delivery
 manifests, checksum lists, raw benchmark results, verification logs, and
@@ -229,8 +249,9 @@ v0.1.1a1. This iteration intentionally makes previously ambiguous structured
 input fail instead of silently losing data. Explicit engine construction now
 copies input arrays to make the immutability contract real.
 
-The source-data license remains unresolved in project provenance. Python 3.11
-and 3.12 behavior will be verified by CI when this source is run in the hosted
-repository; the current local environment only executes Python 3.13. Ruff and
-mypy are also CI requirements even when the local environment cannot install
-them.
+The source-data license remains unresolved in project provenance. The
+development dependency graph also remains unlocked because the current local
+environment cannot resolve PyPI. Hosted Python 3.11/3.12/3.13, lower-bound
+dependency, direct ObsPy oracle, Ruff, mypy, and clean-install results are
+required release evidence but are not claimed from workflow configuration
+alone. These open evidence conditions keep this iteration at alpha maturity.

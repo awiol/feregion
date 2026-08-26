@@ -76,20 +76,24 @@ def test_current_contract_documents_match_runtime_version_and_are_traceable() ->
         for path in DOCS.glob("feregion-*-v*.md")
         if "requirements" in path.name
         or "design" in path.name
+        or "quality-assurance" in path.name
+        or "decisions" in path.name
         or "verification-traceability" in path.name
     )
-    assert len(contract_files) == 5
+    assert len(contract_files) == 7
     assert all(f"-v{version}-" in path.name for path in contract_files)
 
     traceability = next(DOCS.glob("feregion-verification-traceability-v*.md"))
     trace_text = traceability.read_text(encoding="utf-8")
-    requirement_ids: set[str] = set()
+    requirement_id_list: list[str] = []
     for path in DOCS.glob("feregion-*requirements-v*.md"):
-        requirement_ids.update(
+        requirement_id_list.extend(
             re.findall(r"\bREQ-[A-Z]+-\d{3}\b", path.read_text(encoding="utf-8"))
         )
+    requirement_ids = set(requirement_id_list)
     assert requirement_ids
-    assert all(requirement_id in trace_text for requirement_id in requirement_ids)
+    assert len(requirement_id_list) == len(requirement_ids)
+    assert all(trace_text.count(f"`{requirement_id}`") == 1 for requirement_id in requirement_ids)
 
 
 def test_readme_lists_every_current_versioned_contract_document() -> None:
@@ -100,6 +104,8 @@ def test_readme_lists_every_current_versioned_contract_document() -> None:
         is_contract = (
             "requirements" in path.name
             or "design" in path.name
+            or "quality-assurance" in path.name
+            or "decisions" in path.name
             or "verification-traceability" in path.name
         )
         if is_contract:
@@ -107,10 +113,23 @@ def test_readme_lists_every_current_versioned_contract_document() -> None:
 
 
 def test_ci_matrix_covers_declared_python_versions() -> None:
-    """The hosted test matrix must include Python 3.11, 3.12, and 3.13."""
+    """The hosted test matrix includes every explicitly verified Python version."""
 
     workflow = (PROJECT_ROOT / ".github" / "workflows" / "ci.yml").read_text(
         encoding="utf-8"
     )
     for version in ("3.11", "3.12", "3.13"):
         assert f'"{version}"' in workflow
+
+
+def test_ci_declares_direct_oracle_and_lower_bound_jobs() -> None:
+    """CI keeps reference-oracle and dependency-range evidence explicit."""
+
+    workflow = (PROJECT_ROOT / ".github" / "workflows" / "ci.yml").read_text(
+        encoding="utf-8"
+    )
+    assert "reference-oracle:" in workflow
+    assert "tests/test_obspy_oracle.py" in workflow
+    assert "minimum-dependencies:" in workflow
+    for requirement in ("numpy==1.26.0", "pandas==2.1.0", "shapely==2.0.0"):
+        assert requirement in workflow
