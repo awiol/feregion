@@ -84,8 +84,7 @@ def main() -> None:
 
     parser = argparse.ArgumentParser(
         description=(
-            f"Fetch ObsPy {OBSPY_REVISION} Flinn-Engdahl source tables from "
-            f"commit {OBSPY_COMMIT}."
+            f"Fetch ObsPy {OBSPY_REVISION} Flinn-Engdahl source tables from commit {OBSPY_COMMIT}."
         )
     )
     parser.add_argument(
@@ -96,10 +95,7 @@ def main() -> None:
     )
     args = parser.parse_args()
     fetch_source_data(args.output_dir)
-    print(
-        f"verified ObsPy {OBSPY_REVISION} ({OBSPY_COMMIT}) FE source data "
-        f"in {args.output_dir}"
-    )
+    print(f"verified ObsPy {OBSPY_REVISION} ({OBSPY_COMMIT}) FE source data in {args.output_dir}")
 
 
 if __name__ == "__main__":

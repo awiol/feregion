@@ -41,9 +41,7 @@ def test_compatibility_test_extra_matches_test_dependency_group() -> None:
     """The retained ``test`` extra must not drift from the authoritative uv test group."""
 
     data = _pyproject()
-    assert data["project"]["optional-dependencies"]["test"] == _requirements_for_group(
-        data, "test"
-    )
+    assert data["project"]["optional-dependencies"]["test"] == _requirements_for_group(data, "test")
 
 
 def test_compatibility_benchmark_extra_matches_benchmark_dependency_group() -> None:
@@ -115,9 +113,7 @@ def test_readme_lists_every_current_versioned_contract_document() -> None:
 def test_ci_matrix_covers_declared_python_versions() -> None:
     """The hosted test matrix includes every explicitly verified Python version."""
 
-    workflow = (PROJECT_ROOT / ".github" / "workflows" / "ci.yml").read_text(
-        encoding="utf-8"
-    )
+    workflow = (PROJECT_ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
     for version in ("3.11", "3.12", "3.13"):
         assert f'"{version}"' in workflow
 
@@ -125,9 +121,7 @@ def test_ci_matrix_covers_declared_python_versions() -> None:
 def test_ci_declares_direct_oracle_and_lower_bound_jobs() -> None:
     """CI keeps reference-oracle and dependency-range evidence explicit."""
 
-    workflow = (PROJECT_ROOT / ".github" / "workflows" / "ci.yml").read_text(
-        encoding="utf-8"
-    )
+    workflow = (PROJECT_ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
     assert "reference-oracle:" in workflow
     assert "tests/test_obspy_oracle.py" in workflow
     assert "minimum-dependencies:" in workflow

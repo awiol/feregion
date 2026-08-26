@@ -54,9 +54,7 @@ def inspect_wheel(wheel: Path, *, expected_version: str | None = None) -> str:
         missing = sorted(REQUIRED_PACKAGE_FILES - names)
         if missing:
             raise ValueError(f"wheel is missing required package files: {missing}")
-        forbidden = sorted(
-            name for name in names if name.startswith(FORBIDDEN_PREFIXES)
-        )
+        forbidden = sorted(name for name in names if name.startswith(FORBIDDEN_PREFIXES))
         if forbidden:
             raise ValueError(f"wheel contains repository-only files: {forbidden}")
 
@@ -68,9 +66,7 @@ def inspect_wheel(wheel: Path, *, expected_version: str | None = None) -> str:
         if not version:
             raise ValueError("wheel metadata does not declare Version")
         if expected_version is not None and version != expected_version:
-            raise ValueError(
-                f"wheel version mismatch: expected {expected_version}, got {version}"
-            )
+            raise ValueError(f"wheel version mismatch: expected {expected_version}, got {version}")
         if metadata.get("Requires-Python") != ">=3.11":
             raise ValueError("wheel metadata does not preserve Requires-Python >=3.11")
         extras = set(metadata.get_all("Provides-Extra") or [])
@@ -79,9 +75,7 @@ def inspect_wheel(wheel: Path, *, expected_version: str | None = None) -> str:
                 f"wheel is missing declared optional extras: {sorted(REQUIRED_EXTRAS - extras)}"
             )
 
-        entry_points = [
-            name for name in names if name.endswith(".dist-info/entry_points.txt")
-        ]
+        entry_points = [name for name in names if name.endswith(".dist-info/entry_points.txt")]
         if len(entry_points) != 1:
             raise ValueError("wheel must contain exactly one entry_points.txt")
         entry_text = archive.read(entry_points[0]).decode("utf-8")

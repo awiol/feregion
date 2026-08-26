@@ -185,9 +185,7 @@ def _process_csv_to_file(
     """
 
     temporary_path: Path | None = None
-    destination_mode = (
-        stat.S_IMODE(output_path.stat().st_mode) if output_path.exists() else None
-    )
+    destination_mode = stat.S_IMODE(output_path.stat().st_mode) if output_path.exists() else None
     try:
         temporary_path, output_stream = _open_csv_temporary(output_path)
         with output_stream:
@@ -214,9 +212,7 @@ def _open_csv_temporary(output_path: Path) -> tuple[Path, TextIO]:
     """Create an exclusive temporary sibling using normal umask semantics."""
 
     for _ in range(100):
-        temporary_path = output_path.parent / (
-            f".{output_path.name}.{secrets.token_hex(8)}.tmp"
-        )
+        temporary_path = output_path.parent / (f".{output_path.name}.{secrets.token_hex(8)}.tmp")
         try:
             descriptor = os.open(
                 temporary_path,
@@ -257,9 +253,7 @@ def _process_csv(
         raise CsvInputError("CSV input has no header")
     duplicate_headers = _duplicate_csv_headers(reader.fieldnames)
     if duplicate_headers:
-        raise CsvInputError(
-            "CSV header contains duplicate fields: " + ", ".join(duplicate_headers)
-        )
+        raise CsvInputError("CSV header contains duplicate fields: " + ", ".join(duplicate_headers))
     if longitude_column == latitude_column:
         raise CsvInputError("CSV longitude and latitude columns must be different")
     missing = [
@@ -334,9 +328,7 @@ def _validate_csv_row_width(row: dict[str | None, str | list[str] | None], row_n
     """Reject rows whose field count differs from the declared header width."""
 
     if None in row or any(value is None for value in row.values()):
-        raise CsvInputError(
-            f"CSV row {row_number} field count does not match the header"
-        )
+        raise CsvInputError(f"CSV row {row_number} field count does not match the header")
 
 
 def _validate_csv_output_columns(

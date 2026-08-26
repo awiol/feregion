@@ -66,16 +66,12 @@ def lookup_dataframe(
         raise DataFrameTypeError("frame must be a pandas DataFrame")
 
     if longitude_column == latitude_column:
-        raise DataFrameColumnError(
-            "longitude and latitude columns must be different"
-        )
+        raise DataFrameColumnError("longitude and latitude columns must be different")
 
     for column in (longitude_column, latitude_column):
         occurrences = sum(label == column for label in frame.columns)
         if occurrences > 1:
-            raise DataFrameColumnError(
-                f"coordinate column label must be unique: {column}"
-            )
+            raise DataFrameColumnError(f"coordinate column label must be unique: {column}")
 
     missing = [
         column for column in (longitude_column, latitude_column) if column not in frame.columns

@@ -15,9 +15,7 @@ OBSPY_REVISION = "1.4.2"
 OBSPY_COMMIT = "a629e8c021052904b6b8d62699d03f2a3721ae63"
 OBSPY_REPOSITORY = "https://github.com/obspy/obspy"
 OBSPY_DATA_PATH = "obspy/geodetics/data"
-RAW_BASE_URL = (
-    f"https://raw.githubusercontent.com/obspy/obspy/{OBSPY_COMMIT}/{OBSPY_DATA_PATH}"
-)
+RAW_BASE_URL = f"https://raw.githubusercontent.com/obspy/obspy/{OBSPY_COMMIT}/{OBSPY_DATA_PATH}"
 DEFAULT_SOURCE_DIR = (
     Path(__file__).resolve().parents[1] / ".cache" / "feregion" / f"obspy-fe-{OBSPY_REVISION}"
 )

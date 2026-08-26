@@ -270,9 +270,7 @@ def test_cli_csv_rejects_output_column_collisions(
     assert "CSV" in captured.err
 
 
-def test_cli_csv_rejects_duplicate_header_without_publishing_output(
-    tmp_path: Path, capsys
-) -> None:
+def test_cli_csv_rejects_duplicate_header_without_publishing_output(tmp_path: Path, capsys) -> None:
     """Duplicate CSV labels are ambiguous and must not silently discard a field."""
 
     source = tmp_path / "input.csv"
