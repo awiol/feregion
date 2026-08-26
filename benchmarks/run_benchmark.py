@@ -142,8 +142,8 @@ def benchmark_scalar(
     return result
 
 
-def benchmark_vectorized(repeats: int) -> list[dict[str, float | int]]:
-    """Benchmark vectorized number lookup at representative batch sizes."""
+def benchmark_batch(repeats: int) -> list[dict[str, float | int]]:
+    """Benchmark batch number lookup at representative batch sizes."""
 
     rows: list[dict[str, float | int]] = []
     for size in (1, 100, 1_000, 10_000, 100_000, 1_000_000):
@@ -160,7 +160,7 @@ def benchmark_vectorized(repeats: int) -> list[dict[str, float | int]]:
 
 
 def _reference_batch(reference: SourceReference, points: np.ndarray) -> np.ndarray:
-    """Return region numbers from the direct verified-source breakpoint scan."""
+    """Return region numbers from the direct source-table scanner."""
 
     return np.fromiter(
         (reference.number(lon, lat) for lon, lat in points),
@@ -173,7 +173,7 @@ def benchmark_batch_comparison(
     reference: SourceReference,
     repeats: int,
 ) -> list[dict[str, Any]]:
-    """Compare batch candidate lookup with the verified source-table baseline."""
+    """Compare batch candidate lookup with the source-table scanner baseline."""
 
     rows: list[dict[str, Any]] = []
     for size in (100, 1_000, 10_000, 100_000):
@@ -191,7 +191,7 @@ def benchmark_batch_comparison(
                 "points": size,
                 "candidate": candidate,
                 "baseline": baseline,
-                "baseline_name": "verified-source-breakpoint-scan",
+                "baseline_name": "source-table-scanner",
                 "candidate_speedup": (baseline["median_seconds"] / candidate["median_seconds"]),
             }
         )
@@ -199,7 +199,7 @@ def benchmark_batch_comparison(
 
 
 def benchmark_names(repeats: int) -> list[dict[str, float | int]]:
-    """Benchmark vectorized conversion from region numbers to names."""
+    """Benchmark batch conversion from region numbers to names."""
 
     rows: list[dict[str, float | int]] = []
     for size in (1, 100, 10_000, 100_000, 1_000_000):
@@ -284,7 +284,7 @@ def main(argv: list[str] | None = None) -> int:
     reference = SourceReference(SOURCE)
 
     report: dict[str, Any] = {
-        "schema_version": 3,
+        "schema_version": 4,
         "environment": {
             "platform": platform.platform(),
             "python": sys.version.split()[0],
@@ -299,16 +299,16 @@ def main(argv: list[str] | None = None) -> int:
             "geojson_included": False,
         },
         "scalar": benchmark_scalar(reference, args.repeats),
-        "vectorized": benchmark_vectorized(args.repeats),
+        "batch": benchmark_batch(args.repeats),
         "batch_comparison": benchmark_batch_comparison(reference, args.repeats),
         "names": benchmark_names(args.repeats),
         "pandas": benchmark_pandas(args.repeats),
         "notes": [
             "All timed candidate paths are correctness-checked before reporting.",
-            "The verified source reference performs an independent direct breakpoint scan.",
+            "The source-table scanner performs an independent direct breakpoint scan.",
             (
                 "Batch comparison uses identical coordinates for candidate and "
-                "verified-source baseline."
+                "source-table-scanner baseline."
             ),
             "ObsPy is measured only when installed; it is never a runtime dependency.",
             "Results are environment-specific microbenchmarks, not a performance SLA.",

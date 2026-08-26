@@ -8,16 +8,35 @@ from feregion.exceptions import DataFileError
 from tests.helpers import raises_exact
 
 
-def test_engine_uses_read_only_views_without_freezing_caller_arrays(
+def test_engine_owns_read_only_copies_without_freezing_caller_arrays(
     synthetic_table: np.ndarray, synthetic_names: np.ndarray
 ) -> None:
-    """Engine immutability does not impose write protection on caller-owned arrays."""
+    """Explicit construction copies data so later caller mutation cannot change lookup."""
 
     engine = FlinnEngdahlLookup(synthetic_table, synthetic_names)
     assert synthetic_table.flags.writeable
     assert synthetic_names.flags.writeable
     assert not engine.table.flags.writeable
     assert not engine.names.flags.writeable
+    assert not np.shares_memory(engine.table, synthetic_table)
+    assert not np.shares_memory(engine.names, synthetic_names)
+
+
+def test_engine_behavior_is_stable_after_caller_mutates_source_arrays(
+    synthetic_table: np.ndarray, synthetic_names: np.ndarray
+) -> None:
+    """An engine keeps the construction-time mapping after source arrays change."""
+
+    engine = FlinnEngdahlLookup(synthetic_table, synthetic_names)
+    before_number = engine.lookup_number(12, 48)
+    before_name = engine.number_to_name(before_number)
+
+    synthetic_table.fill(1 if before_number != 1 else 2)
+    synthetic_names[:] = "CHANGED"
+    synthetic_names[0] = ""
+
+    assert engine.lookup_number(12, 48) == before_number
+    assert engine.number_to_name(before_number) == before_name
 
 
 @pytest.mark.parametrize(

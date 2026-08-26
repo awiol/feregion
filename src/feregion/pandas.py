@@ -51,7 +51,7 @@ def lookup_dataframe(
 
     try:
         import pandas as pd
-        from pandas.api.types import is_numeric_dtype
+        from pandas.api.types import is_bool_dtype, is_numeric_dtype
     except ImportError as exc:  # pragma: no cover - packaging boundary
         raise PandasDependencyError(
             "pandas support requires the optional 'pandas' dependency"
@@ -59,6 +59,18 @@ def lookup_dataframe(
 
     if not isinstance(frame, pd.DataFrame):
         raise DataFrameTypeError("frame must be a pandas DataFrame")
+
+    if longitude_column == latitude_column:
+        raise DataFrameColumnError(
+            "longitude and latitude columns must be different"
+        )
+
+    for column in (longitude_column, latitude_column):
+        occurrences = sum(label == column for label in frame.columns)
+        if occurrences > 1:
+            raise DataFrameColumnError(
+                f"coordinate column label must be unique: {column}"
+            )
 
     missing = [
         column for column in (longitude_column, latitude_column) if column not in frame.columns
@@ -76,7 +88,8 @@ def lookup_dataframe(
     )
 
     for column in (longitude_column, latitude_column):
-        if not is_numeric_dtype(frame[column].dtype):
+        dtype = frame[column].dtype
+        if is_bool_dtype(dtype) or not is_numeric_dtype(dtype):
             raise CoordinateTypeError(f"DataFrame column {column!r} must be numeric")
 
     target = frame if inplace else frame.copy()

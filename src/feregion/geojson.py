@@ -15,7 +15,7 @@ from .exceptions import GeoJSONDependencyError
 
 
 def regions_geojson(*, lookup: FlinnEngdahlLookup | None = None) -> dict[str, Any]:
-    """Return lookup-equivalent Flinn-Engdahl region geometries as GeoJSON.
+    """Return area-equivalent one-degree Flinn-Engdahl geometry as GeoJSON.
 
     The geometry is derived from the same one-degree cells used by the lookup
     contract. Adjacent equal cells are first merged into horizontal rectangles,
@@ -23,8 +23,10 @@ def regions_geojson(*, lookup: FlinnEngdahlLookup | None = None) -> dict[str, An
     MultiPolygon. Dateline-separated parts remain separate in the conventional
     ``[-180, 180]`` longitude representation.
 
-    The output is intended for visualization and lookup-equivalent spatial
-    analysis. It is not an independent authoritative vector boundary source.
+    The output is intended for visualization and cell-area analysis. Closed
+    polygons cannot encode the numeric lookup's directional ownership of every
+    exact integer boundary line. Use the numeric lookup API for coordinates on
+    cell boundaries. This output is not an authoritative FE vector source.
 
     Raises:
         GeoJSONDependencyError: If Shapely is not installed.
@@ -66,7 +68,10 @@ def regions_geojson(*, lookup: FlinnEngdahlLookup | None = None) -> dict[str, An
                 "properties": {
                     "number": number,
                     "name": engine.number_to_name(number),
-                    "boundary_model": "lookup-equivalent 1-degree cells",
+                    "boundary_model": "area-equivalent 1-degree cells",
+                    "boundary_semantics": (
+                        "numeric lookup is authoritative on exact cell boundaries"
+                    ),
                 },
                 "geometry": mapping(geometry),
             }

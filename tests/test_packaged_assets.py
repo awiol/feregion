@@ -46,6 +46,12 @@ def test_known_northeastern_argentina_reference_result() -> None:
     assert feregion.number_to_name(133) == "NORTHEASTERN ARGENTINA"
 
 
+def test_packaged_names_follow_obspy_names_asc_coordinate_lookup_mapping() -> None:
+    """Region-name conversion uses the same names table as ObsPy coordinate lookup."""
+
+    assert feregion.number_to_name(4) == "KOMANDORSKIYE OSTROVA REGION"
+
+
 def test_metadata_records_generated_asset_shapes() -> None:
     """Packaged provenance metadata identifies the generated data contract."""
 
@@ -53,6 +59,18 @@ def test_metadata_records_generated_asset_shapes() -> None:
     metadata = json.loads(data.joinpath("metadata.json").read_text(encoding="utf-8"))
     assert metadata["assets"]["fe_table.npy"]["shape"] == [4, 91, 181]
     assert metadata["assets"]["fe_names.npy"]["shape"] == [758]
+
+
+def test_metadata_records_pinned_commit_name_source_and_license_limit() -> None:
+    """Provenance separates upstream software license from unresolved FE data license."""
+
+    data = files("feregion").joinpath("data")
+    metadata = json.loads(data.joinpath("metadata.json").read_text(encoding="utf-8"))
+    source = metadata["source"]
+    assert source["revision"] == "1.4.2"
+    assert source["commit"] == "a629e8c021052904b6b8d62699d03f2a3721ae63"
+    assert source["region_name_source"] == "names.asc"
+    assert source["source_data_license_status"] == "unresolved"
 
 
 def test_packaged_table_contains_754_active_regions_and_excludes_retired_ids() -> None:

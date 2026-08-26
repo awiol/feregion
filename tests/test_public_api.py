@@ -13,7 +13,7 @@ def test_top_level_lookup_numbers_uses_default_engine() -> None:
 
 
 def test_top_level_numbers_to_names_uses_default_engine() -> None:
-    """The public vector name converter preserves shape and canonical names."""
+    """The public batch name converter preserves shape and packaged names."""
 
     result = feregion.numbers_to_names(np.array([[543, 133]], dtype=np.uint16))
     assert result.tolist() == [["GERMANY", "NORTHEASTERN ARGENTINA"]]

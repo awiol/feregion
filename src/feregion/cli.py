@@ -6,11 +6,12 @@ import argparse
 import csv
 import json
 import os
+import secrets
+import stat
 import sys
-import tempfile
 from contextlib import contextmanager
 from pathlib import Path
-from typing import TextIO
+from typing import TextIO, cast
 
 import numpy as np
 
@@ -46,7 +47,7 @@ def build_parser() -> argparse.ArgumentParser:
     csv_parser.add_argument("--name-column", default="fe_region")
     csv_parser.add_argument("--chunk-size", type=int, default=100_000)
 
-    geojson = subparsers.add_parser("geojson", help="write lookup-equivalent region GeoJSON")
+    geojson = subparsers.add_parser("geojson", help="write derived one-degree region GeoJSON")
     geojson.add_argument("output")
     geojson.add_argument("--indent", type=int, default=None)
     return parser
@@ -94,7 +95,7 @@ def _point(args: argparse.Namespace) -> int:
 
 
 def _csv(args: argparse.Namespace) -> int:
-    """Run bounded CSV lookup with transactional file output."""
+    """Run bounded CSV lookup with atomic filesystem publication."""
 
     if args.chunk_size < 1:
         raise CsvInputError("--chunk-size must be positive")
@@ -171,20 +172,20 @@ def _process_csv_to_file(
     name_column: str,
     chunk_size: int,
 ) -> None:
-    """Write CSV output atomically, leaving an existing destination unchanged on failure."""
+    """Publish a CSV file atomically after complete successful processing.
+
+    If the destination already exists, preserve its permission bits. If the
+    destination is new, create the temporary sibling with normal file-creation
+    permissions so the process umask determines the resulting mode.
+    """
 
     temporary_path: Path | None = None
+    destination_mode = (
+        stat.S_IMODE(output_path.stat().st_mode) if output_path.exists() else None
+    )
     try:
-        with tempfile.NamedTemporaryFile(
-            mode="w",
-            encoding="utf-8",
-            newline="",
-            dir=output_path.parent,
-            prefix=f".{output_path.name}.",
-            suffix=".tmp",
-            delete=False,
-        ) as output_stream:
-            temporary_path = Path(output_stream.name)
+        temporary_path, output_stream = _open_csv_temporary(output_path)
+        with output_stream:
             _process_csv(
                 input_stream,
                 output_stream,
@@ -195,11 +196,37 @@ def _process_csv_to_file(
                 name_column=name_column,
                 chunk_size=chunk_size,
             )
+        if destination_mode is not None:
+            os.chmod(temporary_path, destination_mode)
         os.replace(temporary_path, output_path)
         temporary_path = None
     finally:
         if temporary_path is not None:
             temporary_path.unlink(missing_ok=True)
+
+
+def _open_csv_temporary(output_path: Path) -> tuple[Path, TextIO]:
+    """Create an exclusive temporary sibling using normal umask semantics."""
+
+    for _ in range(100):
+        temporary_path = output_path.parent / (
+            f".{output_path.name}.{secrets.token_hex(8)}.tmp"
+        )
+        try:
+            descriptor = os.open(
+                temporary_path,
+                os.O_WRONLY | os.O_CREAT | os.O_EXCL,
+                0o666,
+            )
+        except FileExistsError:
+            continue
+        return temporary_path, os.fdopen(
+            descriptor,
+            mode="w",
+            encoding="utf-8",
+            newline="",
+        )
+    raise OSError(f"cannot create temporary CSV sibling for {output_path}")
 
 
 def _process_csv(
@@ -215,7 +242,7 @@ def _process_csv(
 ) -> None:
     """Process CSV records in bounded vectorized chunks.
 
-    File destinations are wrapped transactionally by :func:`_process_csv_to_file`.
+    File destinations use atomic publication through :func:`_process_csv_to_file`.
     A caller that supplies a streaming output such as stdout can observe rows
     written before a later input error because a stream cannot be rolled back.
     """
@@ -223,6 +250,13 @@ def _process_csv(
     reader = csv.DictReader(input_stream)
     if reader.fieldnames is None:
         raise CsvInputError("CSV input has no header")
+    duplicate_headers = _duplicate_csv_headers(reader.fieldnames)
+    if duplicate_headers:
+        raise CsvInputError(
+            "CSV header contains duplicate fields: " + ", ".join(duplicate_headers)
+        )
+    if longitude_column == latitude_column:
+        raise CsvInputError("CSV longitude and latitude columns must be different")
     missing = [
         column for column in (longitude_column, latitude_column) if column not in reader.fieldnames
     ]
@@ -241,14 +275,15 @@ def _process_csv(
     fieldnames = [*reader.fieldnames, number_column]
     if include_names:
         fieldnames.append(name_column)
-    writer = csv.DictWriter(output_stream, fieldnames=fieldnames, extrasaction="ignore")
+    writer = csv.DictWriter(output_stream, fieldnames=fieldnames, extrasaction="raise")
     writer.writeheader()
 
     engine = get_default_lookup()
     rows: list[dict[str, str]] = []
     row_numbers: list[int] = []
     for row_number, row in enumerate(reader, start=2):
-        rows.append(row)
+        _validate_csv_row_width(row, row_number)
+        rows.append(cast(dict[str, str], row))
         row_numbers.append(row_number)
         if len(rows) >= chunk_size:
             _write_csv_chunk(
@@ -275,6 +310,27 @@ def _process_csv(
             number_column=number_column,
             include_names=include_names,
             name_column=name_column,
+        )
+
+
+def _duplicate_csv_headers(fieldnames: list[str]) -> list[str]:
+    """Return duplicate header labels in first-repeat order."""
+
+    seen: set[str] = set()
+    duplicates: list[str] = []
+    for fieldname in fieldnames:
+        if fieldname in seen and fieldname not in duplicates:
+            duplicates.append(fieldname)
+        seen.add(fieldname)
+    return duplicates
+
+
+def _validate_csv_row_width(row: dict[str | None, str | list[str] | None], row_number: int) -> None:
+    """Reject rows whose field count differs from the declared header width."""
+
+    if None in row or any(value is None for value in row.values()):
+        raise CsvInputError(
+            f"CSV row {row_number} field count does not match the header"
         )
 
 

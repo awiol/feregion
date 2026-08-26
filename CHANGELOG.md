@@ -1,9 +1,22 @@
 # Changelog
 
+## 0.1.1a2 — 2026-08-23
+
+- Rejected duplicate CSV headers and row-width mismatches instead of silently losing structured input.
+- Made CSV and pandas coordinate selectors distinct and unambiguous; pandas now rejects Boolean coordinate columns consistently with the core API.
+- Made explicit `FlinnEngdahlLookup` construction own immutable copies of caller-supplied data.
+- Defined filesystem CSV output as atomic publication, preserved existing destination permission bits, and restored normal umask semantics for new files.
+- Defined packaged region names as ObsPy 1.4.2 `names.asc` values and documented the separate historical naming sources.
+- Reframed GeoJSON as area-equivalent one-degree geometry and documented exact boundary-point limitations.
+- Pinned ObsPy source acquisition to immutable commit `a629e8c021052904b6b8d62699d03f2a3721ae63` and separated upstream software-license metadata from unresolved FE source-data license provenance.
+- Added GitHub Actions verification for Python 3.11, 3.12, and 3.13, Ruff, mypy, builds, and dependency-isolated wheel installation.
+- Split product, engineering, and repository/delivery requirements while preserving requirement IDs; added verification traceability and synchronization tests.
+- Normalized current documentation to the project `must`/`should`/`may`/`can` normative profile and stable terminology.
+
 ## 0.1.1a1 — 2026-08-13
 
 - Fixed the reported Ruff `E402`, `B023`, and `SIM115` findings in benchmark and CLI code.
-- Made `uv` the canonical repository workflow for dependency management, checks,
+- Made `uv` the authoritative repository workflow for dependency management, checks,
   execution, and builds. Removed the redundant Makefile.
 - Moved test, lint, and benchmark tooling into `uv` dependency groups. Preserved
   the previously published `test`, `dev`, and `benchmark` extras for compatibility.
@@ -19,7 +32,7 @@
 
 ## 0.1.0-alpha.4 — 2026-08-13
 
-- Made filesystem CSV output transactional and rejected input/output path aliasing,
+- Made filesystem CSV output use atomic publication and rejected input/output path aliasing,
   preventing truncation and partial-file publication after failure.
 - Rejected pandas and CSV output-column collisions instead of silently overwriting
   coordinate, existing, or numeric-region fields.
@@ -36,7 +49,7 @@
 
 - Made exported source bundles repository-ready by using a stable `feregion/`
   archive root.
-- Renamed the canonical project documents to `docs/feregion-requirements.md`
+- Renamed the current project documents to `docs/feregion-requirements.md`
   and `docs/feregion-design.md`.
 - Removed per-iteration quality-review and benchmark-result evidence from the
   repository source tree; benchmark harnesses remain source-controlled.
@@ -67,6 +80,6 @@ Initial implementation.
 - Added process-wide cached generated assets and default engine.
 - Added source-data regeneration and provenance metadata.
 - Added point and chunked CSV CLI operations.
-- Added optional lookup-equivalent GeoJSON for 754 active FE regions.
+- Added optional one-degree derived GeoJSON for 754 active FE regions.
 - Added exact custom error contracts, focused pytest coverage, source-table oracle
   comparison, optional ObsPy oracle comparison, and automated benchmarks.

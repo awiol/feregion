@@ -1,4 +1,4 @@
-"""Non-finite numeric rejection for array lookup."""
+"""Non-finite numeric rejection for batch lookup."""
 
 import pytest
 

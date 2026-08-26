@@ -1,4 +1,4 @@
-"""Independent checks that generated assets preserve verified source-table semantics."""
+"""Independent checks that generated assets preserve pinned source-table semantics."""
 
 import numpy as np
 import pytest

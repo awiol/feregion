@@ -11,6 +11,7 @@ import numpy as np
 
 from tools.obspy_fe_source import (
     DEFAULT_SOURCE_DIR,
+    OBSPY_COMMIT,
     OBSPY_DATA_PATH,
     OBSPY_REPOSITORY,
     OBSPY_REVISION,
@@ -136,13 +137,16 @@ def build_assets(source_dir: Path, output_dir: Path) -> None:
     np.save(names_path, names, allow_pickle=False)
 
     metadata = {
-        "schema_version": 1,
+        "schema_version": 2,
         "source": {
             "project": "ObsPy",
             "repository": OBSPY_REPOSITORY,
             "revision": OBSPY_REVISION,
+            "commit": OBSPY_COMMIT,
             "path": OBSPY_DATA_PATH,
-            "license": "LGPL-3.0",
+            "upstream_project_license": "LGPL-3.0",
+            "source_data_license_status": "unresolved",
+            "region_name_source": "names.asc",
             "files": {name: {"sha256": sha256(source_dir / name)} for name in SOURCE_FILES},
         },
         "assets": {

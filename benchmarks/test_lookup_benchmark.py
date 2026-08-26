@@ -153,7 +153,7 @@ def comparison_coordinates(request) -> np.ndarray:
 
 
 def test_batch_retained_source_baseline(benchmark, comparison_coordinates: np.ndarray) -> None:
-    """Measure verified-source breakpoint scanning on batch-comparison coordinates."""
+    """Measure source-table scanning on batch-comparison coordinates."""
 
     from tests.reference import SourceReference
 
@@ -176,7 +176,7 @@ def test_batch_retained_source_baseline(benchmark, comparison_coordinates: np.nd
 
 
 def test_batch_candidate_comparison(benchmark, comparison_coordinates: np.ndarray) -> None:
-    """Measure vectorized candidate lookup on the exact baseline-comparison coordinates."""
+    """Measure batch candidate lookup on the exact baseline-comparison coordinates."""
 
     expected = feregion.lookup_numbers(comparison_coordinates)
     result = benchmark(feregion.lookup_numbers, comparison_coordinates)

@@ -1,15 +1,15 @@
 # feregion
 
 `feregion` maps WGS84 longitude/latitude coordinates to Flinn-Engdahl (FE)
-geographical region numbers. It provides scalar, NumPy, pandas, CSV, and
+geographical region numbers. It provides scalar, NumPy batch, pandas, CSV, and
 optional GeoJSON interfaces.
 
-Normal lookup uses packaged generated data. ObsPy and network access are not
-runtime dependencies.
+Normal lookup uses packaged generated data. Runtime lookup does not require
+ObsPy, network access, pandas, or Shapely.
 
 ## Install with uv
 
-Add the core package to a project:
+Add the core package:
 
 ```bash
 uv add feregion
@@ -22,13 +22,13 @@ uv add 'feregion[pandas]'
 uv add 'feregion[geo]'
 ```
 
-For a source checkout, create the development environment with:
+For a source checkout:
 
 ```bash
 uv sync
 ```
 
-The repository uses `uv` directly. It does not use a Makefile.
+The repository uses `uv` directly and does not use a Makefile.
 
 ## Python API
 
@@ -55,8 +55,15 @@ feregion.numbers_to_names(numbers)
 # array(['GERMANY', 'NORTHEASTERN ARGENTINA'], dtype='<U...')
 ```
 
-A coordinate array always uses `[longitude, latitude]` column order. Use the
-batch API when lookup throughput matters.
+A coordinate array always uses `[longitude, latitude]` column order. Use batch
+lookup when throughput matters.
+
+`number_to_name()` and `numbers_to_names()` return **packaged region names**
+derived from ObsPy 1.4.2 `names.asc`. The project does not claim that this is
+the only naming convention used by all historical FE sources.
+
+Explicit `FlinnEngdahlLookup` construction copies the supplied table and name
+arrays. Later mutation of caller-owned arrays cannot change engine behavior.
 
 ## pandas
 
@@ -67,8 +74,9 @@ result = lookup_dataframe(frame)
 result_with_names = lookup_dataframe(frame, include_names=True)
 ```
 
-The default output adds `fe_number`. Region names are optional. Output columns
-are additive and cannot replace existing input columns.
+The adapter requires distinct, unique longitude and latitude columns. Boolean
+coordinate columns are rejected. Output columns are additive and cannot replace
+existing input columns.
 
 ## Command line
 
@@ -78,18 +86,24 @@ uv run fe-region csv input.csv -o output.csv --include-names
 uv run --extra geo fe-region geojson .cache/regions.geojson
 ```
 
-Filesystem CSV output is transactional. The command writes a temporary sibling
-and replaces the destination only after successful processing. It rejects
-input/output path aliases and output-column collisions. stdout is a streaming
-output and cannot be rolled back after a later row fails.
+CSV headers must contain unique field names. Every data row must contain exactly
+the number of fields declared by the header. Filesystem output uses atomic
+publication through a temporary sibling and `os.replace()`. Existing destination
+permission bits are preserved. New files use normal process-umask semantics.
 
-GeoJSON output contains the 754 active FE geographical regions. Region numbers
-172, 299, and 550 are retired and have no active lookup cells, so the utility
-does not create polygons for them.
+A failed filesystem conversion does not publish a new partial destination.
+stdout is a streaming sink and can contain earlier rows if a later row fails.
+The filesystem guarantee does not claim crash durability, directory fsync, ACL
+preservation, or owner preservation.
 
-## Development
+GeoJSON output contains the 754 active region numbers represented by the
+one-degree cell grid. The geometry is **area-equivalent**. Numeric lookup is
+authoritative for coordinates exactly on integer cell boundaries because
+ordinary closed polygons cannot encode every directional FE point-boundary rule.
 
-Run the normal quality checks:
+## Development and verification
+
+Run local checks with `uv`:
 
 ```bash
 uv sync
@@ -97,27 +111,40 @@ uv run ruff check .
 uv run mypy src/feregion tools benchmarks
 uv run pytest -q
 uv run pytest -q --cov=feregion --cov-branch --cov-report=term-missing
-```
-
-Build the wheel and source distribution with:
-
-```bash
 uv build
 ```
 
-The generated FE runtime assets are version-controlled. The upstream ObsPy
-`*.asc` source tables are not. Fetch the pinned and hash-verified source data
-before source-reproduction tests, asset regeneration, or reference benchmarks:
+GitHub Actions verifies Python 3.11, 3.12, and 3.13. A separate quality job runs
+Ruff, mypy, distribution builds, and dependency-isolated wheel verification.
+
+`uv.lock` is not ignored. This source iteration does not contain a lock because
+the environment used to prepare it could not resolve the package index.
+
+## Upstream FE source data
+
+Generated runtime assets are version-controlled. Downloaded ObsPy `*.asc`
+source tables are not.
+
+Fetch the source tables before source-reproduction tests, asset regeneration, or
+source-table baseline benchmarks:
 
 ```bash
 uv run python -m tools.fetch_obspy_fe_data
 uv run python -m tools.build_assets
 ```
 
-The fetch command stores the verified files under the ignored `.cache/`
-directory. Asset metadata records the pinned ObsPy revision and source hashes.
+The fetch tool uses ObsPy tag `1.4.2` at immutable commit
+`a629e8c021052904b6b8d62699d03f2a3721ae63`. It stores files under the ignored
+`.cache/` directory and verifies each SHA-256 digest before use.
 
-For benchmark dependencies, add the benchmark group to the environment:
+ObsPy states that its software is licensed under LGPL v3.0. The historical FE
+source-table license is not established by that statement and is recorded as
+unresolved provenance in `src/feregion/data/metadata.json` and
+`THIRD_PARTY_NOTICES.md`.
+
+## Benchmarks
+
+Install benchmark dependencies and run the repository harnesses:
 
 ```bash
 uv sync --group benchmark
@@ -127,23 +154,26 @@ uv run --group benchmark python -m benchmarks.run_benchmark \
   --output benchmark-standalone.json
 ```
 
-The routine benchmark suite covers in-process scalar, NumPy, name-conversion,
-and pandas interfaces. It excludes CLI and GeoJSON timing. Generated benchmark
-results are delivery evidence and are not repository source.
+Routine benchmarks cover in-process scalar, batch, name-conversion, and pandas
+interfaces. They exclude CLI and GeoJSON timing. Generated benchmark results are
+delivery evidence and are not repository source.
 
-## Repository documents
+## Current project documents
 
-The repository keeps only the current requirements and design iteration:
+The current versioned contract set is:
 
-- `docs/feregion-requirements-v0.1.1a1-2026-08-13.md`;
-- `docs/feregion-design-v0.1.1a1-2026-08-13.md`; and
-- `docs/testing.md` as the stable test and verification guide.
+- `docs/feregion-requirements-v0.1.1a2-2026-08-23.md`;
+- `docs/feregion-engineering-requirements-v0.1.1a2-2026-08-23.md`;
+- `docs/feregion-repository-delivery-requirements-v0.1.1a2-2026-08-23.md`;
+- `docs/feregion-design-v0.1.1a2-2026-08-23.md`; and
+- `docs/feregion-verification-traceability-v0.1.1a2-2026-08-23.md`.
 
-A future iterative delivery replaces the two versioned contract filenames and
-updates all repository references in the same change.
+`docs/testing.md` is the stable maintainer procedure. Future iterative
+deliveries replace the complete versioned contract set in one change.
 
 ## License and provenance
 
-The project is distributed under LGPL-3.0-only. The packaged lookup assets are
-derived from Flinn-Engdahl source data distributed by ObsPy. See
-`THIRD_PARTY_NOTICES.md` and `src/feregion/data/metadata.json` for provenance.
+The `feregion` project is distributed under LGPL-3.0-only. That project license
+does not by itself establish the license of upstream FE source data. See
+`THIRD_PARTY_NOTICES.md` and `src/feregion/data/metadata.json` for the recorded
+provenance and limitation.

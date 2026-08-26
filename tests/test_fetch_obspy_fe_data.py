@@ -8,7 +8,12 @@ from pathlib import Path
 import pytest
 
 from tools.fetch_obspy_fe_data import fetch_source_data
-from tools.obspy_fe_source import RAW_BASE_URL, SOURCE_SHA256, sha256_file
+from tools.obspy_fe_source import (
+    OBSPY_COMMIT,
+    RAW_BASE_URL,
+    SOURCE_SHA256,
+    sha256_file,
+)
 
 
 def test_fetch_source_data_writes_verified_files(tmp_path: Path) -> None:
@@ -40,7 +45,7 @@ def test_fetch_source_data_rejects_hash_mismatch(tmp_path: Path) -> None:
 
 
 def test_fetch_source_data_uses_pinned_raw_urls(tmp_path: Path) -> None:
-    """Every network request uses the pinned ObsPy raw-source base URL."""
+    """Every network request uses the immutable pinned ObsPy commit URL."""
 
     seen: list[str] = []
 
@@ -52,4 +57,5 @@ def test_fetch_source_data_uses_pinned_raw_urls(tmp_path: Path) -> None:
         fetch_source_data(tmp_path, fetch_bytes=fetch)
 
     first_name = next(iter(SOURCE_SHA256))
+    assert OBSPY_COMMIT in RAW_BASE_URL
     assert seen == [f"{RAW_BASE_URL}/{first_name}"]

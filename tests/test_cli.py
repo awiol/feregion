@@ -200,7 +200,7 @@ def test_cli_csv_midstream_failure_preserves_existing_output_file(tmp_path: Path
 
 
 def test_cli_csv_stdout_can_contain_partial_rows_after_late_failure(monkeypatch, capsys) -> None:
-    """Streaming stdout is explicitly non-transactional when a later row fails."""
+    """Streaming stdout is explicitly non-atomic when a later row fails."""
 
     import io
     import sys
@@ -268,3 +268,102 @@ def test_cli_csv_rejects_output_column_collisions(
 
     assert status == 2
     assert "CSV" in captured.err
+
+
+def test_cli_csv_rejects_duplicate_header_without_publishing_output(
+    tmp_path: Path, capsys
+) -> None:
+    """Duplicate CSV labels are ambiguous and must not silently discard a field."""
+
+    source = tmp_path / "input.csv"
+    output = tmp_path / "output.csv"
+    source.write_text("longitude,longitude,latitude\n12,13,48\n", encoding="utf-8")
+
+    status = main(["csv", str(source), "-o", str(output)])
+    captured = capsys.readouterr()
+
+    assert status == 2
+    assert "duplicate fields: longitude" in captured.err
+    assert not output.exists()
+
+
+@pytest.mark.parametrize(
+    "row",
+    [
+        pytest.param("12,48,KEEP-ME", id="surplus-field"),
+        pytest.param("12", id="missing-field"),
+    ],
+)
+def test_cli_csv_rejects_row_width_mismatch_without_publishing_output(
+    tmp_path: Path,
+    capsys,
+    row: str,
+) -> None:
+    """A row whose field count differs from the header fails without data loss."""
+
+    source = tmp_path / "input.csv"
+    output = tmp_path / "output.csv"
+    source.write_text(f"longitude,latitude\n{row}\n", encoding="utf-8")
+
+    status = main(["csv", str(source), "-o", str(output)])
+    captured = capsys.readouterr()
+
+    assert status == 2
+    assert "field count does not match the header" in captured.err
+    assert not output.exists()
+
+
+def test_cli_csv_rejects_same_coordinate_selector(tmp_path: Path, capsys) -> None:
+    """Longitude and latitude must identify two distinct CSV fields."""
+
+    source = tmp_path / "input.csv"
+    source.write_text("coordinate\n12\n", encoding="utf-8")
+
+    status = main(
+        [
+            "csv",
+            str(source),
+            "--longitude-column",
+            "coordinate",
+            "--latitude-column",
+            "coordinate",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert status == 2
+    assert "longitude and latitude columns must be different" in captured.err
+
+
+def test_cli_csv_preserves_existing_destination_mode(tmp_path: Path) -> None:
+    """Atomic replacement preserves permission bits of an existing destination."""
+
+    import stat
+
+    source = tmp_path / "input.csv"
+    output = tmp_path / "output.csv"
+    source.write_text("longitude,latitude\n12,48\n", encoding="utf-8")
+    output.write_text("old\n", encoding="utf-8")
+    output.chmod(0o640)
+
+    assert main(["csv", str(source), "-o", str(output)]) == 0
+    assert stat.S_IMODE(output.stat().st_mode) == 0o640
+
+
+def test_cli_csv_new_destination_uses_process_umask(tmp_path: Path) -> None:
+    """A new published CSV uses normal file-creation permissions under the umask."""
+
+    import os
+    import stat
+
+    source = tmp_path / "input.csv"
+    output = tmp_path / "output.csv"
+    source.write_text("longitude,latitude\n12,48\n", encoding="utf-8")
+
+    previous_umask = os.umask(0o022)
+    try:
+        assert main(["csv", str(source), "-o", str(output)]) == 0
+    finally:
+        os.umask(previous_umask)
+
+    assert stat.S_IMODE(output.stat().st_mode) == 0o644

@@ -145,3 +145,31 @@ def test_dataframe_rejects_region_name_output_collision(name_column: str) -> Non
     frame = pd.DataFrame({"longitude": [12.0], "latitude": [48.0], "value": [1]})
     with raises_exact(DataFrameColumnError):
         lookup_dataframe(frame, include_names=True, name_column=name_column)
+
+
+def test_dataframe_rejects_boolean_coordinate_columns() -> None:
+    """The pandas adapter preserves the core rule that Boolean is not a coordinate type."""
+
+    frame = pd.DataFrame({"longitude": [True], "latitude": [False]})
+    with raises_exact(CoordinateTypeError):
+        lookup_dataframe(frame)
+
+
+def test_dataframe_rejects_same_coordinate_selector() -> None:
+    """One DataFrame column cannot serve as both longitude and latitude."""
+
+    frame = pd.DataFrame({"coordinate": [12.0]})
+    with raises_exact(DataFrameColumnError):
+        lookup_dataframe(
+            frame,
+            longitude_column="coordinate",
+            latitude_column="coordinate",
+        )
+
+
+def test_dataframe_rejects_duplicate_longitude_label() -> None:
+    """Duplicate coordinate labels fail with the package schema exception."""
+
+    frame = pd.DataFrame([[12.0, 13.0, 48.0]], columns=["longitude", "longitude", "latitude"])
+    with raises_exact(DataFrameColumnError):
+        lookup_dataframe(frame)

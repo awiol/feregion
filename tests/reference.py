@@ -1,7 +1,7 @@
 """Independent source-table oracle used by source integration tests.
 
 This helper intentionally does not call the generated dense-table builder. It
-implements the reference breakpoint scan directly from the verified source
+implements the reference breakpoint scan directly from the hash-verified pinned source
 files so generation defects can be detected by a separate code path.
 """
 

@@ -29,7 +29,7 @@ _NUMERIC_KINDS = frozenset("iuf")
 class FlinnEngdahlLookup:
     """Map WGS84 longitude/latitude coordinates to Flinn-Engdahl regions.
 
-    ``table`` is an immutable lookup view with shape ``(4, 91, 181)`` and
+    ``table`` is an engine-owned immutable lookup array with shape ``(4, 91, 181)`` and
     ``uint16`` values. The dimensions are quadrant, absolute integer latitude,
     and absolute integer longitude. Quadrants use this order: northeast,
     northwest, southeast, southwest.
@@ -47,10 +47,12 @@ class FlinnEngdahlLookup:
     names: npt.NDArray[np.str_]
 
     def __post_init__(self) -> None:
-        """Validate data invariants and retain read-only views.
+        """Validate data invariants and take ownership of immutable copies.
 
-        The method does not make the caller's arrays read-only. It creates
-        read-only views so an engine cannot accidentally alter its lookup data.
+        Explicit construction accepts caller-owned arrays, but engine behavior
+        must not change if the caller later mutates those arrays. Construction
+        therefore copies the lookup table and region-name array once, then
+        marks the owned copies read-only.
         """
 
         table = np.asarray(self.table)
@@ -77,12 +79,12 @@ class FlinnEngdahlLookup:
         if np.any(used == 0) or np.any(names[used] == ""):
             raise DataFileError("lookup table contains an unmapped region number")
 
-        table_view = table.view()
-        table_view.setflags(write=False)
-        names_view = names.view()
-        names_view.setflags(write=False)
-        object.__setattr__(self, "table", table_view)
-        object.__setattr__(self, "names", names_view)
+        owned_table = np.array(table, copy=True, order="C")
+        owned_table.setflags(write=False)
+        owned_names = np.array(names, copy=True, order="C")
+        owned_names.setflags(write=False)
+        object.__setattr__(self, "table", owned_table)
+        object.__setattr__(self, "names", owned_names)
 
     def lookup_number(self, longitude: float, latitude: float) -> int:
         """Return the region number for one coordinate pair.
@@ -143,7 +145,7 @@ class FlinnEngdahlLookup:
         return self._lookup_validated(numeric[:, 0], numeric[:, 1])
 
     def number_to_name(self, number: int) -> str:
-        """Return the canonical name for one integer region number.
+        """Return the packaged region name for one integer region number.
 
         Raises:
             RegionNumberError: If ``number`` is not an integer region number
@@ -162,7 +164,7 @@ class FlinnEngdahlLookup:
         return str(self.names[index])
 
     def numbers_to_names(self, numbers: npt.ArrayLike) -> npt.NDArray[np.str_]:
-        """Convert an integer region-number array to canonical region names.
+        """Convert integer region numbers to packaged region names.
 
         The returned Unicode array has the same shape as the input. Use
         :meth:`number_to_name` for a scalar when a Python ``str`` is preferred.

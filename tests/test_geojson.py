@@ -1,4 +1,4 @@
-"""Optional lookup-equivalent GeoJSON geometry behavior."""
+"""Optional area-equivalent GeoJSON geometry behavior."""
 
 import numpy as np
 import pytest
@@ -33,7 +33,10 @@ def test_geojson_germany_geometry_covers_germany_reference_cell_center() -> None
     geometry = shape(feature["geometry"])
     assert geometry.covers(Point(12.5, 48.5))
     assert feature["properties"]["name"] == "GERMANY"
-    assert feature["properties"]["boundary_model"] == "lookup-equivalent 1-degree cells"
+    assert feature["properties"]["boundary_model"] == "area-equivalent 1-degree cells"
+    assert feature["properties"]["boundary_semantics"] == (
+        "numeric lookup is authoritative on exact cell boundaries"
+    )
 
 
 def test_write_regions_geojson_serializes_feature_collection(tmp_path) -> None:

@@ -34,7 +34,7 @@ class DataFrameTypeError(FlinnEngdahlError, TypeError):
 
 
 class DataFrameColumnError(FlinnEngdahlError, KeyError):
-    """A required pandas DataFrame coordinate column is missing."""
+    """A pandas DataFrame column selection or output schema is invalid."""
 
 
 class PandasDependencyError(FlinnEngdahlError, ImportError):

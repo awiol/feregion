@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "feregion"
-version = "0.1.1a1"
-description = "Fast vectorized Flinn-Engdahl region lookup"
+version = "0.1.1a2"
+description = "Fast scalar and batch Flinn-Engdahl region lookup"
 readme = "README.md"
 requires-python = ">=3.11"
 license = "LGPL-3.0-only"

@@ -9,7 +9,7 @@ from ._default import get_default_lookup
 from .core import FlinnEngdahlLookup
 from .types import Region
 
-__version__ = "0.1.1a1"
+__version__ = "0.1.1a2"
 
 
 def lookup_number(longitude: float, latitude: float) -> int:
@@ -31,7 +31,7 @@ def lookup_numbers(coordinates: npt.ArrayLike) -> npt.NDArray[np.uint16]:
 
 
 def number_to_name(number: int) -> str:
-    """Return the canonical name for one region number."""
+    """Return the packaged ObsPy ``names.asc`` name for one region number."""
 
     return get_default_lookup().number_to_name(number)
 

@@ -11,6 +11,7 @@ from urllib.request import Request, urlopen
 
 from tools.obspy_fe_source import (
     DEFAULT_SOURCE_DIR,
+    OBSPY_COMMIT,
     OBSPY_REVISION,
     RAW_BASE_URL,
     SOURCE_SHA256,
@@ -53,7 +54,8 @@ def fetch_source_data(
         observed_sha256 = sha256_bytes(data)
         if observed_sha256 != expected_digest:
             raise ValueError(
-                f"downloaded {name} from ObsPy {OBSPY_REVISION} has unexpected SHA-256: "
+                f"downloaded {name} from ObsPy {OBSPY_REVISION} ({OBSPY_COMMIT}) "
+                "has unexpected SHA-256: "
                 f"expected {expected_digest}, got {observed_sha256}"
             )
 
@@ -81,17 +83,23 @@ def main() -> None:
     """Run the pinned source-data fetch command."""
 
     parser = argparse.ArgumentParser(
-        description=f"Fetch ObsPy {OBSPY_REVISION} Flinn-Engdahl source tables."
+        description=(
+            f"Fetch ObsPy {OBSPY_REVISION} Flinn-Engdahl source tables from "
+            f"commit {OBSPY_COMMIT}."
+        )
     )
     parser.add_argument(
         "--output-dir",
         type=Path,
         default=DEFAULT_SOURCE_DIR,
-        help="local cache directory for verified source tables",
+        help="local cache directory for hash-verified pinned source tables",
     )
     args = parser.parse_args()
     fetch_source_data(args.output_dir)
-    print(f"verified ObsPy {OBSPY_REVISION} FE source data in {args.output_dir}")
+    print(
+        f"verified ObsPy {OBSPY_REVISION} ({OBSPY_COMMIT}) FE source data "
+        f"in {args.output_dir}"
+    )
 
 
 if __name__ == "__main__":
