@@ -9,7 +9,12 @@ from feregion.core import FlinnEngdahlLookup
 
 
 def synthetic_region_number(quadrant: int, latitude: int, longitude: int) -> int:
-    """Return a unique nonzero uint16-safe value for one synthetic table cell."""
+    """Return a deterministic nonzero uint16-safe value for a synthetic table cell.
+
+    The value is convenient for focused tests but is not globally unique over
+    all 65,884 dense-table positions because uint16 has fewer nonzero values.
+    Exhaustive index-selection tests use independent axis probe tables instead.
+    """
 
     return 1 + quadrant * 16354 + latitude * 181 + longitude
 

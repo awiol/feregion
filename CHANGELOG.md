@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.0a3 — 2026-08-27
+
+- Fix the Ruff findings reported against the `0.2.0a2` candidate and make mypy a pre-commit check as well as a hosted quality check.
+- Run the mypy public-typing gate against Python 3.14 while Ruff and the runtime matrix continue to enforce Python 3.11 compatibility.
+- Add exhaustive coordinate-to-grid-index tests for all 64,800 one-degree area cells using center and nearest-representable interior edge/corner values.
+- Add previous/exact/next representable-value neighborhoods around every integer longitude/latitude grid intersection, including antimeridian, equator, prime-meridian, and pole semantics.
+- Verify quadrant, absolute-latitude index, and absolute-longitude index independently with synthetic probe tables so equal neighboring FE region numbers cannot hide an indexing defect.
+- Exercise the exhaustive corpus for `float16`, `float32`, `float64`, and wider `longdouble` where the platform provides additional precision.
+- Correct the focused synthetic-table helper documentation: its compact `uint16` values are deterministic but cannot be globally unique over all 65,884 dense-table positions.
+
 ## 0.2.0a2 — 2026-08-27
 
 - Fix extended-precision batch lookup so validated coordinate dtypes are preserved through FE cell ownership; scalar, batch, seismic-batch, and pandas routes now agree immediately around integer-degree boundaries.

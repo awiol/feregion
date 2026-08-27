@@ -39,7 +39,7 @@ dependencies into that environment.
 
 ## Test layers
 
-1. Core tests use synthetic tables and names to isolate coordinate behavior.
+1. Core tests use synthetic tables and names to isolate coordinate behavior. Exhaustive grid-index tests use separate quadrant, latitude-index, and longitude-index probe tables so the expected index does not depend on real FE region equality.
 2. Package-resource tests verify geographical and seismic asset structure,
    hierarchy coverage, packaged names, provenance metadata, and known FE results.
 3. Source-reproduction tests compare geographical assets with hash-verified
@@ -57,6 +57,31 @@ dependencies into that environment.
 8. Benchmark harnesses measure geographical and seismic scalar/batch paths,
    hierarchy conversion, name conversion, and pandas interfaces. Routine
    benchmarks exclude CLI and GeoJSON.
+
+## Exhaustive coordinate-grid indexing
+
+The FE lookup is discontinuous only at integer-degree longitude and latitude
+boundaries. The test suite therefore verifies the finite discontinuity structure
+directly instead of attempting to sample the continuous coordinate domain.
+
+For every one of the 64,800 one-degree area cells, tests construct a 3x3 set of
+strictly interior coordinates: the cell center plus the nearest representable
+values immediately inside each edge and corner. A second corpus constructs the
+valid previous, exact, and next representable value around every integer
+longitude and latitude boundary and takes their Cartesian product, which covers
+every grid intersection and its neighboring sides.
+
+Expected ownership is generated from the enumerated integer cell or boundary
+identity before floating-point coordinates are constructed. Three valid synthetic
+lookup tables expose quadrant, absolute-latitude index, and absolute-longitude
+index independently. This avoids using the production conversion algorithm as
+the oracle and prevents adjacent cells with the same real FE region number from
+hiding an index-selection defect.
+
+The deterministic corpus runs for `float16`, `float32`, and `float64`. It also
+runs for `longdouble` when the platform provides more precision than `float64`.
+The retained named regression corpus remains separate because it demonstrates
+predecessor sensitivity for the `0.2.0a1` narrowing defect.
 
 ## Upstream source-data checks
 

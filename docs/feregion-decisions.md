@@ -500,3 +500,26 @@ changed rationale as historical fact.
 - **Review trigger:** The package stops shipping `py.typed`, mypy no longer
   supports the project environment adequately, or another checker provides
   materially better evidence at acceptable maintenance cost.
+
+## `DEC-030` — Verify the finite FE grid discontinuity structure exhaustively
+
+- **Context:** The extended-precision defect showed that representative boundary
+  samples can miss a dtype-specific table-index error. The FE lookup is piecewise
+  constant inside one-degree cells and changes only at known integer-degree
+  boundaries, so the complete discontinuity structure is small enough to test.
+- **Decision:** Generate exhaustive coordinate-index corpora from integer world-cell
+  and grid-boundary identities. Test every area cell at center and
+  nearest-representable interior edge/corner values, and test previous/exact/next
+  representable values around every integer grid intersection. Use independent
+  synthetic probe tables for quadrant, latitude index, and longitude index rather
+  than derive expected FE region numbers through the production conversion path.
+  Run the corpus for float16, float32, float64, and wider longdouble where
+  available.
+- **Alternatives considered:** add more hand-picked decimal epsilon cases; use the
+  real FE table as the only oracle; reproduce `int(abs(value))` in test code;
+  exhaustively enumerate all floating-point bit patterns.
+- **Compatibility consequence:** Runtime behavior and public APIs do not change.
+  Test cost increases by a bounded vectorized corpus of roughly one million
+  coordinates per dtype across the two complementary generators.
+- **Review trigger:** The coordinate model, one-degree indexing rule, supported
+  numeric dtype contract, or dense-table representation changes materially.

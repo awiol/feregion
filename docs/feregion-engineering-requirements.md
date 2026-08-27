@@ -181,6 +181,17 @@ cell center is covered by the generated feature whose identifier is returned by
 numeric lookup at both geographical and seismic levels. This does not establish
 exact polygon-edge equivalence, which remains outside the GeoJSON contract.
 
+**REQ-TEST-022** — Coordinate-indexing tests must exhaustively verify every
+one-degree area cell with representable interior points at its center and
+immediately inside each edge/corner. They must also verify previous, exact, and
+next representable values around every integer longitude/latitude grid
+intersection. Expected quadrant and absolute indices must derive from enumerated
+cell or boundary identity rather than from the production floating-point-to-index
+algorithm. Independent probe tables must expose quadrant, latitude index, and
+longitude index so equal neighboring FE region numbers cannot mask an indexing
+defect. The corpus must cover `float16`, `float32`, and `float64`, plus
+`longdouble` when it provides greater precision than `float64`.
+
 **REQ-PERF-001** — The repository must contain automated benchmarks for the
 implemented in-process lookup interfaces: scalar geographical and seismic number
 lookup, scalar region lookup, scalar number-to-name conversion, geographical and
@@ -332,10 +343,11 @@ named minimum environment so local and hosted dependency-range checks do not
 maintain separate test definitions.
 
 
-**REQ-PKG-020** — Because the distributed package ships `py.typed`, hosted
-quality verification must run a supported static type checker over the public
-package modules and a small downstream-consumer typing fixture. Ruff remains
-the lint/format authority; type checking is a separate evidence class.
+**REQ-PKG-020** — Because the distributed package ships `py.typed`, local
+pre-commit verification and hosted quality verification must run a supported
+static type checker over the public package modules and a small
+downstream-consumer typing fixture. Ruff remains the lint/format authority; type
+checking is a separate evidence class.
 
 **REQ-PKG-021** — Repository CI must provide a scheduled or manually triggered
 live ISC semantic comparison that fetches the declared standards page and

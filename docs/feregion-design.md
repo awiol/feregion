@@ -258,6 +258,15 @@ need for another runtime backend.
 
 ## 10. Verification architecture
 
+Coordinate-to-grid-index correctness has an exhaustive synthetic layer that is
+independent from FE scientific table contents. Every one-degree area cell is
+probed at its center and nearest representable interior edge/corner values. Every
+integer grid intersection is also probed with previous/exact/next representable
+longitude and latitude values. Expected ownership comes from enumerated
+cell/boundary identity, and separate probe tables expose quadrant, latitude
+index, and longitude index. Source-table reproduction remains a separate layer
+that verifies the scientific region assignments stored at those indices.
+
 The repository uses `uv` as the development and build frontend.
 
 GitHub Actions contains:
