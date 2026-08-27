@@ -181,3 +181,30 @@ def test_batch_candidate_comparison(benchmark, comparison_coordinates: np.ndarra
     expected = feregion.lookup_numbers(comparison_coordinates)
     result = benchmark(feregion.lookup_numbers, comparison_coordinates)
     np.testing.assert_array_equal(result, expected)
+
+
+def test_vectorized_seismic_number_lookup(benchmark, coordinates: np.ndarray) -> None:
+    """Measure vectorized coordinate-to-seismic lookup at representative batch sizes."""
+
+    geographic = feregion.lookup_geographic_numbers(coordinates)
+    expected = feregion.geographic_numbers_to_seismic_numbers(geographic)
+    result = benchmark(feregion.lookup_seismic_numbers, coordinates)
+    np.testing.assert_array_equal(result, expected)
+
+
+def test_vectorized_geographic_to_seismic_conversion(benchmark, coordinates: np.ndarray) -> None:
+    """Measure the compact hierarchy crosswalk independently of coordinate lookup."""
+
+    geographic = feregion.lookup_geographic_numbers(coordinates)
+    expected = feregion.lookup_seismic_numbers(coordinates)
+    result = benchmark(feregion.geographic_numbers_to_seismic_numbers, geographic)
+    np.testing.assert_array_equal(result, expected)
+
+
+def test_vectorized_seismic_name_conversion(benchmark, coordinates: np.ndarray) -> None:
+    """Measure vectorized seismic-number-to-name conversion."""
+
+    numbers = feregion.lookup_seismic_numbers(coordinates)
+    expected = feregion.seismic_numbers_to_names(numbers)
+    result = benchmark(feregion.seismic_numbers_to_names, numbers)
+    np.testing.assert_array_equal(result, expected)

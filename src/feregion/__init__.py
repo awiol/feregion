@@ -1,4 +1,4 @@
-"""Fast Flinn-Engdahl region lookup for scalar and tabular coordinates."""
+"""Fast offline Flinn-Engdahl geographical and seismic region lookup."""
 
 from __future__ import annotations
 
@@ -7,119 +7,138 @@ import numpy.typing as npt
 
 from ._default import get_default_lookup
 from .core import FlinnEngdahlLookup
-from .types import Region
+from .types import GeographicRegion, Region, SeismicRegion
 
-__version__ = "0.1.2a10"
+__version__ = "0.2.0a1"
 
 
+def lookup_geographic_number(longitude: float, latitude: float) -> int:
+    """Return the FE geographical-region number for one coordinate pair."""
+
+    return get_default_lookup().lookup_geographic_number(longitude, latitude)
+
+
+def lookup_geographic_region(longitude: float, latitude: float) -> GeographicRegion:
+    """Return the FE geographical-region number and packaged name."""
+
+    return get_default_lookup().lookup_geographic_region(longitude, latitude)
+
+
+def lookup_geographic_numbers(coordinates: npt.ArrayLike) -> npt.NDArray[np.uint16]:
+    """Return FE geographical-region numbers for ``(longitude, latitude)`` rows."""
+
+    return get_default_lookup().lookup_geographic_numbers(coordinates)
+
+
+def geographic_number_to_name(number: int) -> str:
+    """Return the packaged name for one active FE geographical region."""
+
+    return get_default_lookup().geographic_number_to_name(number)
+
+
+def geographic_numbers_to_names(numbers: npt.ArrayLike) -> npt.NDArray[np.str_]:
+    """Convert FE geographical-region numbers to same-shape packaged names."""
+
+    return get_default_lookup().geographic_numbers_to_names(numbers)
+
+
+def geographic_to_seismic_number(number: int) -> int:
+    """Return the FE seismic parent of one active geographical region."""
+
+    return get_default_lookup().geographic_to_seismic_number(number)
+
+
+def geographic_numbers_to_seismic_numbers(
+    numbers: npt.ArrayLike,
+) -> npt.NDArray[np.uint8]:
+    """Convert FE geographical-region numbers to same-shape seismic numbers."""
+
+    return get_default_lookup().geographic_numbers_to_seismic_numbers(numbers)
+
+
+def lookup_seismic_number(longitude: float, latitude: float) -> int:
+    """Return the FE seismic-region number for one coordinate pair."""
+
+    return get_default_lookup().lookup_seismic_number(longitude, latitude)
+
+
+def lookup_seismic_region(longitude: float, latitude: float) -> SeismicRegion:
+    """Return the FE seismic-region number and packaged name."""
+
+    return get_default_lookup().lookup_seismic_region(longitude, latitude)
+
+
+def lookup_seismic_numbers(coordinates: npt.ArrayLike) -> npt.NDArray[np.uint8]:
+    """Return FE seismic-region numbers for ``(longitude, latitude)`` rows."""
+
+    return get_default_lookup().lookup_seismic_numbers(coordinates)
+
+
+def seismic_number_to_name(number: int) -> str:
+    """Return the packaged name for one FE seismic region."""
+
+    return get_default_lookup().seismic_number_to_name(number)
+
+
+def seismic_numbers_to_names(numbers: npt.ArrayLike) -> npt.NDArray[np.str_]:
+    """Convert FE seismic-region numbers to same-shape packaged names."""
+
+    return get_default_lookup().seismic_numbers_to_names(numbers)
+
+
+# Compatibility surface from the 0.1 contract. These names continue to mean
+# geographical regions; no deprecation is planned for the 0.2 alpha line.
 def lookup_number(longitude: float, latitude: float) -> int:
-    """Return the Flinn-Engdahl region number for one coordinate pair.
+    """Return the FE geographical-region number for one coordinate pair."""
 
-    Args:
-        longitude: Finite WGS84 longitude in degrees, in ``[-180, 180]``.
-        latitude: Finite WGS84 latitude in degrees, in ``[-90, 90]``.
-
-    Returns:
-        The positive integer region number from the packaged FE mapping.
-
-    Raises:
-        CoordinateTypeError: If a coordinate is not a supported real number.
-        CoordinateValueError: If a coordinate is NaN or infinite.
-        CoordinateRangeError: If a coordinate is outside its valid range.
-
-    Notes:
-        The function reuses the process-wide default engine. Longitude ``-180``
-        has the same mapping semantics as ``+180``.
-    """
-
-    return get_default_lookup().lookup_number(longitude, latitude)
+    return lookup_geographic_number(longitude, latitude)
 
 
 def lookup_region(longitude: float, latitude: float) -> Region:
-    """Return the region number and packaged name for one coordinate pair.
+    """Return the FE geographical-region number and packaged name."""
 
-    Args:
-        longitude: Finite WGS84 longitude in degrees, in ``[-180, 180]``.
-        latitude: Finite WGS84 latitude in degrees, in ``[-90, 90]``.
-
-    Returns:
-        An immutable :class:`Region` with the numeric ID and packaged name.
-
-    Raises:
-        CoordinateTypeError: If a coordinate is not a supported real number.
-        CoordinateValueError: If a coordinate is NaN or infinite.
-        CoordinateRangeError: If a coordinate is outside its valid range.
-    """
-
-    return get_default_lookup().lookup_region(longitude, latitude)
+    return lookup_geographic_region(longitude, latitude)
 
 
 def lookup_numbers(coordinates: npt.ArrayLike) -> npt.NDArray[np.uint16]:
-    """Return FE region numbers for a batch of coordinate pairs.
+    """Return FE geographical-region numbers for a batch of coordinates."""
 
-    Args:
-        coordinates: Numeric two-dimensional input with shape ``(n, 2)``.
-            Column 0 is longitude and column 1 is latitude.
-
-    Returns:
-        A one-dimensional ``uint16`` array with shape ``(n,)``.
-
-    Raises:
-        CoordinateShapeError: If the input does not have shape ``(n, 2)``.
-        CoordinateTypeError: If the input dtype is unsupported.
-        CoordinateValueError: If any coordinate is NaN or infinite.
-        CoordinateRangeError: If any coordinate is outside its valid range.
-
-    Notes:
-        This is the performance-oriented public lookup interface. The input is
-        not modified and region-name conversion is intentionally separate.
-    """
-
-    return get_default_lookup().lookup_numbers(coordinates)
+    return lookup_geographic_numbers(coordinates)
 
 
 def number_to_name(number: int) -> str:
-    """Return the packaged region name for one FE region number.
+    """Return the packaged FE geographical-region name."""
 
-    Args:
-        number: Integer region number represented by the packaged name table.
-
-    Returns:
-        The name derived from ObsPy 1.4.2 ``names.asc``.
-
-    Raises:
-        RegionNumberError: If ``number`` is not a represented integer region
-            number.
-    """
-
-    return get_default_lookup().number_to_name(number)
+    return geographic_number_to_name(number)
 
 
 def numbers_to_names(numbers: npt.ArrayLike) -> npt.NDArray[np.str_]:
-    """Convert a region-number array to a same-shape packaged-name array.
+    """Convert FE geographical-region numbers to packaged names."""
 
-    Args:
-        numbers: Integer NumPy-compatible array of represented FE region
-            numbers.
-
-    Returns:
-        A Unicode array with the same shape as ``numbers``.
-
-    Raises:
-        RegionNumberError: If the input is not an integer array or contains an
-            unrepresented region number.
-    """
-
-    return get_default_lookup().numbers_to_names(numbers)
+    return geographic_numbers_to_names(numbers)
 
 
 __all__ = [
     "FlinnEngdahlLookup",
+    "GeographicRegion",
     "Region",
+    "SeismicRegion",
+    "geographic_number_to_name",
+    "geographic_numbers_to_names",
+    "geographic_numbers_to_seismic_numbers",
+    "geographic_to_seismic_number",
     "get_default_lookup",
+    "lookup_geographic_number",
+    "lookup_geographic_numbers",
+    "lookup_geographic_region",
     "lookup_number",
     "lookup_numbers",
     "lookup_region",
+    "lookup_seismic_number",
+    "lookup_seismic_numbers",
+    "lookup_seismic_region",
     "number_to_name",
     "numbers_to_names",
+    "seismic_number_to_name",
+    "seismic_numbers_to_names",
 ]

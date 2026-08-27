@@ -1,36 +1,87 @@
-"""Optional GeoJSON generation from the one-degree lookup grid."""
+"""Optional GeoJSON generation from the shared one-degree FE cell grid."""
 
 from __future__ import annotations
 
 import json
 from collections import defaultdict
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import numpy as np
 
 from ._default import get_default_lookup
 from .core import FlinnEngdahlLookup
-from .exceptions import GeoJSONDependencyError
+from .exceptions import GeoJSONDependencyError, GeoJSONOptionError, RegionLevelError
+
+RegionLevel = Literal["geographic", "seismic"]
+LabelMode = Literal["number", "name", "number-name"]
+
+_GEOGRAPHIC_PROPERTIES = frozenset(
+    {
+        "number",
+        "name",
+        "geographic_number",
+        "geographic_name",
+        "seismic_number",
+        "seismic_name",
+    }
+)
+_SEISMIC_PROPERTIES = frozenset(
+    {
+        "number",
+        "name",
+        "seismic_number",
+        "seismic_name",
+        "geographic_numbers",
+        "geographic_names",
+    }
+)
+_DEFAULT_PROPERTIES = ("number", "name")
 
 
-def regions_geojson(*, lookup: FlinnEngdahlLookup | None = None) -> dict[str, Any]:
-    """Return area-equivalent one-degree Flinn-Engdahl geometry as GeoJSON.
+def regions_geojson(
+    *,
+    level: RegionLevel = "geographic",
+    properties: Sequence[str] = _DEFAULT_PROPERTIES,
+    label: LabelMode | None = None,
+    include_metadata: bool = True,
+    lookup: FlinnEngdahlLookup | None = None,
+) -> dict[str, Any]:
+    """Return area-equivalent FE geographical or seismic geometry as GeoJSON.
 
-    The geometry is derived from the same one-degree cells used by the lookup
-    contract. Adjacent equal cells are first merged into horizontal rectangles,
-    then dissolved by region. A region can therefore be a Polygon or a
-    MultiPolygon. Dateline-separated parts remain separate in the conventional
-    ``[-180, 180]`` longitude representation.
+    Args:
+        level: Geometry level. ``"geographic"`` produces the 754 active FE
+            geographical regions. ``"seismic"`` produces the 50 parent seismic
+            regions from the same cell grid.
+        properties: Feature properties to include. ``number`` and ``name`` are
+            relative to ``level``. Explicit cross-level fields are available
+            where their meaning is unambiguous. An empty sequence produces
+            geometry-only features.
+        label: Optional convenience ``label`` property for human-facing map
+            renderers. The supported values use the current level's number,
+            name, or ``"<number> <name>"`` combination.
+        include_metadata: Include one collection-level ``feregion`` metadata
+            object with scheme and boundary semantics. Disable it for a smaller
+            machine-oriented payload.
+        lookup: Optional lookup engine. Seismic output requires an engine with
+            seismic hierarchy data.
 
-    The output is intended for visualization and cell-area analysis. Closed
-    polygons cannot encode the numeric lookup's directional ownership of every
-    exact integer boundary line. Use the numeric lookup API for coordinates on
-    cell boundaries. This output is not an authoritative FE vector source.
+    Returns:
+        A GeoJSON FeatureCollection. Numeric point lookup remains authoritative
+        on exact integer cell boundaries.
 
     Raises:
+        RegionLevelError: If ``level`` is unsupported.
+        GeoJSONOptionError: If a property or label option is invalid.
         GeoJSONDependencyError: If Shapely is not installed.
     """
+
+    if level not in {"geographic", "seismic"}:
+        raise RegionLevelError("level must be 'geographic' or 'seismic'")
+    selected_properties = _validate_properties(level, properties)
+    if label not in {None, "number", "name", "number-name"}:
+        raise GeoJSONOptionError("label must be None, 'number', 'name', or 'number-name'")
 
     try:
         from shapely.geometry import box, mapping
@@ -41,11 +92,7 @@ def regions_geojson(*, lookup: FlinnEngdahlLookup | None = None) -> dict[str, An
         ) from exc
 
     engine = lookup if lookup is not None else get_default_lookup()
-    longitudes = np.arange(-180.0, 180.0, dtype=np.float64) + 0.5
-    latitudes = np.arange(-90.0, 90.0, dtype=np.float64) + 0.5
-    longitude_grid, latitude_grid = np.meshgrid(longitudes, latitudes)
-    coordinates = np.column_stack((longitude_grid.ravel(), latitude_grid.ravel()))
-    numbers = engine.lookup_numbers(coordinates).reshape(180, 360)
+    numbers = _cell_number_grid(engine, level)
 
     rectangles: dict[int, list[Any]] = defaultdict(list)
     for row_index, latitude in enumerate(range(-90, 90)):
@@ -54,56 +101,175 @@ def regions_geojson(*, lookup: FlinnEngdahlLookup | None = None) -> dict[str, An
         for end in range(1, 361):
             if end == 360 or row[end] != row[start]:
                 number = int(row[start])
-                west = -180 + start
-                east = -180 + end
-                rectangles[number].append(box(west, latitude, east, latitude + 1))
+                rectangles[number].append(box(-180 + start, latitude, -180 + end, latitude + 1))
                 start = end
 
     features: list[dict[str, Any]] = []
     for number in sorted(rectangles):
         geometry = unary_union(rectangles[number])
+        feature_properties = _feature_properties(
+            engine,
+            level=level,
+            number=number,
+            selected=selected_properties,
+            label=label,
+        )
         features.append(
             {
                 "type": "Feature",
-                "properties": {
-                    "number": number,
-                    "name": engine.number_to_name(number),
-                    "boundary_model": "area-equivalent 1-degree cells",
-                    "boundary_semantics": (
-                        "numeric lookup is authoritative on exact cell boundaries"
-                    ),
-                },
+                "properties": feature_properties,
                 "geometry": mapping(geometry),
             }
         )
-    return {"type": "FeatureCollection", "features": features}
+
+    document: dict[str, Any] = {"type": "FeatureCollection", "features": features}
+    if include_metadata:
+        document["feregion"] = {
+            "scheme": "Flinn-Engdahl",
+            "revision": "1995",
+            "level": level,
+            "boundary_model": "area-equivalent 1-degree cells",
+            "boundary_semantics": "numeric lookup is authoritative on exact cell boundaries",
+        }
+    return document
+
+
+def _cell_number_grid(engine: FlinnEngdahlLookup, level: RegionLevel) -> np.ndarray:
+    """Resolve the global one-degree cell grid at one FE hierarchy level."""
+
+    longitudes = np.arange(-180.0, 180.0, dtype=np.float64) + 0.5
+    latitudes = np.arange(-90.0, 90.0, dtype=np.float64) + 0.5
+    longitude_grid, latitude_grid = np.meshgrid(longitudes, latitudes)
+    coordinates = np.column_stack((longitude_grid.ravel(), latitude_grid.ravel()))
+    geographic = engine.lookup_geographic_numbers(coordinates)
+    if level == "geographic":
+        return geographic.reshape(180, 360)
+    return engine.geographic_numbers_to_seismic_numbers(geographic).reshape(180, 360)
+
+
+def _validate_properties(level: RegionLevel, properties: Sequence[str]) -> tuple[str, ...]:
+    """Validate property names while preserving caller-specified order."""
+
+    selected = tuple(properties)
+    if len(set(selected)) != len(selected):
+        raise GeoJSONOptionError("GeoJSON properties must not contain duplicates")
+    allowed = _GEOGRAPHIC_PROPERTIES if level == "geographic" else _SEISMIC_PROPERTIES
+    unsupported = [name for name in selected if name not in allowed]
+    if unsupported:
+        raise GeoJSONOptionError(
+            f"unsupported {level} GeoJSON properties: {', '.join(map(str, unsupported))}"
+        )
+    return selected
+
+
+def _feature_properties(
+    engine: FlinnEngdahlLookup,
+    *,
+    level: RegionLevel,
+    number: int,
+    selected: tuple[str, ...],
+    label: LabelMode | None,
+) -> dict[str, Any]:
+    """Build only requested semantic properties for one feature.
+
+    Expensive cross-level collections are resolved only when the caller asks
+    for them. This keeps compact machine-oriented GeoJSON generation compact
+    in both output and intermediate work.
+    """
+
+    result: dict[str, Any] = {}
+    need_name = label in {"name", "number-name"}
+
+    if level == "geographic":
+        geographic_name: str | None = None
+        seismic_number: int | None = None
+        seismic_name: str | None = None
+
+        for field in selected:
+            if field in {"number", "geographic_number"}:
+                result[field] = number
+            elif field in {"name", "geographic_name"}:
+                if geographic_name is None:
+                    geographic_name = engine.geographic_number_to_name(number)
+                result[field] = geographic_name
+            elif field == "seismic_number":
+                if seismic_number is None:
+                    seismic_number = engine.geographic_to_seismic_number(number)
+                result[field] = seismic_number
+            elif field == "seismic_name":
+                if seismic_number is None:
+                    seismic_number = engine.geographic_to_seismic_number(number)
+                if seismic_name is None:
+                    seismic_name = engine.seismic_number_to_name(seismic_number)
+                result[field] = seismic_name
+
+        if need_name and geographic_name is None:
+            geographic_name = engine.geographic_number_to_name(number)
+        current_name = geographic_name
+    else:
+        seismic_name: str | None = None
+        geographic_numbers: list[int] | None = None
+
+        for field in selected:
+            if field in {"number", "seismic_number"}:
+                result[field] = number
+            elif field in {"name", "seismic_name"}:
+                if seismic_name is None:
+                    seismic_name = engine.seismic_number_to_name(number)
+                result[field] = seismic_name
+            elif field in {"geographic_numbers", "geographic_names"}:
+                if geographic_numbers is None:
+                    crosswalk = engine.seismic_by_geographic
+                    if crosswalk is None:
+                        raise AssertionError("seismic data became unavailable")
+                    geographic_numbers = np.flatnonzero(crosswalk == number).astype(int).tolist()
+                if field == "geographic_numbers":
+                    result[field] = geographic_numbers
+                else:
+                    result[field] = [
+                        engine.geographic_number_to_name(value) for value in geographic_numbers
+                    ]
+
+        if need_name and seismic_name is None:
+            seismic_name = engine.seismic_number_to_name(number)
+        current_name = seismic_name
+
+    if label == "number":
+        result["label"] = str(number)
+    elif label == "name":
+        assert current_name is not None
+        result["label"] = current_name
+    elif label == "number-name":
+        assert current_name is not None
+        result["label"] = f"{number} {current_name}"
+    return result
 
 
 def write_regions_geojson(
     path: str | Path,
     *,
+    level: RegionLevel = "geographic",
+    properties: Sequence[str] = _DEFAULT_PROPERTIES,
+    label: LabelMode | None = None,
+    include_metadata: bool = True,
     lookup: FlinnEngdahlLookup | None = None,
     indent: int | None = None,
 ) -> None:
-    """Write area-equivalent FE geometry as UTF-8 GeoJSON.
-
-    Args:
-        path: Destination filesystem path. Existing content is replaced.
-        lookup: Optional lookup engine used to derive cell ownership and names.
-        indent: Optional JSON indentation passed to :func:`json.dumps`.
-
-    Raises:
-        GeoJSONDependencyError: If Shapely is not installed.
-        OSError: If the destination cannot be written.
-
-    Notes:
-        This helper does not provide atomic filesystem publication. Generate
-        the in-memory object with :func:`regions_geojson` first when the caller
-        needs separate publication or recovery semantics.
-    """
+    """Write configured area-equivalent FE geometry as UTF-8 GeoJSON."""
 
     destination = Path(path)
     destination.write_text(
-        json.dumps(regions_geojson(lookup=lookup), indent=indent, ensure_ascii=False) + "\n",
+        json.dumps(
+            regions_geojson(
+                level=level,
+                properties=properties,
+                label=label,
+                include_metadata=include_metadata,
+                lookup=lookup,
+            ),
+            indent=indent,
+            ensure_ascii=False,
+        )
+        + "\n",
         encoding="utf-8",
     )

@@ -25,6 +25,18 @@ class RegionNumberError(FlinnEngdahlError, ValueError):
     """A region number cannot be mapped to a Flinn-Engdahl region name."""
 
 
+class SeismicDataUnavailableError(FlinnEngdahlError, RuntimeError):
+    """The lookup engine was constructed without seismic hierarchy data."""
+
+
+class RegionLevelError(FlinnEngdahlError, ValueError):
+    """A level selector is not ``geographic`` or ``seismic``."""
+
+
+class GeoJSONOptionError(FlinnEngdahlError, ValueError):
+    """GeoJSON property, label, or metadata options are invalid."""
+
+
 class DataFileError(FlinnEngdahlError, RuntimeError):
     """Packaged Flinn-Engdahl lookup data is missing or invalid."""
 

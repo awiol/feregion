@@ -10,23 +10,22 @@ _default_lookup_lock = Lock()
 
 
 def get_default_lookup() -> FlinnEngdahlLookup:
-    """Return exactly one immutable default lookup engine per Python process.
-
-    Concurrent first callers use a single-flight lock. Only the first caller
-    constructs the engine; later and concurrent callers receive the same
-    instance.
-    """
+    """Return exactly one immutable default lookup engine per Python process."""
 
     global _default_lookup
     cached = _default_lookup
     if cached is not None:
         return cached
-
     with _default_lookup_lock:
         cached = _default_lookup
         if cached is None:
-            table, names = load_packaged_assets()
-            cached = FlinnEngdahlLookup(table=table, names=names)
+            table, names, seismic_by_geographic, seismic_names = load_packaged_assets()
+            cached = FlinnEngdahlLookup(
+                table=table,
+                names=names,
+                seismic_by_geographic=seismic_by_geographic,
+                seismic_names=seismic_names,
+            )
             _default_lookup = cached
         return cached
 

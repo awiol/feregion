@@ -15,7 +15,6 @@ from typing import TextIO, cast
 
 import numpy as np
 
-from . import lookup_number, number_to_name
 from ._default import get_default_lookup
 from .exceptions import CsvInputError, FlinnEngdahlError
 
@@ -29,6 +28,7 @@ def build_parser() -> argparse.ArgumentParser:
     point = subparsers.add_parser("point", help="lookup one longitude/latitude pair")
     point.add_argument("longitude", type=float)
     point.add_argument("latitude", type=float)
+    point.add_argument("--level", choices=("geographic", "seismic"), default="geographic")
     point.add_argument("--name", action="store_true", help="also print the region name")
     point.add_argument("--json", action="store_true", help="write one JSON object")
 
@@ -42,14 +42,24 @@ def build_parser() -> argparse.ArgumentParser:
     )
     csv_parser.add_argument("--longitude-column", default="longitude")
     csv_parser.add_argument("--latitude-column", default="latitude")
-    csv_parser.add_argument("--number-column", default="fe_number")
+    csv_parser.add_argument("--level", choices=("geographic", "seismic"), default="geographic")
+    csv_parser.add_argument("--number-column", default=None)
     csv_parser.add_argument("--include-names", action="store_true")
-    csv_parser.add_argument("--name-column", default="fe_region")
+    csv_parser.add_argument("--name-column", default=None)
     csv_parser.add_argument("--chunk-size", type=int, default=100_000)
 
     geojson = subparsers.add_parser("geojson", help="write derived one-degree region GeoJSON")
     geojson.add_argument("output")
     geojson.add_argument("--indent", type=int, default=None)
+    geojson.add_argument("--level", choices=("geographic", "seismic"), default="geographic")
+    geojson.add_argument(
+        "--property",
+        dest="properties",
+        action="append",
+        help="feature property to include; repeat for multiple properties",
+    )
+    geojson.add_argument("--label", choices=("number", "name", "number-name"), default=None)
+    geojson.add_argument("--no-metadata", action="store_true")
     return parser
 
 
@@ -73,8 +83,13 @@ def main(argv: list[str] | None = None) -> int:
 
 
 def _point(args: argparse.Namespace) -> int:
-    number = lookup_number(args.longitude, args.latitude)
-    name = number_to_name(number) if args.name or args.json else None
+    engine = get_default_lookup()
+    if args.level == "geographic":
+        number = engine.lookup_geographic_number(args.longitude, args.latitude)
+        name = engine.geographic_number_to_name(number) if args.name or args.json else None
+    else:
+        number = engine.lookup_seismic_number(args.longitude, args.latitude)
+        name = engine.seismic_number_to_name(number) if args.name or args.json else None
     if args.json:
         print(
             json.dumps(
@@ -99,6 +114,12 @@ def _csv(args: argparse.Namespace) -> int:
 
     if args.chunk_size < 1:
         raise CsvInputError("--chunk-size must be positive")
+    number_column = args.number_column or (
+        "fe_number" if args.level == "geographic" else "fe_seismic_number"
+    )
+    name_column = args.name_column or (
+        "fe_region" if args.level == "geographic" else "fe_seismic_region"
+    )
     if args.input != "-" and args.output != "-":
         _reject_csv_path_alias(Path(args.input), Path(args.output))
 
@@ -110,10 +131,11 @@ def _csv(args: argparse.Namespace) -> int:
                     sys.stdout,
                     longitude_column=args.longitude_column,
                     latitude_column=args.latitude_column,
-                    number_column=args.number_column,
+                    number_column=number_column,
                     include_names=args.include_names,
-                    name_column=args.name_column,
+                    name_column=name_column,
                     chunk_size=args.chunk_size,
+                    level=args.level,
                 )
             else:
                 _process_csv_to_file(
@@ -121,10 +143,11 @@ def _csv(args: argparse.Namespace) -> int:
                     Path(args.output),
                     longitude_column=args.longitude_column,
                     latitude_column=args.latitude_column,
-                    number_column=args.number_column,
+                    number_column=number_column,
                     include_names=args.include_names,
-                    name_column=args.name_column,
+                    name_column=name_column,
                     chunk_size=args.chunk_size,
+                    level=args.level,
                 )
     except UnicodeError as exc:
         raise CsvInputError("CSV input must be valid UTF-8") from exc
@@ -176,6 +199,7 @@ def _process_csv_to_file(
     include_names: bool,
     name_column: str,
     chunk_size: int,
+    level: str,
 ) -> None:
     """Publish a CSV file atomically after complete successful processing.
 
@@ -198,6 +222,7 @@ def _process_csv_to_file(
                 include_names=include_names,
                 name_column=name_column,
                 chunk_size=chunk_size,
+                level=level,
             )
         if destination_mode is not None:
             os.chmod(temporary_path, destination_mode)
@@ -240,6 +265,7 @@ def _process_csv(
     include_names: bool,
     name_column: str,
     chunk_size: int,
+    level: str,
 ) -> None:
     """Process CSV records in bounded vectorized chunks.
 
@@ -295,6 +321,7 @@ def _process_csv(
                 number_column=number_column,
                 include_names=include_names,
                 name_column=name_column,
+                level=level,
             )
             rows = []
             row_numbers = []
@@ -309,6 +336,7 @@ def _process_csv(
             number_column=number_column,
             include_names=include_names,
             name_column=name_column,
+            level=level,
         )
 
 
@@ -369,6 +397,7 @@ def _write_csv_chunk(
     number_column: str,
     include_names: bool,
     name_column: str,
+    level: str,
 ) -> None:
     coordinates = np.empty((len(rows), 2), dtype=np.float64)
     for index, (row, row_number) in enumerate(zip(rows, row_numbers, strict=True)):
@@ -378,8 +407,12 @@ def _write_csv_chunk(
         except (TypeError, ValueError) as exc:
             raise CsvInputError(f"CSV row {row_number} has a non-numeric coordinate") from exc
 
-    numbers = engine.lookup_numbers(coordinates)
-    names = engine.numbers_to_names(numbers) if include_names else None
+    if level == "geographic":
+        numbers = engine.lookup_geographic_numbers(coordinates)
+        names = engine.geographic_numbers_to_names(numbers) if include_names else None
+    else:
+        numbers = engine.lookup_seismic_numbers(coordinates)
+        names = engine.seismic_numbers_to_names(numbers) if include_names else None
     for index, row in enumerate(rows):
         row[number_column] = str(int(numbers[index]))
         if names is not None:
@@ -390,5 +423,13 @@ def _write_csv_chunk(
 def _geojson(args: argparse.Namespace) -> int:
     from .geojson import write_regions_geojson
 
-    write_regions_geojson(Path(args.output), indent=args.indent)
+    kwargs = {} if args.properties is None else {"properties": tuple(args.properties)}
+    write_regions_geojson(
+        Path(args.output),
+        level=args.level,
+        label=args.label,
+        include_metadata=not args.no_metadata,
+        indent=args.indent,
+        **kwargs,
+    )
     return 0

@@ -21,6 +21,8 @@ REQUIRED_PACKAGE_FILES = {
     "feregion/py.typed",
     "feregion/data/fe_table.npy",
     "feregion/data/fe_names.npy",
+    "feregion/data/fe_seismic_by_geographic.npy",
+    "feregion/data/fe_seismic_names.npy",
     "feregion/data/metadata.json",
 }
 REQUIRED_EXTRAS = {"pandas", "geo", "test", "benchmark", "dev"}
@@ -128,7 +130,10 @@ def main(argv: list[str] | None = None) -> int:
             "assert feregion.lookup_number(12,48)==543; "
             "assert feregion.lookup_numbers(np.array([[12,48],[-60,-30]])).tolist()==[543,133]; "
             "assert feregion.numbers_to_names(np.array([543,133],dtype=np.uint16)).tolist()=="
-            "['GERMANY','NORTHEASTERN ARGENTINA']"
+            "['GERMANY','NORTHEASTERN ARGENTINA']; "
+            "assert feregion.lookup_seismic_number(12,48)==36; "
+            "assert feregion.geographic_to_seismic_number(543)==36; "
+            "assert feregion.seismic_number_to_name(36)=='Northwestern Europe'"
         )
         run([str(python), "-c", check], cwd=Path(temporary))
         run([str(command), "point", "12", "48", "--name"], cwd=Path(temporary))

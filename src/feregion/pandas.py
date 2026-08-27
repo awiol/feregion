@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 import numpy as np
 
@@ -13,10 +13,13 @@ from .exceptions import (
     DataFrameColumnError,
     DataFrameTypeError,
     PandasDependencyError,
+    RegionLevelError,
 )
 
 if TYPE_CHECKING:
     import pandas as pd
+
+RegionLevel = Literal["geographic", "seismic"]
 
 
 def lookup_dataframe(
@@ -24,34 +27,39 @@ def lookup_dataframe(
     *,
     longitude_column: str = "longitude",
     latitude_column: str = "latitude",
-    number_column: str = "fe_number",
+    level: RegionLevel = "geographic",
+    number_column: str | None = None,
     include_names: bool = False,
-    name_column: str = "fe_region",
+    name_column: str | None = None,
     inplace: bool = False,
     lookup: FlinnEngdahlLookup | None = None,
 ) -> pd.DataFrame:
-    """Add Flinn-Engdahl region data to a pandas DataFrame.
+    """Add FE geographical or seismic region data to a pandas DataFrame.
 
-    Region names are not added unless ``include_names`` is true. The default
-    operation returns a copy. Set ``inplace`` to update and return ``frame``.
-    Numeric coordinate values retain their source NumPy precision until the
-    core batch validator has classified finiteness and coordinate range.
-
-    Output columns are additive. They must be distinct from coordinate columns,
-    from each other when names are enabled, and from every pre-existing input
-    column. The adapter never silently overwrites caller data.
+    Args:
+        frame: Input pandas DataFrame.
+        longitude_column: Column containing longitude values.
+        latitude_column: Column containing latitude values.
+        level: ``"geographic"`` for geographical regions or ``"seismic"`` for
+            seismic regions.
+        number_column: Output number column. The level-specific default is
+            ``fe_number`` for geographical lookup and ``fe_seismic_number`` for
+            seismic lookup.
+        include_names: Add the packaged region name when true.
+        name_column: Output name column. The level-specific default is
+            ``fe_region`` or ``fe_seismic_region``.
+        inplace: Update and return ``frame`` instead of a copy.
+        lookup: Optional explicit lookup engine.
 
     Returns:
         The annotated copy, or ``frame`` itself when ``inplace`` is true.
 
     Raises:
+        RegionLevelError: If ``level`` is not supported.
         DataFrameTypeError: If ``frame`` is not a pandas DataFrame.
-        DataFrameColumnError: If required coordinate columns are absent or an
-            output-column name would collide with input/output schema.
+        DataFrameColumnError: If coordinate selection or output schema is invalid.
         PandasDependencyError: If pandas is not installed.
         CoordinateTypeError: If a coordinate column is not numeric.
-        CoordinateValueError: If a coordinate is NaN or infinite.
-        CoordinateRangeError: If a coordinate is outside the valid range.
     """
 
     try:
@@ -62,9 +70,17 @@ def lookup_dataframe(
             "pandas support requires the optional 'pandas' dependency"
         ) from exc
 
+    if level not in {"geographic", "seismic"}:
+        raise RegionLevelError("level must be 'geographic' or 'seismic'")
+    resolved_number_column = number_column or (
+        "fe_number" if level == "geographic" else "fe_seismic_number"
+    )
+    resolved_name_column = name_column or (
+        "fe_region" if level == "geographic" else "fe_seismic_region"
+    )
+
     if not isinstance(frame, pd.DataFrame):
         raise DataFrameTypeError("frame must be a pandas DataFrame")
-
     if longitude_column == latitude_column:
         raise DataFrameColumnError("longitude and latitude columns must be different")
 
@@ -83,9 +99,9 @@ def lookup_dataframe(
         frame,
         longitude_column=longitude_column,
         latitude_column=latitude_column,
-        number_column=number_column,
+        number_column=resolved_number_column,
         include_names=include_names,
-        name_column=name_column,
+        name_column=resolved_name_column,
     )
 
     for column in (longitude_column, latitude_column):
@@ -98,39 +114,27 @@ def lookup_dataframe(
     latitude = _coordinate_values(target[latitude_column])
     coordinates = np.column_stack((longitude, latitude))
     engine = lookup if lookup is not None else get_default_lookup()
-    numbers = engine.lookup_numbers(coordinates)
-    target[number_column] = numbers
-    if include_names:
-        target[name_column] = engine.numbers_to_names(numbers)
+    if level == "geographic":
+        numbers = engine.lookup_geographic_numbers(coordinates)
+        names = engine.geographic_numbers_to_names(numbers) if include_names else None
+    else:
+        numbers = engine.lookup_seismic_numbers(coordinates)
+        names = engine.seismic_numbers_to_names(numbers) if include_names else None
+    target[resolved_number_column] = numbers
+    if names is not None:
+        target[resolved_name_column] = names
     return target
 
 
 def _coordinate_values(series: pd.Series) -> np.ndarray:
-    """Return numeric coordinate values in a NumPy dtype accepted by the core validator.
-
-    pandas nullable numeric extension dtypes can expose an ``object`` array from
-    :meth:`Series.to_numpy` on older supported pandas releases.  That array may
-    contain ``pd.NA``, which would make the core validator classify an otherwise
-    numeric column as an object-type input.  Native NumPy-backed columns retain
-    their dtype.  Only numeric extension arrays that materialize as ``object``
-    are converted, with missing values represented as ``np.nan`` so the core
-    validator preserves its non-finite-coordinate error contract.
-
-    Args:
-        series: A pandas Series already validated as numeric and non-Boolean.
-
-    Returns:
-        A NumPy array suitable for stacking into the core coordinate matrix.
-    """
+    """Return numeric coordinate values in a NumPy dtype accepted by core validation."""
 
     values = series.to_numpy(copy=False)
     if values.dtype.kind != "O":
         return values
-
     numpy_dtype = getattr(series.dtype, "numpy_dtype", None)
     if numpy_dtype is not None and not series.isna().any():
         return series.to_numpy(dtype=numpy_dtype, copy=False)
-
     return series.to_numpy(dtype=np.float64, na_value=np.nan, copy=False)
 
 
@@ -150,7 +154,6 @@ def _validate_output_columns(
         raise DataFrameColumnError("region-number column must differ from coordinate columns")
     if number_column in frame.columns:
         raise DataFrameColumnError(f"output column already exists: {number_column}")
-
     if not include_names:
         return
     if name_column == number_column:

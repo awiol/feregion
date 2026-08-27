@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Behavioral contract series | `0.1` |
+| Behavioral contract series | `0.2` |
 | Status | Implemented alpha contract |
 
 ## Normative profile and terminology
@@ -16,7 +16,10 @@ Preferred terms:
 - **reference implementation**: ObsPy `FlinnEngdahl` behavior used for semantic comparison;
 - **source-table scanner**: this repository's independent direct scan of the pinned FE source tables;
 - **hash-verified pinned source tables**: upstream source files whose bytes match the recorded SHA-256 values at the pinned ObsPy commit;
-- **packaged region name**: the name stored in the package, derived from ObsPy 1.4.2 `names.asc`;
+- **geographical region**: the fine-grained FE region level with 754 active identifiers in the 1995 revision;
+- **seismic region**: one of the 50 coarser FE parent regions in the 1995 revision;
+- **packaged geographical-region name**: the name stored from pinned ObsPy `names.asc`;
+- **packaged seismic-region name**: the name stored from the declared ISC FE standards source;
 - **atomic filesystem publication**: write a complete temporary sibling and replace the destination only after successful processing;
 - **area-equivalent GeoJSON**: geometry derived from one-degree cell areas; exact boundary-point ownership remains defined by numeric lookup.
 
@@ -35,11 +38,11 @@ Related contracts:
 ## Purpose and terms
 
 The package must map WGS84 longitude/latitude coordinates to Flinn-Engdahl
-(FE) geographical region numbers. A **coordinate pair** is ordered as
-`[longitude, latitude]`. A **region number** is the positive integer FE
-identifier. A **packaged region name** is the name stored in the package from
-ObsPy 1.4.2 `names.asc` at commit
-`a629e8c021052904b6b8d62699d03f2a3721ae63`.
+(FE) geographical regions and their parent seismic regions. A **coordinate
+pair** is ordered as `[longitude, latitude]`. The generic compatibility term
+**region** means a geographical region unless an interface explicitly selects
+a level. Packaged names retain the spelling of their declared source; the
+package does not claim one spelling is uniquely authoritative across FE history.
 
 ## Reference behavior
 
@@ -56,6 +59,30 @@ longitude `+180`.
 **REQ-FE-004** — Lookup must select one of four quadrants from coordinate
 signs, then use the integer part of each absolute coordinate. Negative zero
 must behave as zero.
+
+## FE hierarchy
+
+**REQ-HIER-001** — Public terminology must distinguish FE geographical regions
+from FE seismic regions. New core Python APIs must use explicit level-specific
+names. Existing generic lookup/name APIs must remain compatibility interfaces
+for geographical regions.
+
+**REQ-HIER-002** — The supported structural hierarchy must represent the 1995
+FE revision published by Young et al. in 1996: 50 seismic regions and 754
+active geographical regions in the identifier range 1 through 757.
+
+**REQ-HIER-003** — Every active packaged geographical region must map to
+exactly one seismic region in the range 1 through 50. Retired geographical
+identifiers 172, 299, and 550 must not be treated as active hierarchy members.
+
+**REQ-HIER-004** — Coordinate-to-seismic lookup must be equivalent to
+coordinate-to-geographical lookup followed by the packaged
+geographical-to-seismic crosswalk. The implementation must not maintain an
+independent coordinate-to-seismic ownership table.
+
+**REQ-HIER-005** — The package must provide packaged names for all 50 seismic
+regions and must describe those values as source-version-specific packaged
+names rather than uniquely authoritative historical spellings.
 
 ## Scalar interface
 
@@ -79,6 +106,17 @@ ownership of the supplied table and packaged-region-name data. Later mutation
 of caller-owned arrays must not change engine behavior. The engine-owned arrays
 must be read-only.
 
+**REQ-API-007** — The package must provide explicit geographical and seismic
+scalar lookup, region-value, and number-to-name functions. `Region` must remain
+a compatibility alias for `GeographicRegion`; `GeographicRegion` and
+`SeismicRegion` must be immutable and slotted.
+
+**REQ-API-008** — The existing two-array `FlinnEngdahlLookup(table, names)`
+construction must remain valid and geographical-only. Seismic operations on an
+engine without supplied hierarchy assets must fail with
+`SeismicDataUnavailableError`; they must not silently use hierarchy data from
+the packaged default engine.
+
 ## Batch NumPy interface
 
 **REQ-NP-001** — Batch lookup must accept a numeric two-dimensional input with
@@ -97,6 +135,14 @@ to a same-shape Unicode name array.
 
 **REQ-NP-007** — An empty input with shape `(0, 2)` must return an empty
 `uint16` result.
+
+**REQ-NP-008** — Seismic batch lookup must preserve the coordinate batch shape
+contract and return one-dimensional `uint8` seismic identifiers with shape
+`(n,)`.
+
+**REQ-NP-009** — A separate vectorized hierarchy function must convert an
+integer array of active geographical identifiers to a same-shape `uint8`
+seismic-identifier array.
 
 ## pandas interface
 
@@ -133,6 +179,11 @@ core non-finite validation path and raise `CoordinateValueError`; it must not be
 reclassified as an object-valued coordinate solely because a supported pandas
 release materializes its extension array as `object`.
 
+**REQ-PD-009** — The pandas adapter must support `level="geographic"` and
+`level="seismic"`. Existing calls without a level must remain geographical and
+retain `fe_number`/`fe_region` defaults. Seismic defaults must be
+`fe_seismic_number`/`fe_seismic_region`.
+
 ## Errors and invalid input
 
 **REQ-ERR-001** — Public package failures must use package-specific exception
@@ -157,6 +208,11 @@ finiteness and range in the source dtype before narrowing to `float64`. A value
 that is finite in its source dtype but outside the coordinate range must raise
 `CoordinateRangeError`, not `CoordinateValueError`, and validation must not
 emit a narrowing-overflow warning before that classification.
+
+**REQ-ERR-007** — An operation that requires seismic hierarchy data on an
+explicit geographical-only engine must raise `SeismicDataUnavailableError`. An
+unsupported generic hierarchy level or GeoJSON presentation option must use a
+package-specific option/level error.
 
 ## Command-line interface
 
@@ -209,34 +265,52 @@ through the package CSV failure boundary. The installed command must return
 status 2 with a bounded diagnostic and must not expose a Python traceback for
 these input failures. Atomic filesystem publication rules continue to apply.
 
+**REQ-CLI-013** — `point`, `csv`, and `geojson` commands must allow the caller
+to select geographical or seismic output. Existing calls without `--level`
+must remain geographical. CSV level-specific default output-column names must
+match the pandas adapter defaults.
+
 ## GeoJSON feature
 
-**REQ-GEO-001** — The optional GeoJSON utility must create one feature for each
-of the 754 active geographical regions present in the global one-degree lookup
-grid. Retired region numbers 172, 299, and 550 must not receive fabricated
+**REQ-GEO-001** — The optional GeoJSON utility must support geometry for either
+the 754 active geographical regions or the 50 seismic regions. Both levels
+must be derived from the same global one-degree geographical ownership grid.
+Retired geographical identifiers 172, 299, and 550 must not receive fabricated
 polygons.
 
-**REQ-GEO-002** — Each feature must contain the region number and name.
+**REQ-GEO-002** — GeoJSON geometry level and feature-property selection must be
+independent options. The caller must be able to request a compact
+machine-oriented representation, including geometry-only features, or a more
+explicit human-oriented representation without changing geometry ownership.
 
 **REQ-GEO-003** — GeoJSON geometry must represent the union of area-equivalent
-one-degree cells. The package must not describe this derived geometry as an
-independent authoritative FE vector boundary source.
+one-degree cells owned by each selected region. Seismic cell ownership must be
+exactly the geographical cell ownership mapped through the packaged hierarchy.
 
 **REQ-GEO-004** — GeoJSON generation may require an optional geometry
-dependency. Core lookup must not require that dependency.
+dependency. Missing geometry support must fail through the package-specific
+GeoJSON dependency boundary.
 
 **REQ-GEO-005** — Numeric lookup is authoritative for a coordinate exactly on
-an integer cell boundary. GeoJSON documentation and feature metadata must state
-that ordinary closed polygons cannot encode every directional FE boundary-point
-ownership rule.
+an integer cell boundary. Area-equivalent GeoJSON must not be documented as an
+exact reconstruction of the historical point-boundary convention.
 
-## Non-goals
+**REQ-GEO-006** — Geographical features must allow selection from `number`,
+`name`, `geographic_number`, `geographic_name`, `seismic_number`, and
+`seismic_name`. Seismic features must allow selection from `number`, `name`,
+`seismic_number`, `seismic_name`, `geographic_numbers`, and
+`geographic_names`. Unsupported or duplicate properties must be rejected.
 
-**NON-GOAL-001** — A Rust extension is not part of this implementation. Revisit
-Rust only after the NumPy implementation has reproducible benchmark evidence.
+**REQ-GEO-007** — The caller may request one optional convenience `label`
+property using the current level's number, name, or number-and-name
+combination. The API must not require support for arbitrary presentation
+templates or every possible property permutation.
 
-**NON-GOAL-002** — This package does not redefine FE regions or claim a more
-precise boundary model than the hash-verified pinned FE source tables provide.
+**REQ-GEO-008** — Dataset-wide scheme, revision, level, boundary model, and
+boundary semantics should be stored once in a collection-level `feregion`
+foreign member. The caller must be able to omit this metadata for a smaller
+payload.
 
-**NON-GOAL-003** — The package does not guarantee rollback of bytes already
-written to stdout or another caller-owned streaming sink.
+**REQ-GEO-009** — Default GeoJSON feature properties must remain the selected
+level's `number` and `name`; changing to seismic geometry must not make generic
+property names refer to geographical values.

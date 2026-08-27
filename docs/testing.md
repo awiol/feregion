@@ -39,35 +39,45 @@ dependencies into that environment.
 ## Test layers
 
 1. Core tests use synthetic tables and names to isolate coordinate behavior.
-2. Package-resource tests verify generated asset structure, packaged names,
-   provenance metadata, and known FE results.
-3. Source-reproduction tests compare packaged assets with the hash-verified
-   pinned ObsPy source tables through an independent source-table scanner.
+2. Package-resource tests verify geographical and seismic asset structure,
+   hierarchy coverage, packaged names, provenance metadata, and known FE results.
+3. Source-reproduction tests compare geographical assets with hash-verified
+   pinned ObsPy source tables and deterministically recreate seismic assets from
+   the normalized ISC hierarchy representation.
 4. Optional ObsPy oracle tests compare package behavior with the reference
    implementation when ObsPy is installed.
 5. pandas and CSV tests verify selector identity, source-dtype validation
    parity, structured-input preservation, UTF-8/CSV parser failures, additive
    output, and publication behavior.
-6. GeoJSON tests verify area-cell coverage and the explicit boundary limitation.
+6. GeoJSON tests verify geographical/seismic area-cell coverage, compact and
+   explicit property selections, collection metadata, and the boundary limitation.
 7. Repository metadata tests detect version, dependency, contract-file, CI
    matrix, and traceability drift.
-8. Benchmark harnesses measure scalar, batch, name-conversion, and pandas
-   interfaces. Routine benchmarks exclude CLI and GeoJSON.
+8. Benchmark harnesses measure geographical and seismic scalar/batch paths,
+   hierarchy conversion, name conversion, and pandas interfaces. Routine
+   benchmarks exclude CLI and GeoJSON.
 
 ## Upstream source-data checks
 
-Fetch source data before source-reproduction tests:
+Fetch both upstream source forms before complete source-reproduction and asset
+regeneration checks:
 
 ```bash
 uv run python -m tools.fetch_obspy_fe_data
+uv run python -m tools.fetch_isc_fe_regions
 ```
 
-The fetch tool resolves the required files at immutable ObsPy commit
-`a629e8c021052904b6b8d62699d03f2a3721ae63` for tag `1.4.2`. It verifies each
-file against its pinned SHA-256 value before publication to the ignored cache.
+The ObsPy fetcher resolves the required files at immutable commit
+`a629e8c021052904b6b8d62699d03f2a3721ae63` for tag `1.4.2` and verifies each
+file SHA-256. The ISC fetcher parses the declared FE standards page, validates
+50 seismic regions and 754 active geographical memberships, then verifies the
+normalized semantic SHA-256 before atomic local publication.
 
-Tests that require the source cache skip with an acquisition instruction when
-it is absent. Release verification must run these tests with the cache present.
+Ordinary tests exercise the ISC parser and normalized publisher with controlled
+HTML and do not require live network access. Tests requiring the ObsPy source
+cache skip with an acquisition instruction when it is absent. Release evidence
+must distinguish an unavailable live source check from deterministic source-tool
+verification.
 
 ## Structured-input checks
 
@@ -154,9 +164,12 @@ could not run must remain an explicit verification limitation.
 
 ## Performance evidence
 
-Before timing a candidate, benchmark code compares its output with the
-source-table scanner. Direct batch comparisons use identical deterministic
-coordinates for candidate and baseline.
+Before timing the geographical coordinate candidate, benchmark code compares
+its output with the source-table scanner. Direct batch comparisons use identical
+deterministic coordinates for candidate and baseline. Seismic benchmark paths
+also verify coordinate-to-seismic results against geographical lookup followed
+by the crosswalk before timing; the hierarchy-only crosswalk is measured
+separately.
 
 Reports retain workload, environment, repetitions, median duration, throughput,
 and speedup. Generated benchmark JSON and human-readable reports are delivery

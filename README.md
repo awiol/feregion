@@ -1,11 +1,12 @@
 # feregion
 
 `feregion` maps WGS84 longitude/latitude coordinates to Flinn-Engdahl (FE)
-geographical region numbers. It provides scalar, NumPy batch, pandas, CSV, and
-optional GeoJSON interfaces.
+geographical regions and their parent seismic regions. It provides scalar,
+NumPy batch, hierarchy-conversion, pandas, CSV, and optional GeoJSON interfaces.
 
-Normal lookup uses packaged generated data. Runtime lookup does not require
-ObsPy, network access, pandas, or Shapely.
+Normal lookup uses packaged processed data. Runtime lookup, names, hierarchy
+conversion, and GeoJSON generation do not require ObsPy, ISC network access, or
+another source service. pandas and Shapely remain optional interface dependencies.
 
 ## Install with uv
 
@@ -53,17 +54,33 @@ numbers = feregion.lookup_numbers(coordinates)
 
 feregion.numbers_to_names(numbers)
 # array(['GERMANY', 'NORTHEASTERN ARGENTINA'], dtype='<U...')
+
+feregion.lookup_seismic_number(12.0, 48.0)
+# 36
+
+feregion.lookup_seismic_region(12.0, 48.0)
+# SeismicRegion(number=36, name='Northwestern Europe')
+
+feregion.geographic_to_seismic_number(543)
+# 36
 ```
 
 A coordinate array always uses `[longitude, latitude]` column order. Use batch
 lookup when throughput matters.
 
-`number_to_name()` and `numbers_to_names()` return **packaged region names**
-derived from ObsPy 1.4.2 `names.asc`. The project does not claim that this is
-the only naming convention used by all historical FE sources.
+The pre-existing generic functions (`lookup_number`, `lookup_region`,
+`lookup_numbers`, `number_to_name`, and `numbers_to_names`) remain geographical
+compatibility interfaces. New code can use the explicit `geographic_*` and
+`seismic_*` forms when the level matters.
 
-Explicit `FlinnEngdahlLookup` construction copies the supplied table and name
-arrays. Later mutation of caller-owned arrays cannot change engine behavior.
+Packaged geographical names are derived from pinned ObsPy `names.asc`; packaged
+seismic names retain the declared ISC FE standards spelling. The project does
+not claim that either source provides the unique historical FE naming convention.
+
+Explicit `FlinnEngdahlLookup(table, names)` construction remains valid and is
+geographical-only. Supplying the optional seismic arrays adds hierarchy
+capability; a custom geographical-only engine does not silently borrow packaged
+seismic data.
 
 ## pandas
 
@@ -72,6 +89,7 @@ from feregion.pandas import lookup_dataframe
 
 result = lookup_dataframe(frame)
 result_with_names = lookup_dataframe(frame, include_names=True)
+seismic = lookup_dataframe(frame, level="seismic", include_names=True)
 ```
 
 The adapter requires distinct, unique longitude and latitude columns. Boolean
@@ -84,8 +102,9 @@ columns.
 
 ```bash
 uv run fe-region point 12 48 --name
-uv run fe-region csv input.csv -o output.csv --include-names
-uv run --extra geo fe-region geojson .cache/regions.geojson
+uv run fe-region point 12 48 --level seismic --name
+uv run fe-region csv input.csv -o output.csv --level seismic --include-names
+uv run --extra geo fe-region geojson .cache/regions.geojson --level seismic --property number
 ```
 
 Filesystem CSV input must be valid UTF-8 and satisfy strict CSV syntax. CSV
@@ -99,10 +118,14 @@ stdout is a streaming sink and can contain earlier rows if a later row fails.
 The filesystem guarantee does not claim crash durability, directory fsync, ACL
 preservation, or owner preservation.
 
-GeoJSON output contains the 754 active region numbers represented by the
-one-degree cell grid. The geometry is **area-equivalent**. Numeric lookup is
-authoritative for coordinates exactly on integer cell boundaries because
-ordinary closed polygons cannot encode every directional FE point-boundary rule.
+GeoJSON can emit either 754 geographical features or 50 seismic features from
+the same one-degree cell grid. Geometry level is independent of annotation
+selection. Use repeated `--property` options for explicit semantic fields,
+`--label` for a small human-facing label, and `--no-metadata` or no properties
+for compact machine-oriented output. The geometry is **area-equivalent**.
+Numeric lookup is authoritative for coordinates exactly on integer cell
+boundaries because ordinary closed polygons cannot encode every directional FE
+point-boundary rule.
 
 ## Development and verification
 
@@ -146,24 +169,26 @@ stale lock fails instead of being refreshed implicitly.
 
 ## Upstream FE source data
 
-Generated runtime assets are version-controlled. Downloaded ObsPy `*.asc`
-source tables are not.
-
-Fetch the source tables before source-reproduction tests, asset regeneration, or
-source-table baseline benchmarks:
+Generated runtime assets are version-controlled. Downloaded upstream source
+material is not. Maintainers retrieve both source families before complete
+asset regeneration:
 
 ```bash
 uv run python -m tools.fetch_obspy_fe_data
+uv run python -m tools.fetch_isc_fe_regions
 uv run python -m tools.build_assets
 ```
 
-The fetch tool uses ObsPy tag `1.4.2` at immutable commit
-`a629e8c021052904b6b8d62699d03f2a3721ae63`. It stores files under the ignored
-`.cache/` directory and verifies each SHA-256 digest before use.
+The ObsPy fetcher pins tag `1.4.2` at immutable commit
+`a629e8c021052904b6b8d62699d03f2a3721ae63` and verifies source-file SHA-256
+values. The ISC fetcher parses the declared FE standards page, validates all 50
+seismic regions and 754 active geographical memberships, and verifies a
+normalized semantic SHA-256 so HTML-layout changes are not treated as data
+changes. `tools/build_assets.py` converts the retrieved sources into the four
+runtime arrays shipped with the package.
 
-ObsPy states that its software is licensed under LGPL v3.0. The historical FE
-source-table license is not established by that statement and is recorded as
-unresolved provenance in `src/feregion/data/metadata.json` and
+The source-data license status remains unresolved where an explicit reuse grant
+has not been established. See `src/feregion/data/metadata.json` and
 `THIRD_PARTY_NOTICES.md`.
 
 ## Development checks
@@ -199,6 +224,11 @@ uv run --group benchmark python -m benchmarks.run_benchmark \
 Routine benchmarks cover in-process scalar, batch, name-conversion, and pandas
 interfaces. They exclude CLI and GeoJSON timing. Generated benchmark results are
 delivery evidence and are not repository source.
+
+`PERF-INV-001` records a future investigation of already-separated longitude and
+latitude arrays. A new split-array API is deferred until benchmarks show that
+avoiding `(n, 2)` stacking/copying is material enough to justify another public
+contract.
 
 
 Compare the same locked benchmark environment across all explicitly supported

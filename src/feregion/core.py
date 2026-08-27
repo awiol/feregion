@@ -16,10 +16,13 @@ from .exceptions import (
     CoordinateValueError,
     DataFileError,
     RegionNumberError,
+    SeismicDataUnavailableError,
 )
-from .types import Region
+from .types import GeographicRegion, Region, SeismicRegion
 
-RegionNumberArray = npt.NDArray[np.uint16]
+GeographicNumberArray = npt.NDArray[np.uint16]
+SeismicNumberArray = npt.NDArray[np.uint8]
+RegionNumberArray = GeographicNumberArray
 
 _TABLE_SHAPE = (4, 91, 181)
 _NUMERIC_KINDS = frozenset("iuf")
@@ -27,33 +30,33 @@ _NUMERIC_KINDS = frozenset("iuf")
 
 @dataclass(frozen=True, slots=True, eq=False)
 class FlinnEngdahlLookup:
-    """Map WGS84 longitude/latitude coordinates to Flinn-Engdahl regions.
+    """Map WGS84 coordinates to FE geographical and seismic regions.
 
-    ``table`` is an engine-owned immutable lookup array with shape ``(4, 91, 181)`` and
-    ``uint16`` values. The dimensions are quadrant, absolute integer latitude,
-    and absolute integer longitude. Quadrants use this order: northeast,
-    northwest, southeast, southwest.
+    Args:
+        table: Immutable geographical lookup source after construction. The
+            array must have shape ``(4, 91, 181)`` and dtype ``uint16``.
+        names: One-based Unicode geographical-region names. Index 0 must be
+            empty.
+        seismic_by_geographic: Optional one-based ``uint8`` crosswalk from
+            geographical-region number to seismic-region number. Index 0 is
+            the sentinel value 0. If omitted, seismic operations are disabled.
+        seismic_names: Optional one-based Unicode seismic-region names. This
+            argument must be supplied together with ``seismic_by_geographic``.
 
-    ``names`` is a one-dimensional Unicode array indexed by region number.
-    Index 0 is intentionally empty because Flinn-Engdahl region numbers start
-    at 1.
-
-    Explicit construction is primarily useful for tests and alternate data
-    sets. Normal callers should use the package-level functions, which reuse a
-    process-wide default instance.
+    Notes:
+        Explicit two-array construction remains supported for alternate
+        geographical datasets. The packaged default engine supplies the two
+        seismic arrays as well. The engine takes ownership of copies of every
+        supplied array and marks the copies read-only.
     """
 
     table: npt.NDArray[np.uint16]
     names: npt.NDArray[np.str_]
+    seismic_by_geographic: npt.NDArray[np.uint8] | None = None
+    seismic_names: npt.NDArray[np.str_] | None = None
 
     def __post_init__(self) -> None:
-        """Validate data invariants and take ownership of immutable copies.
-
-        Explicit construction accepts caller-owned arrays, but engine behavior
-        must not change if the caller later mutates those arrays. Construction
-        therefore copies the lookup table and region-name array once, then
-        marks the owned copies read-only.
-        """
+        """Validate data invariants and take ownership of immutable copies."""
 
         table = np.asarray(self.table)
         names = np.asarray(self.names)
@@ -62,22 +65,51 @@ class FlinnEngdahlLookup:
             raise DataFileError(f"lookup table must have shape {_TABLE_SHAPE}, got {table.shape}")
         if table.dtype != np.dtype(np.uint16):
             raise DataFileError(f"lookup table must use uint16, got {table.dtype}")
-        if names.ndim != 1:
-            raise DataFileError(f"region names must be one-dimensional, got {names.shape}")
-        if names.dtype.kind != "U":
-            raise DataFileError(f"region names must use a Unicode dtype, got {names.dtype}")
-        if names.size < 2 or names[0] != "":
-            raise DataFileError("region names must reserve empty index 0")
+        _validate_name_array(names, "geographical-region names")
 
         maximum = int(table.max())
         if maximum >= names.size:
             raise DataFileError(
-                f"region names stop at index {names.size - 1}, but table uses {maximum}"
+                f"geographical-region names stop at index {names.size - 1}, "
+                f"but table uses {maximum}"
             )
-
         used = np.unique(table)
         if np.any(used == 0) or np.any(names[used] == ""):
-            raise DataFileError("lookup table contains an unmapped region number")
+            raise DataFileError("lookup table contains an unmapped geographical-region number")
+
+        crosswalk = self.seismic_by_geographic
+        seismic_names = self.seismic_names
+        if (crosswalk is None) != (seismic_names is None):
+            raise DataFileError("seismic_by_geographic and seismic_names must be supplied together")
+
+        owned_crosswalk: npt.NDArray[np.uint8] | None = None
+        owned_seismic_names: npt.NDArray[np.str_] | None = None
+        if crosswalk is not None and seismic_names is not None:
+            crosswalk_array = np.asarray(crosswalk)
+            seismic_name_array = np.asarray(seismic_names)
+            if crosswalk_array.ndim != 1 or crosswalk_array.shape != names.shape:
+                raise DataFileError(
+                    "seismic crosswalk must be one-dimensional and match geographical names"
+                )
+            if crosswalk_array.dtype != np.dtype(np.uint8):
+                raise DataFileError(
+                    f"seismic crosswalk must use uint8, got {crosswalk_array.dtype}"
+                )
+            if crosswalk_array[0] != 0:
+                raise DataFileError("seismic crosswalk must reserve sentinel value 0 at index 0")
+            _validate_name_array(seismic_name_array, "seismic-region names")
+            if int(crosswalk_array.max()) >= seismic_name_array.size:
+                raise DataFileError("seismic crosswalk references an unknown seismic region")
+            if np.any(crosswalk_array[used] == 0):
+                raise DataFileError(
+                    "seismic crosswalk omits a geographical region used by the table"
+                )
+            if np.any(seismic_name_array[np.unique(crosswalk_array[crosswalk_array > 0])] == ""):
+                raise DataFileError("seismic crosswalk references an unnamed seismic region")
+            owned_crosswalk = np.array(crosswalk_array, copy=True, order="C")
+            owned_crosswalk.setflags(write=False)
+            owned_seismic_names = np.array(seismic_name_array, copy=True, order="C")
+            owned_seismic_names.setflags(write=False)
 
         owned_table = np.array(table, copy=True, order="C")
         owned_table.setflags(write=False)
@@ -85,127 +117,213 @@ class FlinnEngdahlLookup:
         owned_names.setflags(write=False)
         object.__setattr__(self, "table", owned_table)
         object.__setattr__(self, "names", owned_names)
+        object.__setattr__(self, "seismic_by_geographic", owned_crosswalk)
+        object.__setattr__(self, "seismic_names", owned_seismic_names)
 
-    def lookup_number(self, longitude: float, latitude: float) -> int:
-        """Return the region number for one coordinate pair.
+    @property
+    def has_seismic_data(self) -> bool:
+        """Return whether this engine can perform seismic-region operations."""
 
-        Longitude must be in ``[-180, 180]`` and latitude must be in
-        ``[-90, 90]``. Both values must be finite real numbers. Longitude
-        ``-180`` has the same lookup semantics as ``+180``, matching the ObsPy
-        reference implementation.
+        return self.seismic_by_geographic is not None
 
-        Raises:
-            CoordinateTypeError: If a value is not a supported real number.
-            CoordinateValueError: If a value is NaN or infinite.
-            CoordinateRangeError: If a value is outside its valid range.
-        """
+    def lookup_geographic_number(self, longitude: float, latitude: float) -> int:
+        """Return the geographical-region number for one coordinate pair."""
 
         _validate_scalar_coordinate_types(longitude, latitude)
         _validate_scalar_coordinate_values(longitude, latitude)
-
         normalized_longitude = 180 if longitude == -180 else longitude
         absolute_longitude = int(abs(normalized_longitude))
         absolute_latitude = int(abs(latitude))
         quadrant = int(normalized_longitude < 0) + 2 * int(latitude < 0)
         return int(self.table[quadrant, absolute_latitude, absolute_longitude])
 
+    def lookup_number(self, longitude: float, latitude: float) -> int:
+        """Compatibility alias for :meth:`lookup_geographic_number`."""
+
+        return self.lookup_geographic_number(longitude, latitude)
+
+    def lookup_geographic_region(self, longitude: float, latitude: float) -> GeographicRegion:
+        """Return the geographical-region number and packaged name."""
+
+        number = self.lookup_geographic_number(longitude, latitude)
+        return GeographicRegion(number=number, name=self.geographic_number_to_name(number))
+
     def lookup_region(self, longitude: float, latitude: float) -> Region:
-        """Return the region number and name for one coordinate pair."""
+        """Compatibility alias for :meth:`lookup_geographic_region`."""
 
-        number = self.lookup_number(longitude, latitude)
-        return Region(number=number, name=self.number_to_name(number))
+        return self.lookup_geographic_region(longitude, latitude)
 
-    def lookup_numbers(self, coordinates: npt.ArrayLike) -> RegionNumberArray:
-        """Return region numbers for a two-column coordinate array.
-
-        The input must have shape ``(n, 2)``. Column 0 contains longitude and
-        column 1 contains latitude. Integer and floating NumPy dtypes are
-        accepted. String, object, Boolean, and complex dtypes are rejected
-        rather than coerced.
-
-        The result has shape ``(n,)`` and dtype ``uint16``. The function does
-        not modify the input array.
-
-        Raises:
-            CoordinateShapeError: If the input does not have shape ``(n, 2)``.
-            CoordinateTypeError: If coordinates use an unsupported dtype.
-            CoordinateValueError: If any coordinate is NaN or infinite.
-            CoordinateRangeError: If any coordinate is outside its valid range.
-        """
+    def lookup_geographic_numbers(self, coordinates: npt.ArrayLike) -> GeographicNumberArray:
+        """Return geographical-region numbers for a two-column coordinate array."""
 
         array = _coordinate_array(coordinates)
         if array.shape[0] == 0:
             return np.empty(0, dtype=np.uint16)
-
         source_longitude = array[:, 0]
         source_latitude = array[:, 1]
         _validate_coordinate_values(source_longitude, source_latitude)
-
         numeric = array.astype(np.float64, copy=False)
         return self._lookup_validated(numeric[:, 0], numeric[:, 1])
 
-    def number_to_name(self, number: int) -> str:
-        """Return the packaged region name for one integer region number.
+    def lookup_numbers(self, coordinates: npt.ArrayLike) -> GeographicNumberArray:
+        """Compatibility alias for :meth:`lookup_geographic_numbers`."""
 
-        Raises:
-            RegionNumberError: If ``number`` is not an integer region number
-                represented by the packaged data.
-        """
+        return self.lookup_geographic_numbers(coordinates)
 
-        if isinstance(number, (bool, np.bool_)):
-            raise RegionNumberError("region number must be an integer, not Boolean")
-        try:
-            index = operator.index(number)
-        except TypeError as exc:
-            raise RegionNumberError("region number must be an integer") from exc
+    def geographic_number_to_name(self, number: int) -> str:
+        """Return the packaged geographical-region name for one active number."""
 
-        if index < 1 or index >= self.names.size or self.names[index] == "":
-            raise RegionNumberError(f"unknown Flinn-Engdahl region number: {index}")
+        index = _scalar_region_index(number, self.names, "geographical")
         return str(self.names[index])
 
+    def number_to_name(self, number: int) -> str:
+        """Compatibility alias for :meth:`geographic_number_to_name`."""
+
+        return self.geographic_number_to_name(number)
+
+    def geographic_numbers_to_names(self, numbers: npt.ArrayLike) -> npt.NDArray[np.str_]:
+        """Convert geographical-region numbers to same-shape packaged names."""
+
+        return _numbers_to_names(numbers, self.names, "geographical")
+
     def numbers_to_names(self, numbers: npt.ArrayLike) -> npt.NDArray[np.str_]:
-        """Convert integer region numbers to packaged region names.
+        """Compatibility alias for :meth:`geographic_numbers_to_names`."""
 
-        The returned Unicode array has the same shape as the input. Use
-        :meth:`number_to_name` for a scalar when a Python ``str`` is preferred.
+        return self.geographic_numbers_to_names(numbers)
 
-        Raises:
-            RegionNumberError: If the input is not an integer array or contains
-                an unknown region number.
-        """
+    def geographic_to_seismic_number(self, number: int) -> int:
+        """Return the seismic parent of one active geographical-region number."""
 
-        try:
-            array = np.asarray(numbers)
-        except ValueError as exc:
-            raise RegionNumberError("region numbers must form a rectangular array") from exc
+        crosswalk, _ = self._require_seismic_data()
+        index = _scalar_region_index(number, self.names, "geographical")
+        seismic = int(crosswalk[index])
+        if seismic == 0:
+            raise RegionNumberError(f"geographical region {index} has no active seismic mapping")
+        return seismic
 
-        if array.dtype.kind not in "iu" or array.dtype.kind == "b":
-            raise RegionNumberError("region numbers must use an integer dtype")
+    def geographic_numbers_to_seismic_numbers(self, numbers: npt.ArrayLike) -> SeismicNumberArray:
+        """Convert geographical-region numbers to same-shape seismic numbers."""
+
+        crosswalk, _ = self._require_seismic_data()
+        array = _integer_region_array(numbers, self.names, "geographical")
         if array.size == 0:
-            return np.empty(array.shape, dtype=self.names.dtype)
-        if np.any(array < 1) or np.any(array >= self.names.size):
-            raise RegionNumberError("one or more Flinn-Engdahl region numbers are unknown")
-
-        result = self.names[array]
-        if np.any(result == ""):
-            raise RegionNumberError("one or more Flinn-Engdahl region numbers are unknown")
+            return np.empty(array.shape, dtype=np.uint8)
+        result = crosswalk[array]
+        if np.any(result == 0):
+            raise RegionNumberError(
+                "one or more geographical regions have no active seismic mapping"
+            )
         return result
+
+    def lookup_seismic_number(self, longitude: float, latitude: float) -> int:
+        """Return the seismic-region number for one coordinate pair."""
+
+        return self.geographic_to_seismic_number(self.lookup_geographic_number(longitude, latitude))
+
+    def lookup_seismic_region(self, longitude: float, latitude: float) -> SeismicRegion:
+        """Return the seismic-region number and packaged name for one coordinate pair."""
+
+        number = self.lookup_seismic_number(longitude, latitude)
+        return SeismicRegion(number=number, name=self.seismic_number_to_name(number))
+
+    def lookup_seismic_numbers(self, coordinates: npt.ArrayLike) -> SeismicNumberArray:
+        """Return seismic-region numbers for a two-column coordinate array."""
+
+        geographic = self.lookup_geographic_numbers(coordinates)
+        return self.geographic_numbers_to_seismic_numbers(geographic)
+
+    def seismic_number_to_name(self, number: int) -> str:
+        """Return the packaged seismic-region name for one region number."""
+
+        _, names = self._require_seismic_data()
+        index = _scalar_region_index(number, names, "seismic")
+        return str(names[index])
+
+    def seismic_numbers_to_names(self, numbers: npt.ArrayLike) -> npt.NDArray[np.str_]:
+        """Convert seismic-region numbers to same-shape packaged names."""
+
+        _, names = self._require_seismic_data()
+        return _numbers_to_names(numbers, names, "seismic")
+
+    def _require_seismic_data(
+        self,
+    ) -> tuple[npt.NDArray[np.uint8], npt.NDArray[np.str_]]:
+        """Return seismic assets or fail explicitly for geographical-only engines."""
+
+        if self.seismic_by_geographic is None or self.seismic_names is None:
+            raise SeismicDataUnavailableError(
+                "this FlinnEngdahlLookup was constructed without seismic hierarchy data"
+            )
+        return self.seismic_by_geographic, self.seismic_names
 
     def _lookup_validated(
         self,
         longitude: npt.NDArray[np.float64],
         latitude: npt.NDArray[np.float64],
-    ) -> RegionNumberArray:
+    ) -> GeographicNumberArray:
         """Lookup already validated arrays without Python-level point loops."""
 
         normalized_longitude = np.where(longitude == -180.0, 180.0, longitude)
         absolute_longitude = np.abs(normalized_longitude).astype(np.uint8)
         absolute_latitude = np.abs(latitude).astype(np.uint8)
-
         quadrant = (normalized_longitude < 0.0).astype(np.uint8) + 2 * (latitude < 0.0).astype(
             np.uint8
         )
         return self.table[quadrant, absolute_latitude, absolute_longitude]
+
+
+def _validate_name_array(names: np.ndarray, label: str) -> None:
+    """Validate one one-based Unicode name array."""
+
+    if names.ndim != 1:
+        raise DataFileError(f"{label} must be one-dimensional, got {names.shape}")
+    if names.dtype.kind != "U":
+        raise DataFileError(f"{label} must use a Unicode dtype, got {names.dtype}")
+    if names.size < 2 or names[0] != "":
+        raise DataFileError(f"{label} must reserve empty index 0")
+
+
+def _scalar_region_index(number: int, names: np.ndarray, level: str) -> int:
+    """Validate one active integer region number for a one-based name table."""
+
+    if isinstance(number, (bool, np.bool_)):
+        raise RegionNumberError(f"{level} region number must be an integer, not Boolean")
+    try:
+        index = operator.index(number)
+    except TypeError as exc:
+        raise RegionNumberError(f"{level} region number must be an integer") from exc
+    if index < 1 or index >= names.size or names[index] == "":
+        raise RegionNumberError(f"unknown Flinn-Engdahl {level} region number: {index}")
+    return index
+
+
+def _integer_region_array(numbers: npt.ArrayLike, names: np.ndarray, level: str) -> np.ndarray:
+    """Validate an integer region-number array without changing its shape."""
+
+    try:
+        array = np.asarray(numbers)
+    except ValueError as exc:
+        raise RegionNumberError(f"{level} region numbers must form a rectangular array") from exc
+    if array.dtype.kind not in "iu" or array.dtype.kind == "b":
+        raise RegionNumberError(f"{level} region numbers must use an integer dtype")
+    if array.size == 0:
+        return array
+    if np.any(array < 1) or np.any(array >= names.size):
+        raise RegionNumberError(f"one or more Flinn-Engdahl {level} region numbers are unknown")
+    if np.any(names[array] == ""):
+        raise RegionNumberError(f"one or more Flinn-Engdahl {level} region numbers are unknown")
+    return array
+
+
+def _numbers_to_names(
+    numbers: npt.ArrayLike, names: npt.NDArray[np.str_], level: str
+) -> npt.NDArray[np.str_]:
+    """Convert a validated region-number array through one name table."""
+
+    array = _integer_region_array(numbers, names, level)
+    if array.size == 0:
+        return np.empty(array.shape, dtype=names.dtype)
+    return names[array]
 
 
 def _validate_scalar_coordinate_types(longitude: float, latitude: float) -> None:
@@ -250,7 +368,6 @@ def _coordinate_array(coordinates: npt.ArrayLike) -> np.ndarray:
         array = np.asarray(coordinates)
     except ValueError as exc:
         raise CoordinateShapeError("coordinates must form a rectangular (n, 2) array") from exc
-
     if array.ndim != 2 or array.shape[1:] != (2,):
         raise CoordinateShapeError(f"coordinates must have shape (n, 2), got {array.shape}")
     if array.dtype.kind not in _NUMERIC_KINDS:
@@ -260,10 +377,7 @@ def _coordinate_array(coordinates: npt.ArrayLike) -> np.ndarray:
     return array
 
 
-def _validate_coordinate_values(
-    longitude: np.ndarray,
-    latitude: np.ndarray,
-) -> None:
+def _validate_coordinate_values(longitude: np.ndarray, latitude: np.ndarray) -> None:
     """Validate values in their source dtype before narrowing to float64."""
 
     if not np.all(np.isfinite(longitude)):

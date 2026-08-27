@@ -324,3 +324,75 @@ changed rationale as historical fact.
   `build-system` metadata rather than by an unsupported project-lock flag.
 - **Review trigger:** uv adds documented build-lock semantics that materially improve
   reproducibility, or the project adopts explicit build constraints/hashes.
+
+## `DEC-020` — Model seismic regions as a parent crosswalk
+
+- **Context:** The 1995 FE revision defines 50 seismic regions as coarser groups
+  of 754 active geographical regions. A second coordinate table would duplicate
+  ownership information and could diverge from the geographical result.
+- **Decision:** Keep the existing dense geographical table authoritative for
+  coordinate ownership. Store a one-based `uint8[758]` geographical-to-seismic
+  crosswalk and one-based seismic name array. Derive coordinate-to-seismic
+  results through the crosswalk.
+- **Compatibility consequence:** Existing geographical results are unchanged.
+  New explicit seismic APIs are additive.
+- **Review trigger:** A future FE revision changes the hierarchy or measured
+  evidence shows that the crosswalk path cannot satisfy an accepted performance
+  requirement.
+
+## `DEC-021` — Preserve geographical-only explicit engines
+
+- **Context:** `FlinnEngdahlLookup(table, names)` is an existing public
+  construction contract. Silently attaching packaged seismic data to an
+  arbitrary custom table could produce invalid classifications.
+- **Decision:** Preserve the two-array constructor. Optional seismic arrays add
+  seismic capability. A geographical-only engine raises
+  `SeismicDataUnavailableError` for seismic operations.
+- **Compatibility consequence:** Existing explicit construction remains valid;
+  seismic capability is explicit and cannot be inferred from unrelated data.
+- **Review trigger:** The project adopts a versioned custom-dataset contract that
+  can prove hierarchy compatibility independently.
+
+## `DEC-022` — Separate GeoJSON geometry level from presentation properties
+
+- **Context:** Machine consumers may need the smallest practical GeoJSON, while
+  human-facing output benefits from names, cross-level identifiers, or a label.
+  `level` alone cannot control those payload choices.
+- **Decision:** `level` selects geographical or seismic geometry. A controlled
+  `properties` list selects semantic feature fields, `label` supplies one small
+  convenience annotation, and collection metadata can be omitted. Dataset-wide
+  boundary metadata is stored once at collection level by default.
+- **Compatibility consequence:** Default geographical features still expose
+  `number` and `name`. Boundary metadata moves from each feature to the
+  collection-level `feregion` member.
+- **Review trigger:** A concrete renderer or exchange contract requires a field
+  that cannot be represented by the controlled semantic-property vocabulary.
+
+## `DEC-023` — Retrieve source data for regeneration; ship processed assets for offline use
+
+- **Context:** Authoritative source material is available through online
+  repositories or web services, but runtime network access would weaken
+  reproducibility, latency, availability, and offline use.
+- **Decision:** Keep explicit source-retrieval tools for pinned ObsPy and declared
+  ISC inputs. Validate retrieved inputs, transform them into runtime-optimized
+  assets, version those assets with the package, and require no network for
+  normal lookup, hierarchy, names, adapters, or GeoJSON generation.
+- **Compatibility consequence:** Installation contains all runtime FE data.
+  Network access is a maintainer regeneration concern, not a user lookup
+  dependency.
+- **Review trigger:** Package-size constraints, source redistribution terms, or a
+  new authoritative FE revision require another distribution model.
+
+## `DEC-024` — Defer split longitude/latitude batch optimization pending evidence
+
+- **Context:** Some callers already hold longitude and latitude in separate
+  arrays. The current `(n, 2)` batch interface can require stacking or copying
+  before lookup.
+- **Decision:** Record `PERF-INV-001` as a bounded future investigation. Measure
+  allocation, peak memory, throughput, validation complexity, and API cost for
+  already-split inputs before adding a new public surface or replacing the
+  current batch contract.
+- **Compatibility consequence:** No current API change follows from this
+  investigation record.
+- **Review trigger:** Representative workloads show stacking/copy cost is
+  material, or a downstream integration supplies separate arrays at scale.

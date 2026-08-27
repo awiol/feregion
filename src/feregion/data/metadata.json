@@ -1,13 +1,41 @@
 {
   "assets": {
     "fe_names.npy": {
+      "derived_from": [
+        "obspy-fe-data"
+      ],
       "dtype": "<U32",
       "sha256": "353338177cca76c3ab49ba3dcef13e1db94449ba6a6981a023b5359012ce47c8",
       "shape": [
         758
       ]
     },
+    "fe_seismic_by_geographic.npy": {
+      "derived_from": [
+        "young-1996",
+        "isc-fe-standard"
+      ],
+      "dtype": "uint8",
+      "sha256": "230679015818ae08d197b90351710fc9cc463dac3d418a7b5860d95360617750",
+      "shape": [
+        758
+      ]
+    },
+    "fe_seismic_names.npy": {
+      "derived_from": [
+        "young-1996",
+        "isc-fe-standard"
+      ],
+      "dtype": "<U46",
+      "sha256": "aced03c97d010908eb83d5583b464470c467346fdf20617f05d16728e6365f41",
+      "shape": [
+        51
+      ]
+    },
     "fe_table.npy": {
+      "derived_from": [
+        "obspy-fe-data"
+      ],
       "dtype": "uint16",
       "sha256": "3ae32ea1c78b9963ac09da48886de64c4081b60218dc13af5fbf003b70a046c2",
       "shape": [
@@ -17,35 +45,66 @@
       ]
     }
   },
-  "schema_version": 2,
-  "source": {
-    "commit": "a629e8c021052904b6b8d62699d03f2a3721ae63",
-    "files": {
-      "names.asc": {
-        "sha256": "4b827d5f66bf47256fed52bd0bbf265751d0e34e3356477d2bbda1fcca980ce7"
-      },
-      "nesect.asc": {
-        "sha256": "201316b895c2da2e373dce1f5e20e0bd0df6ce730cf40ad2f607c5f34b5f4728"
-      },
-      "nwsect.asc": {
-        "sha256": "dcbca0ae4fe2c020d6e9ce5406b40466271e79dcc8785acf285e7fd6046ad29d"
-      },
-      "quadsidx.asc": {
-        "sha256": "3e3a7553780c2233f11c2ebef014393a7bd32617a353de4e7f1214dd2f68e9e0"
-      },
-      "sesect.asc": {
-        "sha256": "831256e2c4c2fd5543816a62a7d68840987200bd13bf8633b6ae628fecd739d8"
-      },
-      "swsect.asc": {
-        "sha256": "f041077c0ea68add8d9d67ace0b3548bf969650c4efdd2ad4dfabb528d28b4bf"
-      }
+  "runtime": {
+    "network_required": false,
+    "source_retrieval_required_for_normal_use": false
+  },
+  "schema_version": 3,
+  "scheme": {
+    "name": "Flinn-Engdahl",
+    "structural_revision": "1995"
+  },
+  "sources": {
+    "isc-fe-standard": {
+      "normalized_semantic_sha256": "e0bb924754f2aa2d8c1c025fc3ee5e074db90cc49d7ad8cd46e26353aa12079b",
+      "project": "International Seismological Centre",
+      "roles": [
+        "seismic-membership",
+        "seismic-names"
+      ],
+      "source_data_license_status": "unresolved",
+      "url": "https://www.isc.ac.uk/standards/FEregions/"
     },
-    "path": "obspy/geodetics/data",
-    "project": "ObsPy",
-    "region_name_source": "names.asc",
-    "repository": "https://github.com/obspy/obspy",
-    "revision": "1.4.2",
-    "source_data_license_status": "unresolved",
-    "upstream_project_license": "LGPL-3.0"
+    "obspy-fe-data": {
+      "commit": "a629e8c021052904b6b8d62699d03f2a3721ae63",
+      "files": {
+        "names.asc": {
+          "sha256": "4b827d5f66bf47256fed52bd0bbf265751d0e34e3356477d2bbda1fcca980ce7"
+        },
+        "nesect.asc": {
+          "sha256": "201316b895c2da2e373dce1f5e20e0bd0df6ce730cf40ad2f607c5f34b5f4728"
+        },
+        "nwsect.asc": {
+          "sha256": "dcbca0ae4fe2c020d6e9ce5406b40466271e79dcc8785acf285e7fd6046ad29d"
+        },
+        "quadsidx.asc": {
+          "sha256": "3e3a7553780c2233f11c2ebef014393a7bd32617a353de4e7f1214dd2f68e9e0"
+        },
+        "sesect.asc": {
+          "sha256": "831256e2c4c2fd5543816a62a7d68840987200bd13bf8633b6ae628fecd739d8"
+        },
+        "swsect.asc": {
+          "sha256": "f041077c0ea68add8d9d67ace0b3548bf969650c4efdd2ad4dfabb528d28b4bf"
+        }
+      },
+      "path": "obspy/geodetics/data",
+      "project": "ObsPy",
+      "region_name_source": "names.asc",
+      "repository": "https://github.com/obspy/obspy",
+      "revision": "1.4.2",
+      "roles": [
+        "geographical-boundaries",
+        "geographical-names"
+      ],
+      "source_data_license_status": "unresolved",
+      "upstream_project_license": "LGPL-3.0"
+    },
+    "young-1996": {
+      "doi": "10.1016/0031-9201(96)03141-X",
+      "publication_year": 1996,
+      "role": "normative-structural-revision",
+      "source_data_license_status": "unresolved",
+      "title": "The Flinn-Engdahl Regionalisation Scheme: The 1995 revision"
+    }
   }
 }

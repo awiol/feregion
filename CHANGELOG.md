@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.0a1 — 2026-08-27
+
+- Add explicit FE geographical and seismic region APIs while preserving the existing generic API as geographical compatibility behavior.
+- Add the 1995 FE 754-to-50 hierarchy as a compact packaged `uint8` crosswalk plus packaged seismic names; normal use remains fully offline.
+- Add ISC hierarchy retrieval, normalization, semantic hashing, multi-source provenance metadata schema 3, and generated-asset reproduction support.
+- Preserve two-array `FlinnEngdahlLookup` construction as geographical-only and require explicit hierarchy data for seismic capability.
+- Extend pandas and CLI adapters with geographical/seismic level selection and level-specific default output names.
+- Redesign GeoJSON around independent geometry-level, semantic-property, optional label, and collection-metadata controls; support both 754 geographical and 50 seismic feature collections.
+- Move dataset-wide GeoJSON boundary metadata from every feature to one collection-level `feregion` member.
+- Add exhaustive hierarchy/cell-grid verification and record `PERF-INV-001` for a future benchmark of already-separated longitude/latitude batch inputs.
+
 ## 0.1.2a10 — 2026-08-27
 
 - Fix hosted packaging CI by replacing unsupported `uv build --locked` with `uv build`.

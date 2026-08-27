@@ -2,21 +2,27 @@
 
 | Field | Value |
 |---|---|
-| Behavioral contract series | `0.1` |
+| Behavioral contract series | `0.2` |
 | Status | Implemented alpha design |
 
 ## 1. Design result
 
-The runtime uses one dense lookup table with shape `(4, 91, 181)`. Its axes are
-quadrant, absolute integer latitude, and absolute integer longitude. The table
-stores `uint16` Flinn-Engdahl (FE) region numbers.
+The runtime keeps one dense geographical lookup table with shape
+`(4, 91, 181)`. Its axes are quadrant, absolute integer latitude, and absolute
+integer longitude. The table stores `uint16` FE geographical-region numbers.
+A separate one-based `uint8[758]` crosswalk maps each active geographical
+identifier to one of 50 seismic regions. Seismic coordinate lookup therefore
+reuses the geographical lookup result; it does not duplicate the coordinate
+grid in a second dense table.
 
 The **batch lookup** path validates a numeric `(n, 2)` coordinate array and uses
 a vectorized dense-table implementation. It has no Python loop over points. The
-scalar path validates two values directly and indexes the same table.
+scalar path validates two values directly and indexes the same table. Explicit
+geographical and seismic APIs are canonical. The pre-existing generic API
+remains a geographical compatibility surface.
 
-The design retains the dense-table architecture. Prior extensive review found
-boundary-contract defects, not a reason to replace the numeric core.
+The design retains the dense-table geographical architecture and adds the
+small hierarchy crosswalk as a distinct data relation.
 
 ## 2. Behavioral model
 
@@ -36,29 +42,58 @@ ObsPy `FlinnEngdahl` at the pinned source revision is the **reference
 implementation**. `tests/reference.py` is an independent **source-table
 scanner** used for differential verification and performance baselines.
 
+### 2.1 Hierarchy model
+
+The supported structural definition is the 1995 FE revision published by Young
+et al. in 1996. It contains 50 seismic regions and 754 active geographical
+regions. Geographical identifiers 172, 299, and 550 are retired storage-range
+holes.
+
+The runtime relation is:
+
+```text
+coordinate -> geographical region -> seismic region
+```
+
+`lookup_seismic_number()` and `lookup_seismic_numbers()` perform the same
+coordinate validation as geographical lookup and then index the packaged
+crosswalk. `geographic_to_seismic_number()` and its vector form expose the
+hierarchy directly without repeating coordinate lookup.
+
+
 ## 3. Runtime data lifecycle
 
-The repository does not version downloaded ObsPy FE source tables.
-`tools/fetch_obspy_fe_data.py` fetches the required files from immutable ObsPy
-commit `a629e8c021052904b6b8d62699d03f2a3721ae63`, which is the commit for tag
-`1.4.2`. Every file must match its pinned SHA-256 value before use.
+Runtime assets are processed repository artifacts. Normal installed use does
+not contact ObsPy, ISC, USGS, or another remote service.
 
-Downloaded source tables are stored under the ignored `.cache/` directory.
-`tools/build_assets.py` generates the version-controlled runtime assets:
+Repository retrieval paths are separate from runtime use:
 
-- `fe_table.npy`: `uint16[4, 91, 181]`;
-- `fe_names.npy`: one-based Unicode packaged region names; and
-- `metadata.json`: source identity, hash, name-source, license-status, and
-  generated-asset metadata.
+- `tools/fetch_obspy_fe_data.py` downloads the pinned ObsPy geographical source
+  files from commit `a629e8c021052904b6b8d62699d03f2a3721ae63` and verifies
+  their byte-level SHA-256 values;
+- `tools/fetch_isc_fe_regions.py` downloads the ISC FE standards page, extracts
+  the 50 seismic names and active geographical memberships, validates complete
+  hierarchy coverage, and verifies a normalized semantic SHA-256; and
+- `tools/build_assets.py` consumes the retrieved source forms and produces the
+  runtime representation.
 
-The packaged region-name mapping is generated from ObsPy 1.4.2 `names.asc`.
-The package does not claim that this mapping is the unique authoritative FE naming
-scheme across all historical sources.
+Downloaded source material remains in ignored repository-local source/cache
+directories. The distributed package contains these version-controlled runtime
+assets:
 
-ObsPy states that the ObsPy software is licensed under LGPL v3.0. That software
-license does not establish the license of the historical FE source tables.
-Metadata and third-party notices therefore record the source-data license status
-as unresolved. This is provenance information, not legal advice.
+- `fe_table.npy`: `uint16[4, 91, 181]` geographical ownership;
+- `fe_names.npy`: one-based Unicode geographical packaged names;
+- `fe_seismic_by_geographic.npy`: one-based `uint8[758]` parent crosswalk;
+- `fe_seismic_names.npy`: one-based Unicode seismic packaged names; and
+- `metadata.json`: schema 3 multi-source provenance and runtime-asset metadata.
+
+The provenance model distinguishes three roles: pinned ObsPy data provides the
+geographical lookup representation and packaged geographical names; Young et
+al. (1996) defines the supported structural revision; the declared ISC FE
+standards representation provides operational seismic membership and packaged
+seismic names. Source-data license status remains unresolved where no explicit
+redistribution grant has been established. A software license is not assigned
+to historical FE data by inference.
 
 ## 4. Resource cache and engine ownership
 
@@ -73,8 +108,14 @@ same cached objects. Steady-state reads do not take the initialization locks.
 Explicit `FlinnEngdahlLookup` construction is a different ownership boundary.
 The constructor validates the supplied arrays, copies them once, and marks the
 engine-owned copies read-only. Later mutation of caller-owned source arrays
-cannot change engine behavior. The copy cost is bounded by the small fixed FE
-table and name array.
+cannot change engine behavior.
+
+The historical two-array construction remains valid and creates a
+geographical-only engine. Optional seismic crosswalk/name arrays add seismic
+capability. A geographical-only engine raises `SeismicDataUnavailableError`
+for seismic operations. It never borrows the default engine's hierarchy,
+because an arbitrary custom geographical table is not proven compatible with
+that hierarchy.
 
 ## 5. Coordinate and adapter validation
 
@@ -82,7 +123,7 @@ The core batch API validates shape and dtype before numeric conversion. String,
 object, Boolean, and complex coordinate dtypes are rejected. Finiteness and
 range are checked before narrowing a wider floating dtype to `float64`.
 
-The pandas adapter follows the same semantic coordinate-type contract. It:
+The pandas adapter follows the same semantic coordinate-type contract and accepts an explicit geographical/seismic `level`. The default remains geographical. It:
 
 - requires distinct longitude and latitude selectors;
 - requires each selected label to occur exactly once;
@@ -139,26 +180,36 @@ The command still returns its failure status and diagnostic.
 
 ## 8. GeoJSON derivation
 
-GeoJSON is a derived visualization representation. The utility samples the
-centers of the `360 * 180` one-degree cells, resolves FE region numbers, merges
-horizontal runs, and dissolves rectangles by region.
+GeoJSON is a derived area representation. The utility samples the centers of
+the `360 * 180` one-degree cells and resolves the geographical ownership grid.
+For seismic output, it maps that integer grid through the hierarchy before the
+shared horizontal-run and dissolve algorithm. It does not first create 754
+polygons and union them into 50 parents.
+
+Geometry selection and annotation selection are separate controls:
+
+- `level="geographic"` produces 754 geographical features;
+- `level="seismic"` produces 50 seismic features;
+- `properties=()` permits geometry-only machine output;
+- a controlled property vocabulary permits generic level-relative
+  `number`/`name` fields and explicit cross-level identifiers/names;
+- `label` optionally adds a small human-facing number, name, or combined label;
+  and
+- `include_metadata=False` removes collection metadata when payload size matters.
+
+The API intentionally does not implement an arbitrary title/template language
+or every property permutation. The selected property names remain stable
+semantic fields that machines can consume. Expensive cross-level child lists
+are computed only when requested.
+
+Dataset-wide scheme, revision, selected level, boundary model, and exact-point
+boundary semantics live once in a collection-level `feregion` foreign member
+by default. Feature properties contain only values that vary per feature.
 
 The geometry is **area-equivalent one-degree GeoJSON**. It is not an exact
 encoding of FE ownership for every coordinate on an integer boundary line.
-Ordinary closed polygons share their common boundaries, while FE point lookup
-uses directional integer-truncation semantics. Numeric lookup is authoritative
-for an exact boundary coordinate.
-
-Each feature records:
-
-- region number;
-- packaged region name;
-- `boundary_model = "area-equivalent 1-degree cells"`; and
-- a boundary-semantics note directing exact point queries to numeric lookup.
-
-The utility creates features only for the 754 region numbers present in the
-active cell grid. It does not fabricate geometry for retired IDs 172, 299, or
-550.
+Numeric lookup remains authoritative for an exact boundary coordinate. Retired
+geographical IDs 172, 299, and 550 receive no fabricated geometry.
 
 ## 9. Performance design
 
@@ -173,6 +224,13 @@ check, and speedup.
 
 Scalar performance is a review signal. The batch interface remains the
 performance-oriented API.
+
+**Deferred investigation `PERF-INV-001`:** evaluate whether a batch kernel or
+public/internal API that receives longitude and latitude as separate arrays can
+avoid material allocation/copy cost relative to the current `(n, 2)` contract.
+Benchmark representative already-split inputs before selecting an API. Do not
+add a compatibility surface merely because the internal implementation can
+accept two arrays.
 
 Cross-Python benchmarking is a separate matrix from compatibility testing. Four
 lock-backed tox-uv environments run the same standalone benchmark harness on
@@ -201,8 +259,8 @@ GitHub Actions contains:
 
 GitHub Actions resolves a compatible `uv>=0.10,<1` release from repository metadata, validates normal environments against the committed lock, bounds job runtimes, and cancels obsolete runs for the same branch or pull request.
 
-- a Python 3.11, 3.12, 3.13, and 3.14 matrix that fetches the hash-verified pinned FE
-  source tables and runs the runtime suite with branch coverage;
+- a Python 3.11, 3.12, 3.13, and 3.14 matrix that can fetch/verify the declared
+  source inputs and runs the runtime suite with branch coverage;
 - an independent-oracle job that installs ObsPy and executes both source-table
   reproduction and direct ObsPy comparison tests;
 - a Python 3.11 lower-bound job that reuses the tox-uv `minimum` environment

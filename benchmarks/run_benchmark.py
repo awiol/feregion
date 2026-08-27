@@ -198,6 +198,36 @@ def benchmark_batch_comparison(
     return rows
 
 
+def benchmark_seismic_batch(repeats: int) -> dict[str, list[dict[str, float | int]]]:
+    """Benchmark seismic coordinate lookup and the hierarchy-only crosswalk path."""
+
+    lookup_rows: list[dict[str, float | int]] = []
+    crosswalk_rows: list[dict[str, float | int]] = []
+    name_rows: list[dict[str, float | int]] = []
+    for size in (1, 100, 1_000, 10_000, 100_000, 1_000_000):
+        points = coordinates(size, seed_offset=27)
+        geographic = feregion.lookup_geographic_numbers(points)
+        expected = feregion.geographic_numbers_to_seismic_numbers(geographic)
+
+        lookup_run = partial(feregion.lookup_seismic_numbers, points)
+        crosswalk_run = partial(feregion.geographic_numbers_to_seismic_numbers, geographic)
+        name_run = partial(feregion.seismic_numbers_to_names, expected)
+        expected_names = feregion.seismic_numbers_to_names(expected)
+
+        np.testing.assert_array_equal(lookup_run(), expected)
+        np.testing.assert_array_equal(crosswalk_run(), expected)
+        np.testing.assert_array_equal(name_run(), expected_names)
+        for rows, run in (
+            (lookup_rows, lookup_run),
+            (crosswalk_rows, crosswalk_run),
+            (name_rows, name_run),
+        ):
+            summary = summarize(timed(run, repeats), size)
+            summary["points"] = size
+            rows.append(summary)
+    return {"lookup": lookup_rows, "crosswalk": crosswalk_rows, "names": name_rows}
+
+
 def benchmark_names(repeats: int) -> list[dict[str, float | int]]:
     """Benchmark batch conversion from region numbers to names."""
 
@@ -284,7 +314,7 @@ def main(argv: list[str] | None = None) -> int:
     reference = SourceReference(SOURCE)
 
     report: dict[str, Any] = {
-        "schema_version": 4,
+        "schema_version": 5,
         "environment": {
             "platform": platform.platform(),
             "python": sys.version.split()[0],
@@ -303,6 +333,7 @@ def main(argv: list[str] | None = None) -> int:
         "scalar": benchmark_scalar(reference, args.repeats),
         "batch": benchmark_batch(args.repeats),
         "batch_comparison": benchmark_batch_comparison(reference, args.repeats),
+        "seismic": benchmark_seismic_batch(args.repeats),
         "names": benchmark_names(args.repeats),
         "pandas": benchmark_pandas(args.repeats),
         "notes": [

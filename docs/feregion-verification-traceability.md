@@ -127,10 +127,33 @@ This document identifies how each current requirement is assessed. It separates 
 | `REQ-TEST-015` | tests/test_packaged_assets.py::test_packaged_asset_hashes_match_recorded_metadata | Python 3.13 local plus delivery evidence; hosted CI where configured | Local test result recorded in release verification. | Method coverage is not a claim outside the recorded environment. |
 | `REQ-TEST-016` | `tox.toml`, tests/test_project_metadata.py, and lower-bound CI job | CPython 3.11–3.14 plus Python 3.11 lowest-direct environment | Local matrix definition and hosted lower-bound definition share the same named tox environment. | Missing local interpreters/network can prevent local execution and must be recorded. |
 
+| `REQ-HIER-001` | tests/test_seismic.py plus public API/documentation checks | Runtime suite and documentation review | Explicit level-specific API and geographical compatibility aliases must agree. | Historical generic terminology remains supported for compatibility. |
+| `REQ-HIER-002` | tests/test_packaged_assets.py and ISC normalized-source tests | Packaged assets plus repository source fixture | Exactly 50 seismic and 754 active geographical identifiers must be represented. | Scientific source authority is recorded separately from software implementation. |
+| `REQ-HIER-003` | tests/test_packaged_assets.py, tests/test_seismic.py | Runtime suite | Every active geographical ID has one nonzero parent; retired IDs remain zero. | Does not independently resolve data licensing. |
+| `REQ-HIER-004` | tests/test_seismic.py exhaustive global-cell invariant | Runtime suite | Coordinate seismic lookup equals geographical lookup followed by crosswalk for every one-degree cell center. | Exact boundary-point behavior remains governed by geographical lookup semantics. |
+| `REQ-HIER-005` | tests/test_packaged_assets.py and metadata/notice review | Runtime suite plus documentation review | All 50 packaged seismic names are non-empty and source-specific provenance remains explicit. | Source spelling is preserved even when it appears anomalous. |
+| `REQ-API-007` | tests/test_seismic.py, tests/test_public_api.py | Runtime suite | Explicit geographical/seismic functions and immutable value types work; compatibility aliases remain geographical. | Does not promise removal of generic names. |
+| `REQ-API-008` | tests/test_seismic.py | Runtime suite | Two-array explicit engines remain geographical-only and fail explicitly for seismic operations. | Custom hierarchy compatibility is not inferred. |
+| `REQ-NP-008` | tests/test_seismic.py plus batch validation suite | Runtime suite | Seismic batch result preserves `(n,)` shape and `uint8` semantics. | Performance is assessed separately. |
+| `REQ-NP-009` | tests/test_seismic.py | Runtime suite | Hierarchy array conversion preserves input shape and returns `uint8`. | Retired identifiers remain invalid inputs. |
+| `REQ-PD-009` | tests/test_pandas.py | Runtime suite with pandas | Both levels use documented defaults; omitted level preserves geographical behavior. | pandas remains optional. |
+| `REQ-ERR-007` | tests/test_seismic.py and tests/test_geojson.py | Runtime suite | Missing seismic capability and invalid GeoJSON level/options use package-specific exceptions. | Error-message wording is not a stable API unless separately documented. |
+| `REQ-CLI-013` | tests/test_cli.py plus installed-wheel CLI smoke | Runtime suite and package verification | Point/CSV/GeoJSON level selection works and default remains geographical. | GeoJSON command requires optional geometry dependency. |
+| `REQ-GEO-006` | tests/test_geojson.py | Runtime suite with Shapely | Controlled level-specific property vocabulary and cross-level fields are verified. | Arbitrary templates are intentionally out of scope. |
+| `REQ-GEO-007` | tests/test_geojson.py | Runtime suite with Shapely | Optional number/name/combined labels are generated from current-level values. | Renderer-specific styling remains outside the package. |
+| `REQ-GEO-008` | tests/test_geojson.py | Runtime suite with Shapely | Collection metadata is emitted once by default and can be omitted. | GeoJSON consumers may ignore foreign members. |
+| `REQ-GEO-009` | tests/test_geojson.py | Runtime suite with Shapely | Default feature properties are current-level `number` and `name`. | Generic property names are intentionally level-relative. |
+| `REQ-DATA-012` | tests/test_packaged_assets.py plus metadata/THIRD_PARTY_NOTICES review | Runtime suite and documentation review | Metadata schema 3 separates ObsPy, Young-1996, and ISC roles and unresolved licenses. | This is provenance evidence, not a legal determination. |
+| `REQ-DATA-013` | tests/test_packaged_assets.py, wheel inspection/install smoke, source tools | Runtime/package verification | All four processed assets ship and normal runtime declares no network/source-retrieval requirement. | Source regeneration itself requires retrieved upstream inputs. |
+| `REQ-DATA-014` | tests/test_fetch_isc_fe_regions.py | Deterministic source-tool tests; optional live integration | Parser validates 50/754 coverage and normalized semantic SHA before atomic publication. | Current local environment may not permit live ISC retrieval; record that separately. |
+| `REQ-DATA-015` | tests/test_packaged_assets.py, tests/test_resources_failures.py | Runtime suite | Crosswalk/name shapes, dtypes, sentinels, active coverage, and read-only loading are verified. | Asset byte identity is version-specific. |
+| `REQ-TEST-017` | tests/test_seismic.py and tests/test_packaged_assets.py | Runtime suite | Exhaustive cell hierarchy invariant and complete identifier coverage execute successfully. | Exhaustive test covers the one-degree cell model, not every real-valued coordinate. |
+| `REQ-TEST-018` | tests/test_fetch_isc_fe_regions.py | Runtime suite without live network | Parsing, semantic hashing, validation, and normalized publication are exercised deterministically. | Live page compatibility remains a separate integration observation. |
+
 ## Release evidence record
 
 For each delivered version, the external verification record must state the exact source identity, command or assessment, environment, observed result, skipped or unavailable scope, and known limitation. The quality-assurance document defines the release gates that consume these records.
 
 ## Traceability acceptance
 
-This target contains **112 unique requirement IDs**. Repository synchronization tests verify that every current requirement ID appears in this document and that no current requirement ID is duplicated across requirement files.
+This target contains **136 unique requirement IDs**. Repository synchronization tests verify that every current requirement ID appears in this document and that no current requirement ID is duplicated across requirement files.

@@ -16,10 +16,10 @@ stronger product claim by itself.
 
 | Field | Project interpretation |
 |---|---|
-| Product | Installable Python package for Flinn-Engdahl region-number lookup, optional names, pandas annotation, CSV processing, and derived GeoJSON |
+| Product | Installable Python package for FE geographical and seismic lookup, hierarchy conversion, packaged names, pandas annotation, CSV processing, and derived GeoJSON |
 | Users | Python callers, data-processing users, CLI users, and project maintainers |
 | Runtime context | Offline lookup from packaged generated assets; no runtime network dependency |
-| Development context | `uv`-managed Python project; upstream FE source tables are fetched only for regeneration/reference verification |
+| Development context | `uv`-managed Python project; upstream ObsPy and ISC FE sources are fetched only for regeneration/reference verification |
 | Declared Python environment | Python 3.11 or newer; hosted verification is required for 3.11, 3.12, 3.13, and 3.14 |
 | Public contracts | Python API, exception semantics, pandas adapter, CLI behavior and exit status, generated GeoJSON semantics, package metadata and extras |
 | Specialist concerns | Upstream-data provenance and redistribution status; general review does not provide legal advice or specialist license approval |
@@ -30,13 +30,15 @@ stronger product claim by itself.
 | Quality | Scenario | Acceptance condition | Primary evidence |
 |---|---|---|---|
 | Functional suitability | Valid scalar and batch coordinates are mapped | Results match the pinned source-table scanner over the complete integer grid and deterministic fractional samples; direct ObsPy sample agrees when the oracle is installed | source-reproduction tests and ObsPy oracle job |
+| Hierarchy consistency | A geographical result is converted to its seismic parent | Every active geographical ID maps exactly once; all 50 seismic IDs occur; exhaustive global-cell seismic lookup equals geographical lookup plus crosswalk | packaged-asset and seismic exhaustive tests |
+| Offline operation | An installed user performs lookup, names, hierarchy conversion, adapters, or GeoJSON without source access | Runtime package contains processed geographical and seismic assets and makes no network request | wheel contents/install smoke plus runtime tests |
 | Failure semantics | Invalid input reaches a public boundary | The documented package exception or CLI status is produced without silent coercion, semantic reclassification, destructive file publication, or unbounded traceback | exact-exception tests, CLI subprocess/boundary tests |
 | Performance efficiency | Batch lookup handles representative arrays and supported Python versions | Benchmark results are recorded with environment, repeated timings, same-workload source-table baseline, and correctness checks; the lock-backed Python 3.11–3.14 matrix reports eight selected throughput metrics; an unexplained slowdown greater than 25% at two adjacent sizes of at least 10,000 points triggers review | standalone benchmark, cross-Python comparison, and comparison table |
 | Compatibility | Supported API, CLI, Python, dependency, and packaging surfaces change | No unapproved incompatibility is introduced; local tox-uv matrix, current-dependency CI, lower-bound CI, package metadata inspection, and installed-wheel smoke checks pass | tox-uv matrix, CI matrix, lower-bound job, wheel verifier |
 | Reliability | Concurrent initialization or CSV file publication fails or races | Single-flight initialization remains deterministic; failed filesystem CSV processing does not replace the destination; documented stdout partial-result behavior remains visible | concurrency and CSV failure tests |
 | Public usability | A caller invokes or diagnoses a supported interface | README and public docstrings state inputs, outputs, important invariants, failure behavior, and recovery constraints needed by the caller | documentation review and executable examples/tests |
 | Maintainability | A future maintainer changes a public behavior or release rule | The governing requirement, design decision, relevant tests, traceability, and release gate can be located without relying on historical chat context | repository knowledge-consistency tests and decision ledger |
-| Provenance/integrity | Generated FE assets or source identity change | Source files and generated assets match pinned identities/hashes; wheel and source delivery hashes are verified; unresolved source-data license status remains explicit | source hash checks, asset metadata checks, wheel/source-delivery verification |
+| Provenance/integrity | Generated FE assets or source identity change | Declared source inputs and normalized hierarchy semantics match their pinned identities/hashes; all four runtime arrays match recorded hashes; unresolved source-data license status remains explicit | source acquisition/reproduction tests, asset metadata checks, wheel/source-delivery verification |
 
 ## Release gates
 
@@ -48,7 +50,7 @@ stronger product claim by itself.
 | `QG-CI` | CI executes a reproducible declared tool/dependency state | Compatible constrained uv, committed `uv.lock`, `uv sync --locked`, bounded job timeouts, and concurrency cancellation | Workflow syntax is valid; lock-preserving jobs pass on the exact candidate state | Project decision owner | workflow, lock, and CI run |
 | `QG-PKG` | Built distributions contain and install the intended product | `uv build`, wheel archive inspection, dependency-isolated wheel installation and smoke checks | Build succeeds; wheel contents/metadata meet the package contract; installed smoke checks pass | Project decision owner | verification record and package hashes |
 | `QG-PERF` | Performance claims remain bounded by evidence | Repeated benchmark table, source-table comparison, and lock-backed Python 3.11–3.14 comparison | Reports exist, selected environments/versions are recorded, correctness checks pass, and the review trigger above is not crossed without disposition | Project decision owner | per-Python benchmark JSON and comparison report |
-| `QG-PROV` | Upstream and generated-data identity is known to the stated level | Pinned ObsPy commit and source SHA-256 checks; generated-asset SHA-256 checks; third-party notice review | Identity checks pass and unresolved license/provenance limitations remain explicit | Source-data license disposition requires qualified/human decision | metadata, notices, verification record |
+| `QG-PROV` | Upstream and generated-data identity is known to the stated level | Pinned ObsPy source hashes plus ISC normalized semantic hash; generated-asset SHA-256 checks; multi-source metadata and third-party notice review | Identity checks pass and unresolved license/provenance limitations remain explicit | Source-data license disposition requires qualified/human decision | metadata, notices, verification record |
 | `QG-DOC` | Maintained knowledge matches the target behavior | Contract/document synchronization tests plus semantic review | Current requirements/design/quality/decision/traceability set matches the changed public and repository behavior | Project decision owner | source documents and review record |
 | `QG-DELIVERY` | The exported source handoff is replayable | Full source archive, exact-baseline patch, manifest, checksums, patch application and tree comparison | Patch reconstructs target byte-for-byte; archive safety and checksums pass | Project decision owner | delivery manifest, checksums, patch, verification record |
 

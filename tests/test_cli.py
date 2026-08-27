@@ -410,3 +410,56 @@ def test_cli_csv_malformed_quoting_returns_csv_error_without_publishing(
     assert status == 2
     assert "CSV input is malformed:" in captured.err
     assert not output.exists()
+
+
+def test_cli_point_seismic_level_prints_parent_number_and_name(capsys) -> None:
+    """Point mode can select the seismic hierarchy level explicitly."""
+
+    status = main(["point", "12", "48", "--level", "seismic", "--name"])
+    captured = capsys.readouterr()
+    assert status == 0
+    assert captured.out == "36\tNorthwestern Europe\n"
+
+
+def test_cli_csv_seismic_level_uses_level_specific_default_columns(tmp_path: Path) -> None:
+    """CSV mode gives seismic output distinct default field names."""
+
+    source = tmp_path / "input.csv"
+    output = tmp_path / "output.csv"
+    source.write_text("longitude,latitude\n12,48\n", encoding="utf-8")
+    status = main(["csv", str(source), "-o", str(output), "--level", "seismic", "--include-names"])
+    assert status == 0
+    with output.open(newline="", encoding="utf-8") as stream:
+        rows = list(csv.DictReader(stream))
+    assert rows == [
+        {
+            "longitude": "12",
+            "latitude": "48",
+            "fe_seismic_number": "36",
+            "fe_seismic_region": "Northwestern Europe",
+        }
+    ]
+
+
+def test_cli_geojson_supports_compact_seismic_properties(tmp_path: Path) -> None:
+    """GeoJSON CLI can request a compact seismic machine payload."""
+
+    import json
+
+    output = tmp_path / "seismic.geojson"
+    status = main(
+        [
+            "geojson",
+            str(output),
+            "--level",
+            "seismic",
+            "--property",
+            "number",
+            "--no-metadata",
+        ]
+    )
+    assert status == 0
+    document = json.loads(output.read_text(encoding="utf-8"))
+    assert "feregion" not in document
+    assert len(document["features"]) == 50
+    assert set(document["features"][0]["properties"]) == {"number"}

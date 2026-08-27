@@ -51,6 +51,29 @@ the ObsPy software license from the historical FE source-table license. If the
 source-table license is not established, the project must record that status as
 unresolved instead of inferring a license from the ObsPy repository license.
 
+**REQ-DATA-012** — Provenance metadata must represent independently identified
+source roles for geographical boundaries/names, the normative FE structural
+revision, seismic membership, and seismic names. A source license must not be
+inferred from the package software license or another source's license.
+
+**REQ-DATA-013** — Runtime use must be fully offline. Repository tooling may
+retrieve authoritative source data from online packages, APIs, or web
+resources, but it must normalize and validate those sources into processed
+runtime assets that are distributed with the package. Normal lookup, name
+resolution, hierarchy conversion, pandas/CLI adaptation, and GeoJSON generation
+must not require source retrieval or network access.
+
+**REQ-DATA-014** — Repository tooling must provide an explicit ISC FE hierarchy
+acquisition path. It must normalize the 50 seismic names and 754 active
+geographical memberships, validate complete coverage, and protect the
+normalized semantic content with SHA-256 independently of incidental HTML
+layout.
+
+**REQ-DATA-015** — The packaged seismic hierarchy must use a one-based
+`uint8` geographical-to-seismic crosswalk with 758 entries and a one-based
+Unicode seismic-name array with 51 entries. Index 0 and retired geographical
+identifiers must use the hierarchy sentinel value zero.
+
 **REQ-NP-005** — The vectorized dense-table implementation must use compact
 integer indices suitable for the fixed FE grid and must store region numbers as
 `uint16`. This is an engineering constraint, not a requirement on caller input
@@ -124,11 +147,21 @@ lower-bound environment. The lower-bound environment must derive the lowest
 declared direct dependency versions from project metadata rather than maintain a
 second hand-written list of version pins.
 
+**REQ-TEST-017** — Tests must exhaustively verify, over every global
+one-degree cell center, that seismic coordinate lookup equals geographical
+lookup followed by the crosswalk. Tests must also verify all 754 active
+geographical memberships and all 50 seismic identifiers.
+
+**REQ-TEST-018** — ISC source-acquisition tests must exercise parsing, semantic
+hashing, validation, and atomic normalized-data publication without depending
+on a live network service during the ordinary test suite. Live source retrieval
+may be a separate integration check.
+
 **REQ-PERF-001** — The repository must contain automated benchmarks for the
-implemented in-process lookup interfaces: scalar number lookup, scalar region
-lookup, scalar number-to-name conversion, batch number lookup, batch
-region-number-to-name conversion, and the optional pandas adapter with and without
-names. CLI and GeoJSON operations are excluded from the routine lookup
+implemented in-process lookup interfaces: scalar geographical and seismic number
+lookup, scalar region lookup, scalar number-to-name conversion, geographical and
+seismic batch number lookup, geographical-to-seismic batch conversion, batch
+number-to-name conversion, and the optional pandas adapter with and without names. CLI and GeoJSON operations are excluded from the routine lookup
 benchmark suite.
 
 **REQ-PERF-002** — A performance claim must record workload, environment,

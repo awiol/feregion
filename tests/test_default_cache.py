@@ -15,12 +15,14 @@ def test_default_lookup_loads_assets_once_and_reuses_one_engine(monkeypatch) -> 
     default_module._reset_default_lookup_cache_for_testing()
     table = np.ones((4, 91, 181), dtype=np.uint16)
     names = np.array(["", "ONLY REGION"], dtype="<U16")
+    crosswalk = np.array([0, 1], dtype=np.uint8)
+    seismic_names = np.array(["", "ONLY SEISMIC"], dtype="<U16")
     calls = 0
 
     def fake_load_packaged_assets():
         nonlocal calls
         calls += 1
-        return table, names
+        return table, names, crosswalk, seismic_names
 
     monkeypatch.setattr(default_module, "load_packaged_assets", fake_load_packaged_assets)
     first = default_module.get_default_lookup()
@@ -36,6 +38,8 @@ def test_default_lookup_concurrent_first_use_constructs_one_engine(monkeypatch) 
     default_module._reset_default_lookup_cache_for_testing()
     table = np.ones((4, 91, 181), dtype=np.uint16)
     names = np.array(["", "ONLY REGION"], dtype="<U16")
+    crosswalk = np.array([0, 1], dtype=np.uint8)
+    seismic_names = np.array(["", "ONLY SEISMIC"], dtype="<U16")
     calls = 0
     calls_lock = Lock()
     start = Barrier(16)
@@ -45,7 +49,7 @@ def test_default_lookup_concurrent_first_use_constructs_one_engine(monkeypatch) 
         with calls_lock:
             calls += 1
         time.sleep(0.02)
-        return table, names
+        return table, names, crosswalk, seismic_names
 
     def get_after_barrier():
         start.wait()

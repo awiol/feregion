@@ -251,3 +251,14 @@ def test_dataframe_wide_finite_out_of_range_preserves_core_error_precedence() ->
         warnings.simplefilter("error")
         with raises_exact(CoordinateRangeError):
             lookup_dataframe(frame)
+
+
+def test_dataframe_seismic_level_uses_level_specific_defaults() -> None:
+    """Seismic pandas output is additive and does not overload geographical defaults."""
+
+    frame = pd.DataFrame({"longitude": [12.0], "latitude": [48.0]})
+    result = lookup_dataframe(frame, level="seismic", include_names=True)
+    assert result["fe_seismic_number"].tolist() == [36]
+    assert result["fe_seismic_region"].tolist() == ["Northwestern Europe"]
+    assert "fe_number" not in result.columns
+    assert "fe_region" not in result.columns

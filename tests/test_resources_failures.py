@@ -12,43 +12,43 @@ from feregion.exceptions import DataFileError
 from tests.helpers import raises_exact
 
 
-def _valid_assets() -> tuple[np.ndarray, np.ndarray]:
-    table = np.ones((4, 91, 181), dtype=np.uint16)
-    names = np.array(["", "ONE"], dtype="<U8")
-    return table, names
+def _valid_assets() -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    table, names, crosswalk, seismic_names = resources.load_packaged_assets()
+    return table.copy(), names.copy(), crosswalk.copy(), seismic_names.copy()
 
 
 def test_validate_assets_rejects_wrong_table_dtype() -> None:
     """The resource boundary rejects a table that cannot satisfy uint16 storage."""
 
-    _, names = _valid_assets()
+    table, names, crosswalk, seismic_names = _valid_assets()
     with raises_exact(DataFileError):
-        resources._validate_assets(np.ones((4, 91, 181), dtype=np.uint32), names)
+        resources._validate_assets(table.astype(np.uint32), names, crosswalk, seismic_names)
 
 
 def test_validate_assets_rejects_non_unicode_names() -> None:
-    """The resource boundary rejects byte-string names before engine construction."""
+    """The resource boundary rejects byte-string geographical names."""
 
-    table, _ = _valid_assets()
+    table, names, crosswalk, seismic_names = _valid_assets()
     with raises_exact(DataFileError):
-        resources._validate_assets(table, np.array([b"", b"ONE"], dtype="S8"))
+        resources._validate_assets(table, names.astype("S32"), crosswalk, seismic_names)
 
 
-def test_validate_assets_rejects_name_array_without_reserved_zero() -> None:
-    """The resource boundary requires the one-based region-name convention."""
+def test_validate_assets_rejects_missing_active_seismic_mapping() -> None:
+    """Every active geographical ID must retain exactly one nonzero seismic parent."""
 
-    table, _ = _valid_assets()
+    table, names, crosswalk, seismic_names = _valid_assets()
+    crosswalk[543] = 0
     with raises_exact(DataFileError):
-        resources._validate_assets(table, np.array(["ZERO", "ONE"], dtype="<U8"))
+        resources._validate_assets(table, names, crosswalk, seismic_names)
 
 
-def test_validate_assets_rejects_unknown_table_region() -> None:
-    """A region identifier without a direct name mapping is rejected at load time."""
+def test_validate_assets_rejects_retired_seismic_mapping() -> None:
+    """Retired geographical IDs remain zero sentinels in packaged hierarchy data."""
 
-    table, _ = _valid_assets()
-    table[0, 0, 0] = 2
+    table, names, crosswalk, seismic_names = _valid_assets()
+    crosswalk[172] = 12
     with raises_exact(DataFileError):
-        resources._validate_assets(table, np.array(["", "ONE"], dtype="<U8"))
+        resources._validate_assets(table, names, crosswalk, seismic_names)
 
 
 def test_load_packaged_assets_maps_missing_file_to_data_file_error(
@@ -81,13 +81,17 @@ def test_load_packaged_assets_maps_corrupt_npy_to_data_file_error(
 def test_load_packaged_assets_concurrent_first_use_reads_each_asset_once(
     monkeypatch, tmp_path: Path
 ) -> None:
-    """Concurrent first use performs one pair of NumPy file reads for the process."""
+    """Concurrent first use performs one read of each of the four runtime assets."""
 
     data = tmp_path / "data"
     data.mkdir()
-    table, names = _valid_assets()
-    np.save(data / "fe_table.npy", table, allow_pickle=False)
-    np.save(data / "fe_names.npy", names, allow_pickle=False)
+    arrays = _valid_assets()
+    for filename, array in zip(
+        ("fe_table.npy", "fe_names.npy", "fe_seismic_by_geographic.npy", "fe_seismic_names.npy"),
+        arrays,
+        strict=True,
+    ):
+        np.save(data / filename, array, allow_pickle=False)
 
     resources._reset_packaged_assets_cache_for_testing()
     monkeypatch.setattr(resources, "files", lambda package: tmp_path)
@@ -111,7 +115,50 @@ def test_load_packaged_assets_concurrent_first_use_reads_each_asset_once(
     with ThreadPoolExecutor(max_workers=16) as executor:
         results = list(executor.map(lambda _: load_after_barrier(), range(16)))
 
-    assert load_calls == 2
-    first_table, first_names = results[0]
-    assert all(result[0] is first_table and result[1] is first_names for result in results)
+    assert load_calls == 4
+    first = results[0]
+    assert all(all(a is b for a, b in zip(result, first, strict=True)) for result in results)
     resources._reset_packaged_assets_cache_for_testing()
+
+
+def test_validate_assets_rejects_wrong_crosswalk_dtype() -> None:
+    """Packaged hierarchy storage is fixed to compact uint8 values."""
+
+    table, names, crosswalk, seismic_names = _valid_assets()
+    with raises_exact(DataFileError):
+        resources._validate_assets(table, names, crosswalk.astype(np.uint16), seismic_names)
+
+
+def test_validate_assets_rejects_nonzero_crosswalk_sentinel() -> None:
+    """Crosswalk index zero is reserved and must remain zero."""
+
+    table, names, crosswalk, seismic_names = _valid_assets()
+    crosswalk[0] = 1
+    with raises_exact(DataFileError):
+        resources._validate_assets(table, names, crosswalk, seismic_names)
+
+
+def test_validate_assets_rejects_missing_seismic_identifier() -> None:
+    """Packaged hierarchy must retain at least one child for every seismic ID."""
+
+    table, names, crosswalk, seismic_names = _valid_assets()
+    crosswalk[crosswalk == 50] = 49
+    with raises_exact(DataFileError):
+        resources._validate_assets(table, names, crosswalk, seismic_names)
+
+
+def test_validate_assets_rejects_invalid_seismic_names_shape() -> None:
+    """Seismic name storage is one-based with exactly 51 entries."""
+
+    table, names, crosswalk, seismic_names = _valid_assets()
+    with raises_exact(DataFileError):
+        resources._validate_assets(table, names, crosswalk, seismic_names[:-1])
+
+
+def test_validate_assets_rejects_empty_active_seismic_name() -> None:
+    """Every active seismic ID must resolve to a packaged name."""
+
+    table, names, crosswalk, seismic_names = _valid_assets()
+    seismic_names[36] = ""
+    with raises_exact(DataFileError):
+        resources._validate_assets(table, names, crosswalk, seismic_names)

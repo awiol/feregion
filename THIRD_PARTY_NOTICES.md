@@ -27,3 +27,25 @@ license.
 
 The `feregion` project itself is distributed under LGPL-3.0-only. See
 `src/feregion/data/metadata.json` for source-file and generated-asset hashes.
+
+
+## Flinn-Engdahl 1995 seismic-region hierarchy
+
+The generated runtime files `src/feregion/data/fe_seismic_by_geographic.npy`
+and `src/feregion/data/fe_seismic_names.npy` represent the 1995 FE hierarchy.
+The project records Young et al. (1996), *The Flinn-Engdahl Regionalisation
+Scheme: the 1995 revision*, DOI `10.1016/0031-9201(96)03141-X`, as the normative
+structural-revision source. The operational geographical-to-seismic membership
+and packaged seismic-name representation are obtained from the ISC Flinn-Engdahl
+standards page at `https://www.isc.ac.uk/standards/FEregions/`.
+
+`tools/fetch_isc_fe_regions.py` retrieves that page for maintainer regeneration,
+normalizes its 50 seismic regions and 754 active geographical memberships, and
+verifies a semantic SHA-256 before `tools/build_assets.py` creates the packaged
+runtime arrays. Downloaded source material is not required for normal installed
+use.
+
+No explicit ISC/FE data redistribution license has been established by this
+project. The hierarchy/name source-data license status is therefore recorded as
+**unresolved**. The project LGPL-3.0-only software license is not represented as
+a license grant for these upstream scientific data.
