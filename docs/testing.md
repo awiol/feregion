@@ -14,7 +14,6 @@ Prepare the development environment and run the normal checks:
 ```bash
 uv sync
 uv run ruff check .
-uv run mypy src/feregion tools benchmarks
 uv run pytest -q
 uv run pytest -q --cov=feregion --cov-branch --cov-report=term-missing
 ```
@@ -113,7 +112,6 @@ runs for the same pull request or branch.
 - a direct installed-ObsPy oracle job;
 - a Python 3.11 lower-bound dependency job;
 - Ruff;
-- mypy;
 - distribution builds; and
 - dependency-isolated wheel verification.
 

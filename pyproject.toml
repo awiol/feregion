@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "feregion"
-version = "0.1.2a4"
+version = "0.1.2a5"
 description = "Fast scalar and batch Flinn-Engdahl region lookup"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -47,7 +47,6 @@ dev = [
   "shapely>=2,<3",
   "obspy>=1.4.2,<1.6",
   "ruff>=0.15,<0.17",
-  "mypy>=1.17,<2",
   "pre-commit>=4,<5",
 ]
 
@@ -60,7 +59,6 @@ test = [
 ]
 lint = [
   "ruff>=0.15,<0.17",
-  "mypy>=1.17,<2",
   "pre-commit>=4,<5",
 ]
 benchmark = [
@@ -115,10 +113,3 @@ line-length = 100
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
-
-[tool.mypy]
-python_version = "3.11"
-warn_unused_configs = true
-warn_return_any = true
-warn_unused_ignores = true
-no_implicit_optional = true

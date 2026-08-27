@@ -172,3 +172,21 @@ changed rationale as historical fact.
   future review before becoming part of the tooling contract.
 - **Review trigger:** required commands become unavailable or materially change
   semantics within the accepted range, or uv 1.x is evaluated for adoption.
+## `DEC-013` — Use Ruff as the sole project static-analysis authority
+
+- **Context:** The project previously carried a second static type checker in the
+  development dependency set and hosted quality job. Maintainers prefer Ruff as
+  the authoritative static-analysis, linting, and formatting tool for this
+  repository.
+- **Decision:** Remove the second static type checker from project dependencies,
+  configuration, documented verification commands, and hosted CI. Keep Ruff
+  formatting and Ruff linting as the `QG-STATIC` evidence. Keep pytest as the
+  behavioral verification authority.
+- **Alternatives considered:** retain both static tools; run the second checker
+  only locally; keep it as an optional non-gating dependency.
+- **Compatibility consequence:** Runtime package behavior and Python support do
+  not change. Development environments no longer install or run the removed
+  checker.
+- **Review trigger:** A future requirement needs static guarantees that the
+  configured Ruff rule set cannot provide and evidence supports adding another
+  analysis tool.

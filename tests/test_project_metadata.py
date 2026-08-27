@@ -189,10 +189,17 @@ def test_ci_uses_locked_normal_environments_and_bounds_runs() -> None:
     assert "uv run --locked pytest" in workflow
     assert "uv run --locked ruff format --check ." in workflow
     assert "uv run --locked ruff check ." in workflow
-    assert "uv run --locked mypy" in workflow
     assert "concurrency:" in workflow
     assert "cancel-in-progress: true" in workflow
     assert workflow.count("timeout-minutes:") == 4
     assert "branches: [main]" in workflow
     assert workflow.count("persist-credentials: false") == 4
     assert "uv build --locked" in workflow
+
+
+def test_static_tooling_is_limited_to_ruff_and_pre_commit() -> None:
+    """The lint group must contain only the approved static/commit-time tools."""
+
+    data = _pyproject()
+    lint_group = data["dependency-groups"]["lint"]
+    assert lint_group == ["ruff>=0.15,<0.17", "pre-commit>=4,<5"]

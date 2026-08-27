@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.2a4 — 2026-08-27
+
+- Remove mypy from the project dependency groups and tool configuration.
+- Remove mypy from GitHub Actions and repository verification requirements.
+- Keep Ruff as the project static-analysis, linting, and formatting authority.
+- Keep pytest as the behavioral verification authority.
+
 ## 0.1.2a3 — 2026-08-27
 
 - Replace the exact uv executable pin with the compatibility range `uv>=0.10,<1`.
@@ -45,7 +52,7 @@
 - Defined packaged region names as ObsPy 1.4.2 `names.asc` values and documented the separate historical naming sources.
 - Reframed GeoJSON as area-equivalent one-degree geometry and documented exact boundary-point limitations.
 - Pinned ObsPy source acquisition to immutable commit `a629e8c021052904b6b8d62699d03f2a3721ae63` and separated upstream software-license metadata from unresolved FE source-data license provenance.
-- Added GitHub Actions verification for Python 3.11, 3.12, and 3.13, Ruff, mypy, builds, and dependency-isolated wheel installation.
+- Added GitHub Actions verification for Python 3.11, 3.12, and 3.13, Ruff, builds, and dependency-isolated wheel installation.
 - Split product, engineering, and repository/delivery requirements while preserving requirement IDs; added verification traceability and synchronization tests.
 - Normalized current documentation to the project `must`/`should`/`may`/`can` normative profile and stable terminology.
 

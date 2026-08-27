@@ -197,7 +197,7 @@ GitHub Actions resolves a compatible `uv>=0.10,<1` release from repository metad
   reproduction and direct ObsPy comparison tests;
 - a Python 3.11 lower-bound job that installs the declared minimum NumPy,
   pandas, Shapely, pytest, and pytest-cov versions; and
-- a Python 3.11 quality job that runs Ruff, mypy, distribution builds, wheel
+- a Python 3.11 quality job that runs Ruff, distribution builds, wheel
   archive inspection, and dependency-isolated wheel verification.
 
 `tools/verify_wheel.py` first inspects the built archive for runtime files,
@@ -254,6 +254,6 @@ contract real.
 
 The source-data license remains unresolved in project provenance. Release
 records must state whether dependency locking, the supported-Python matrix,
-lower-bound dependency checks, the direct ObsPy oracle, Ruff, mypy, and clean
+lower-bound dependency checks, the direct ObsPy oracle, Ruff, and clean
 installation were actually observed. Workflow configuration alone is not a
 verification result.

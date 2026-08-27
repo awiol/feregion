@@ -175,8 +175,7 @@ authoritative dependency source for `uv` workflows.
 
 **REQ-PKG-008** — GitHub Actions CI must run the full test suite with branch
 coverage on Python 3.11, 3.12, 3.13, and 3.14. A separate quality job must check Ruff
-formatting, run Ruff linting and mypy, build distributions, and run
-dependency-isolated wheel verification.
+formatting, run Ruff linting, build distributions, and run dependency-isolated wheel verification.
 
 **REQ-PKG-009** — The repository must contain automated synchronization checks
 for the package version and duplicated compatibility dependency declarations.

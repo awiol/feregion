@@ -111,7 +111,6 @@ Run local checks with `uv`:
 ```bash
 uv sync
 uv run ruff check .
-uv run mypy src/feregion tools benchmarks
 uv run pytest -q
 uv run pytest -q --cov=feregion --cov-branch --cov-report=term-missing
 uv build
@@ -119,7 +118,7 @@ uv build
 
 GitHub Actions verifies Python 3.11, 3.12, 3.13, and 3.14. Dedicated jobs also run the
 installed ObsPy oracle and the declared lower dependency bounds. A separate
-quality job runs Ruff, mypy, distribution builds, wheel archive inspection, and
+quality job runs Ruff, distribution builds, wheel archive inspection, and
 dependency-isolated wheel verification.
 
 `uv.lock` is committed and is the dependency-resolution authority for normal
