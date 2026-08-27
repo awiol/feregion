@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Behavioral contract series | `0.2` |
-| Status | Implemented alpha contract |
+| Status | Implemented beta contract |
 
 ## Normative profile and terminology
 
@@ -81,7 +81,8 @@ active geographical regions in the identifier range 1 through 757.
 
 **REQ-HIER-003** — Every active packaged geographical region must map to
 exactly one seismic region in the range 1 through 50. Retired geographical
-identifiers 172, 299, and 550 must not be treated as active hierarchy members.
+identifiers 172, 299, and 550 must not be treated as active hierarchy members
+by name lookup, hierarchy conversion, coordinate lookup, or derived geometry.
 
 **REQ-HIER-004** — Coordinate-to-seismic lookup must be equivalent to
 coordinate-to-geographical lookup followed by the packaged
@@ -102,8 +103,10 @@ region number from one longitude and latitude.
 
 **REQ-API-003** — `Region` must be immutable and slotted.
 
-**REQ-API-004** — The package must provide a scalar region-number-to-name
-function.
+**REQ-API-004** — The package must provide scalar region-number-to-name
+functions. Geographical name lookup must accept only identifiers that are
+active in the engine's geographical lookup table. A retained name at an unused
+or retired geographical identifier must not make that identifier valid.
 
 **REQ-API-005** — Scalar coordinate lookup must preserve the same coordinate
 validation and FE mapping semantics as batch lookup. Scalar lookup is a
@@ -123,7 +126,9 @@ a compatibility alias for `GeographicRegion`; `GeographicRegion` and
 construction must remain valid and geographical-only. Seismic operations on an
 engine without supplied hierarchy assets must fail with
 `SeismicDataUnavailableError`; they must not silently use hierarchy data from
-the packaged default engine.
+the packaged default engine. For an explicit engine, the active geographical
+identifier set must be derived from identifiers used by its lookup table;
+unused name or crosswalk entries must not create active geographical regions.
 
 ## Batch NumPy interface
 
@@ -136,8 +141,9 @@ numbers with shape `(n,)`.
 
 **REQ-NP-003** — Batch lookup must not return region names.
 
-**REQ-NP-004** — A separate array function must convert integer region numbers
-to a same-shape Unicode name array.
+**REQ-NP-004** — Separate array functions must convert valid integer region
+numbers to same-shape Unicode name arrays. Geographical conversion must reject
+retired or otherwise inactive identifiers with `RegionNumberError`.
 
 **REQ-NP-006** — Batch lookup must not modify caller-owned coordinate data.
 

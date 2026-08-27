@@ -6,7 +6,7 @@ import numpy as np
 
 import feregion
 from feregion import FlinnEngdahlLookup
-from feregion.exceptions import RegionNumberError, SeismicDataUnavailableError
+from feregion.exceptions import DataFileError, RegionNumberError, SeismicDataUnavailableError
 from tests.helpers import raises_exact
 
 
@@ -64,6 +64,45 @@ def test_retired_geographical_number_has_no_seismic_parent() -> None:
         feregion.geographic_to_seismic_number(172)
 
 
+def test_retired_geographical_numbers_are_not_valid_name_queries() -> None:
+    """Historical name slots do not make retired geographical IDs active."""
+
+    for number in (172, 299, 550):
+        with raises_exact(RegionNumberError):
+            feregion.geographic_number_to_name(number)
+
+
+def test_retired_geographical_numbers_are_rejected_by_vector_name_lookup() -> None:
+    """Vector name lookup applies the same active-ID contract as scalar lookup."""
+
+    numbers = np.asarray([1, 172, 299, 550, 757], dtype=np.uint16)
+    with raises_exact(RegionNumberError):
+        feregion.geographic_numbers_to_names(numbers)
+
+
+def test_custom_engine_unused_named_identifier_remains_inactive() -> None:
+    """An unused custom name/crosswalk slot cannot create an active region."""
+
+    packaged = feregion.get_default_lookup()
+    assert packaged.seismic_by_geographic is not None
+    assert packaged.seismic_names is not None
+    names = packaged.names.copy()
+    names[172] = "HISTORICAL CUSTOM NAME"
+    crosswalk = packaged.seismic_by_geographic.copy()
+    crosswalk[172] = 12
+    engine = FlinnEngdahlLookup(
+        packaged.table,
+        names,
+        crosswalk,
+        packaged.seismic_names,
+    )
+
+    with raises_exact(RegionNumberError):
+        engine.geographic_number_to_name(172)
+    with raises_exact(RegionNumberError):
+        engine.geographic_to_seismic_number(172)
+
+
 def test_custom_two_asset_engine_remains_geographical_only() -> None:
     """Existing explicit construction does not silently borrow unrelated hierarchy data."""
 
@@ -85,8 +124,6 @@ def test_seismic_region_is_immutable_and_named() -> None:
 def test_explicit_engine_requires_both_seismic_arrays_together() -> None:
     """A partial hierarchy capability declaration is rejected at construction."""
 
-    from feregion.exceptions import DataFileError
-
     packaged = feregion.get_default_lookup()
     with raises_exact(DataFileError):
         FlinnEngdahlLookup(packaged.table, packaged.names, packaged.seismic_by_geographic, None)
@@ -94,8 +131,6 @@ def test_explicit_engine_requires_both_seismic_arrays_together() -> None:
 
 def test_explicit_engine_rejects_wrong_crosswalk_shape() -> None:
     """Custom hierarchy storage must align one-for-one with geographical names."""
-
-    from feregion.exceptions import DataFileError
 
     packaged = feregion.get_default_lookup()
     assert packaged.seismic_names is not None
@@ -110,8 +145,6 @@ def test_explicit_engine_rejects_wrong_crosswalk_shape() -> None:
 
 def test_explicit_engine_rejects_wrong_crosswalk_dtype() -> None:
     """Custom hierarchy storage preserves the compact uint8 contract."""
-
-    from feregion.exceptions import DataFileError
 
     packaged = feregion.get_default_lookup()
     assert packaged.seismic_by_geographic is not None
@@ -128,8 +161,6 @@ def test_explicit_engine_rejects_wrong_crosswalk_dtype() -> None:
 def test_explicit_engine_rejects_nonzero_crosswalk_sentinel() -> None:
     """Custom hierarchy index zero must remain the sentinel."""
 
-    from feregion.exceptions import DataFileError
-
     packaged = feregion.get_default_lookup()
     assert packaged.seismic_by_geographic is not None
     assert packaged.seismic_names is not None
@@ -137,6 +168,48 @@ def test_explicit_engine_rejects_nonzero_crosswalk_sentinel() -> None:
     crosswalk[0] = 1
     with raises_exact(DataFileError):
         FlinnEngdahlLookup(packaged.table, packaged.names, crosswalk, packaged.seismic_names)
+
+
+def test_explicit_engine_rejects_crosswalk_region_beyond_seismic_names() -> None:
+    """A custom hierarchy cannot reference a seismic identifier without a name slot."""
+
+    packaged = feregion.get_default_lookup()
+    assert packaged.seismic_by_geographic is not None
+    assert packaged.seismic_names is not None
+    crosswalk = packaged.seismic_by_geographic.copy()
+    crosswalk[543] = packaged.seismic_names.size
+    with raises_exact(DataFileError):
+        FlinnEngdahlLookup(packaged.table, packaged.names, crosswalk, packaged.seismic_names)
+
+
+def test_explicit_engine_rejects_missing_active_seismic_mapping() -> None:
+    """Every geographical identifier used by the custom table needs a parent."""
+
+    packaged = feregion.get_default_lookup()
+    assert packaged.seismic_by_geographic is not None
+    assert packaged.seismic_names is not None
+    crosswalk = packaged.seismic_by_geographic.copy()
+    crosswalk[543] = 0
+    with raises_exact(DataFileError):
+        FlinnEngdahlLookup(packaged.table, packaged.names, crosswalk, packaged.seismic_names)
+
+
+def test_explicit_engine_rejects_unnamed_referenced_seismic_region() -> None:
+    """Every seismic identifier referenced by the custom crosswalk needs a name."""
+
+    packaged = feregion.get_default_lookup()
+    assert packaged.seismic_by_geographic is not None
+    assert packaged.seismic_names is not None
+    seismic_names = packaged.seismic_names.copy()
+    seismic_number = int(packaged.seismic_by_geographic[543])
+    seismic_names[seismic_number] = ""
+    with raises_exact(DataFileError):
+        FlinnEngdahlLookup(
+            packaged.table,
+            packaged.names,
+            packaged.seismic_by_geographic,
+            seismic_names,
+        )
 
 
 def test_empty_geographical_hierarchy_conversion_preserves_shape() -> None:

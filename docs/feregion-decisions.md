@@ -523,3 +523,68 @@ changed rationale as historical fact.
   coordinates per dtype across the two complementary generators.
 - **Review trigger:** The coordinate model, one-degree indexing rule, supported
   numeric dtype contract, or dense-table representation changes materially.
+
+## `DEC-031` — Define geographical identifier validity from active table membership
+
+- **Context:** Review of `0.2.0a3` found that the packaged names array retains
+  historical names at retired identifiers 172, 299, and 550. Name lookup used
+  non-empty name slots as its validity test, while hierarchy conversion treated
+  those same identifiers as inactive. Custom engines could exhibit the same
+  inconsistency for any named identifier not used by their lookup table.
+- **Decision:** A geographical identifier is active for an engine only when the
+  engine's geographical lookup table uses that identifier. Derive a read-only
+  active-ID mask at engine construction. Scalar/vector geographical name lookup
+  and geographical-to-seismic conversion must validate against that mask.
+  Historical or otherwise unused name/crosswalk entries may be retained as data,
+  but they do not create active public identifiers.
+- **Alternatives considered:** allow historical-name lookup for retired IDs;
+  remove historical name slots from the packaged names array; require every
+  unused custom crosswalk entry to be zero.
+- **Compatibility consequence:** Calls that previously resolved retained names
+  for retired or unused geographical identifiers now raise `RegionNumberError`.
+  Coordinate lookup behavior and active-ID results do not change.
+- **Review trigger:** The package adds an explicit historical-region lookup API
+  or adopts a source model where inactive identifiers are intentionally queryable.
+
+## `DEC-032` — Align scalar coordinate typing with supported NumPy scalar behavior
+
+- **Context:** Runtime scalar lookup intentionally accepts Python integer/float
+  values and NumPy integer/floating scalars, but the distributed `py.typed`
+  signatures used built-in `float` only. Downstream static checking could reject
+  a value that runtime tests intentionally support.
+- **Decision:** Publish `ScalarCoordinate` as the scalar coordinate input type and
+  include Python `int`/`float` plus NumPy integer/floating scalar families.
+  Runtime validation continues to reject Boolean values even though Python's
+  static numeric subtype relationships cannot express that exclusion precisely.
+  The downstream typing fixture must exercise representative NumPy scalar calls.
+- **Alternatives considered:** narrow runtime support to built-in floats; remove
+  `py.typed`; leave the mismatch documented only.
+- **Compatibility consequence:** Static typing becomes less restrictive and
+  matches supported runtime behavior more closely. Runtime behavior does not
+  broaden.
+- **Review trigger:** NumPy's public scalar typing model changes or the package
+  changes its accepted scalar numeric families.
+
+## `DEC-033` — Separate beta maturity from release-validation status
+
+- **Context:** The project-specific alpha policy required all promotion gates to
+  pass before using a beta identifier. The project decision owner explicitly
+  selected a beta prerelease for the review-closure iteration while external scientific,
+  hosted-CI, lock, performance, and source-license evidence can remain incomplete.
+  The delivery guideline treats prerelease maturity and verification as separate
+  dimensions.
+- **Decision:** Beta identifies product maturity: intended `0.2`
+  functionality is substantially complete and stabilization/broader validation
+  can remain. Release-validation status remains independent. A beta source
+  handoff may be issued with partial verification only when missing required
+  evidence is explicit; it must not be described as promotion-gate complete or
+  ready for unqualified external publication until the quality gates pass.
+  This decision supersedes `DEC-008`.
+- **Alternatives considered:** remain on the alpha line until all external gates
+  can be observed; weaken or remove the external gates; treat beta as equivalent
+  to complete validation.
+- **Compatibility consequence:** Version maturity changes to beta without
+  weakening any functional, compatibility, provenance, or release-validation
+  acceptance condition.
+- **Review trigger:** The project adopts a different prerelease policy or the
+  release-validation gates become inappropriate for the intended distribution.

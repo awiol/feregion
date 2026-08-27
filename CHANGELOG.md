@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.0b1 — 2026-08-27
+
+- Make geographical identifier validity active-only: retired or otherwise unused IDs are rejected by direct geographical name and hierarchy operations even when historical/custom name or crosswalk slots are populated.
+- Derive explicit-engine active geographical membership from identifiers used by the supplied lookup table.
+- Align the distributed scalar typing surface with supported Python and NumPy integer/floating scalar inputs and extend the downstream typing fixture accordingly.
+- Add direct negative-path tests for invalid custom hierarchy construction and unsupported pandas hierarchy levels.
+- Correct maintained `minimum` tox-environment versus uv `lowest-direct` resolution terminology and broaden `RegionNumberError` documentation to match its public use.
+- Separate beta maturity from release-validation status: `0.2.0b1` is a beta-maturity source candidate, while unavailable hosted/source/provenance/performance gates remain explicit and continue to block stronger release claims.
+- Keep the split longitude/latitude optimization deferred from this review-closure iteration; optimization work will be rebased separately after the beta baseline is accepted.
+
 ## 0.2.0a3 — 2026-08-27
 
 - Fix the Ruff findings reported against the `0.2.0a2` candidate and make mypy a pre-commit check as well as a hosted quality check.

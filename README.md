@@ -71,6 +71,13 @@ package does not transform coordinates between CRSs, and the WGS84 convention
 is separate from the historical FE degree-grid definition. Use batch lookup
 when throughput matters.
 
+Scalar lookup accepts Python integer/float values and NumPy integer/floating
+scalars. Boolean values are rejected at runtime. Direct geographical
+number-to-name and geographical-to-seismic operations accept only identifiers
+that are active in the lookup table; retired identifiers 172, 299, and 550 are
+not valid direct geographical inputs even though historical name slots are
+retained in the packaged source-derived name array.
+
 The pre-existing generic functions (`lookup_number`, `lookup_region`,
 `lookup_numbers`, `number_to_name`, and `numbers_to_names`) remain geographical
 compatibility interfaces. New code can use the explicit `geographic_*` and
@@ -209,9 +216,9 @@ uv run --locked pre-commit install
 ```
 
 The pre-commit pipeline formats Python files with Ruff, runs Ruff lint checks,
+runs mypy over the public package modules and downstream-consumer typing fixture,
 and then delegates behavioral tests to tox's `local` environment. Hosted quality
-verification additionally runs mypy over the public package modules and a small
-downstream-consumer typing fixture because the wheel ships `py.typed`. Run the
+verification runs the same static evidence because the wheel ships `py.typed`. Run the
 commit-time pipeline manually with:
 
 ```bash

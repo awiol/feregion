@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Status | Current alpha quality contract |
+| Status | Current beta quality contract |
 
 ## Purpose
 
@@ -55,15 +55,17 @@ stronger product claim by itself.
 | `QG-DOC` | Maintained knowledge matches the target behavior | Contract/document synchronization tests plus semantic review | Current requirements/design/quality/decision/traceability set matches the changed public and repository behavior | Project decision owner | source documents and review record |
 | `QG-DELIVERY` | The exported source handoff is replayable | Full source archive, exact-baseline patch, manifest, checksums, patch application and tree comparison | Patch reconstructs target byte-for-byte; archive safety and checksums pass | Project decision owner | delivery manifest, checksums, patch, verification record |
 
-## Maturity decision
+## Maturity and release-validation decision
 
-The project remains **alpha** until the beta-promotion gates pass. The core lookup design is stable, but the
-project does not yet have enough observed release evidence to call the intended
-functionality substantially stabilized across its declared development and
-compatibility surfaces.
+The project uses **beta** to describe product maturity: the
+intended `0.2` functionality is substantially complete and stabilization or
+broader validation can remain. Beta maturity does not mean that all release
+gates passed, that scientific validation is complete, or that public
+distribution is approved.
 
-Promotion to beta requires all of these conditions on one exact candidate
-source state:
+A beta candidate must not be described as **release-validated**,
+**promotion-gate complete**, or ready for unqualified external publication
+unless all of these conditions hold on one exact candidate source state:
 
 1. `QG-FUNC`, `QG-COMP`, `QG-STATIC`, `QG-PKG`, `QG-PERF`, `QG-DOC`, and
    `QG-DELIVERY` pass with no undisclosed skip or unavailable required check.
@@ -75,6 +77,10 @@ source state:
    explicit human or qualified disposition appropriate to the intended
    distribution. This document does not provide that legal determination.
 5. No open major behavioral or data-loss defect remains.
+
+An explicitly authorized beta source handoff may have partial verification.
+Every unavailable or failed required gate must remain visible in its delivery
+evidence and retains its normal blocking effect on stronger release claims.
 
 ## Evidence recording rule
 

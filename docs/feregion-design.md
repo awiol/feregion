@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Behavioral contract series | `0.2` |
-| Status | Implemented alpha design |
+| Status | Implemented beta design |
 
 ## 1. Design result
 
@@ -23,6 +23,12 @@ remains a geographical compatibility surface.
 
 The design retains the dense-table geographical architecture and adds the
 small hierarchy crosswalk as a distinct data relation.
+
+The engine also derives a read-only Boolean active-geographical mask from the
+identifiers that occur in its lookup table. Direct geographical name and
+hierarchy operations validate against this mask. Therefore a historical name
+slot or custom crosswalk entry does not make an identifier active when the
+engine's table never returns that identifier.
 
 ## 2. Behavioral model
 
@@ -299,9 +305,10 @@ tests aligned with the tox test definition without creating independent
 hook-specific Python environments.
 
 For local compatibility checks, `tox.toml` defines lock-backed `py311` through
-`py314` environments plus a Python 3.11 `lowest-direct` environment. tox provides
-environment orchestration; tox-uv delegates interpreter/environment creation and
-dependency installation to uv. The minimum environment installs the project and
+`py314` environments plus a Python 3.11 `minimum` environment that uses uv
+`lowest-direct` resolution. tox provides environment orchestration; tox-uv
+delegates interpreter/environment creation and dependency installation to uv.
+The minimum environment installs the project and
 its `test` extra together with `uv-editable` and is recreated for every run, so
 stale tox installer metadata cannot affect lower-bound resolution. Direct NumPy
 and pandas lower

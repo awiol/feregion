@@ -22,7 +22,7 @@ class CoordinateRangeError(FlinnEngdahlError, ValueError):
 
 
 class RegionNumberError(FlinnEngdahlError, ValueError):
-    """A region number cannot be mapped to a Flinn-Engdahl region name."""
+    """A region identifier is invalid for the requested Flinn-Engdahl operation."""
 
 
 class SeismicDataUnavailableError(FlinnEngdahlError, RuntimeError):

@@ -10,6 +10,7 @@ from feregion.exceptions import (
     CoordinateValueError,
     DataFrameColumnError,
     DataFrameTypeError,
+    RegionLevelError,
 )
 from feregion.pandas import lookup_dataframe
 from tests.helpers import raises_exact
@@ -262,3 +263,11 @@ def test_dataframe_seismic_level_uses_level_specific_defaults() -> None:
     assert result["fe_seismic_region"].tolist() == ["Northwestern Europe"]
     assert "fe_number" not in result.columns
     assert "fe_region" not in result.columns
+
+
+def test_dataframe_rejects_unknown_region_level() -> None:
+    """An unsupported hierarchy level uses the package-specific level error."""
+
+    frame = pd.DataFrame({"longitude": [12.0], "latitude": [48.0]})
+    with raises_exact(RegionLevelError):
+        lookup_dataframe(frame, level="tectonic")  # type: ignore[arg-type]

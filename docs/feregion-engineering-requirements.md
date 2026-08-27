@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Status | Implemented alpha engineering contract |
+| Status | Implemented beta engineering contract |
 
 This document uses the normative profile defined by `feregion-requirements.md`.
 
@@ -297,11 +297,14 @@ required evidence, its acceptance condition, exception authority, and retained
 evidence. A passing process check must not be promoted into a stronger product
 claim.
 
-**REQ-PKG-015** — Promotion from alpha to beta requires an observed hosted-CI
-run for the exact candidate source state, including the supported-Python matrix,
-static checks, direct ObsPy oracle, lower-bound dependency compatibility, build,
-and clean wheel verification. Promotion also requires a committed `uv.lock` or
-an explicitly approved alternative resolved-dependency record.
+**REQ-PKG-015** — A beta candidate must not be described as release-validated
+or promotion-gate complete without an observed hosted-CI run for the exact
+candidate source state, including the supported-Python matrix, static checks,
+direct ObsPy oracle, lower-bound dependency compatibility, build, and clean
+wheel verification. That stronger claim also requires a committed `uv.lock` or
+an explicitly approved alternative resolved-dependency record. A beta source
+handoff with partial verification must disclose the missing evidence instead of
+converting it into a pass.
 
 **REQ-PKG-016** — Repository development must include `pre-commit` in the `uv`
 development toolchain. The repository pre-commit configuration must run Ruff
@@ -332,8 +335,9 @@ Checkout steps must not persist the workflow token when later steps do not need 
 **REQ-PKG-019** — The repository must provide a tox configuration backed by uv
 for local compatibility orchestration. The default matrix must cover CPython
 3.11, 3.12, 3.13, and 3.14 through explicit Python-factor environment names,
-plus a Python 3.11 `lowest-direct` environment. Normal compatibility environments
-must use the repository lock. The minimum environment must resolve the project
+plus a Python 3.11 `minimum` environment that uses uv `lowest-direct`
+resolution. Normal compatibility environments must use the repository lock.
+The minimum environment must resolve the project
 and its test requirements together in one dependency transaction so declared
 NumPy and pandas lower bounds cannot be split into an ABI-incompatible pair.
 The minimum environment must be recreated for each run so stale tox installer
@@ -347,7 +351,9 @@ maintain separate test definitions.
 pre-commit verification and hosted quality verification must run a supported
 static type checker over the public package modules and a small
 downstream-consumer typing fixture. Ruff remains the lint/format authority; type
-checking is a separate evidence class.
+checking is a separate evidence class. The downstream fixture must include
+representative built-in and NumPy scalar coordinate forms that the runtime
+scalar API intentionally supports.
 
 **REQ-PKG-021** — Repository CI must provide a scheduled or manually triggered
 live ISC semantic comparison that fetches the declared standards page and

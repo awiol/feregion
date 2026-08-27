@@ -6,19 +6,21 @@ import numpy as np
 import numpy.typing as npt
 
 from ._default import get_default_lookup
-from .core import FlinnEngdahlLookup
+from .core import FlinnEngdahlLookup, ScalarCoordinate
 from .types import GeographicRegion, Region, SeismicRegion
 
-__version__ = "0.2.0a3"
+__version__ = "0.2.0b1"
 
 
-def lookup_geographic_number(longitude: float, latitude: float) -> int:
+def lookup_geographic_number(longitude: ScalarCoordinate, latitude: ScalarCoordinate) -> int:
     """Return the FE geographical-region number for one coordinate pair."""
 
     return get_default_lookup().lookup_geographic_number(longitude, latitude)
 
 
-def lookup_geographic_region(longitude: float, latitude: float) -> GeographicRegion:
+def lookup_geographic_region(
+    longitude: ScalarCoordinate, latitude: ScalarCoordinate
+) -> GeographicRegion:
     """Return the FE geographical-region number and packaged name."""
 
     return get_default_lookup().lookup_geographic_region(longitude, latitude)
@@ -56,13 +58,13 @@ def geographic_numbers_to_seismic_numbers(
     return get_default_lookup().geographic_numbers_to_seismic_numbers(numbers)
 
 
-def lookup_seismic_number(longitude: float, latitude: float) -> int:
+def lookup_seismic_number(longitude: ScalarCoordinate, latitude: ScalarCoordinate) -> int:
     """Return the FE seismic-region number for one coordinate pair."""
 
     return get_default_lookup().lookup_seismic_number(longitude, latitude)
 
 
-def lookup_seismic_region(longitude: float, latitude: float) -> SeismicRegion:
+def lookup_seismic_region(longitude: ScalarCoordinate, latitude: ScalarCoordinate) -> SeismicRegion:
     """Return the FE seismic-region number and packaged name."""
 
     return get_default_lookup().lookup_seismic_region(longitude, latitude)
@@ -87,14 +89,14 @@ def seismic_numbers_to_names(numbers: npt.ArrayLike) -> npt.NDArray[np.str_]:
 
 
 # Compatibility surface from the 0.1 contract. These names continue to mean
-# geographical regions; no deprecation is planned for the 0.2 alpha line.
-def lookup_number(longitude: float, latitude: float) -> int:
+# geographical regions; no deprecation is planned for the 0.2 development line.
+def lookup_number(longitude: ScalarCoordinate, latitude: ScalarCoordinate) -> int:
     """Return the FE geographical-region number for one coordinate pair."""
 
     return lookup_geographic_number(longitude, latitude)
 
 
-def lookup_region(longitude: float, latitude: float) -> Region:
+def lookup_region(longitude: ScalarCoordinate, latitude: ScalarCoordinate) -> Region:
     """Return the FE geographical-region number and packaged name."""
 
     return lookup_geographic_region(longitude, latitude)
@@ -122,6 +124,7 @@ __all__ = [
     "FlinnEngdahlLookup",
     "GeographicRegion",
     "Region",
+    "ScalarCoordinate",
     "SeismicRegion",
     "geographic_number_to_name",
     "geographic_numbers_to_names",

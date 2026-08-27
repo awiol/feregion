@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import math
 import operator
-from dataclasses import dataclass
-from typing import cast
+from dataclasses import dataclass, field
+from typing import Any, SupportsInt, TypeAlias, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -24,6 +24,7 @@ from .types import GeographicRegion, Region, SeismicRegion
 GeographicNumberArray = npt.NDArray[np.uint16]
 SeismicNumberArray = npt.NDArray[np.uint8]
 RegionNumberArray = GeographicNumberArray
+ScalarCoordinate: TypeAlias = int | float | np.integer[Any] | np.floating[Any]
 
 _TABLE_SHAPE = (4, 91, 181)
 _NUMERIC_KINDS = frozenset("iuf")
@@ -55,6 +56,7 @@ class FlinnEngdahlLookup:
     names: npt.NDArray[np.str_]
     seismic_by_geographic: npt.NDArray[np.uint8] | None = None
     seismic_names: npt.NDArray[np.str_] | None = None
+    _active_geographic: npt.NDArray[np.bool_] = field(init=False, repr=False, compare=False)
 
     def __post_init__(self) -> None:
         """Validate data invariants and take ownership of immutable copies."""
@@ -77,6 +79,9 @@ class FlinnEngdahlLookup:
         used = np.unique(table)
         if np.any(used == 0) or np.any(names[used] == ""):
             raise DataFileError("lookup table contains an unmapped geographical-region number")
+        active_geographic = np.zeros(names.shape, dtype=np.bool_)
+        active_geographic[used] = True
+        active_geographic.setflags(write=False)
 
         crosswalk = self.seismic_by_geographic
         seismic_names = self.seismic_names
@@ -120,6 +125,7 @@ class FlinnEngdahlLookup:
         object.__setattr__(self, "names", owned_names)
         object.__setattr__(self, "seismic_by_geographic", owned_crosswalk)
         object.__setattr__(self, "seismic_names", owned_seismic_names)
+        object.__setattr__(self, "_active_geographic", active_geographic)
 
     @property
     def has_seismic_data(self) -> bool:
@@ -127,29 +133,33 @@ class FlinnEngdahlLookup:
 
         return self.seismic_by_geographic is not None
 
-    def lookup_geographic_number(self, longitude: float, latitude: float) -> int:
+    def lookup_geographic_number(
+        self, longitude: ScalarCoordinate, latitude: ScalarCoordinate
+    ) -> int:
         """Return the geographical-region number for one coordinate pair."""
 
         _validate_scalar_coordinate_types(longitude, latitude)
         _validate_scalar_coordinate_values(longitude, latitude)
         normalized_longitude = 180 if longitude == -180 else longitude
-        absolute_longitude = int(abs(normalized_longitude))
-        absolute_latitude = int(abs(latitude))
+        absolute_longitude = _absolute_degree_index(normalized_longitude)
+        absolute_latitude = _absolute_degree_index(latitude)
         quadrant = int(normalized_longitude < 0) + 2 * int(latitude < 0)
         return int(self.table[quadrant, absolute_latitude, absolute_longitude])
 
-    def lookup_number(self, longitude: float, latitude: float) -> int:
+    def lookup_number(self, longitude: ScalarCoordinate, latitude: ScalarCoordinate) -> int:
         """Compatibility alias for :meth:`lookup_geographic_number`."""
 
         return self.lookup_geographic_number(longitude, latitude)
 
-    def lookup_geographic_region(self, longitude: float, latitude: float) -> GeographicRegion:
+    def lookup_geographic_region(
+        self, longitude: ScalarCoordinate, latitude: ScalarCoordinate
+    ) -> GeographicRegion:
         """Return the geographical-region number and packaged name."""
 
         number = self.lookup_geographic_number(longitude, latitude)
         return GeographicRegion(number=number, name=self.geographic_number_to_name(number))
 
-    def lookup_region(self, longitude: float, latitude: float) -> Region:
+    def lookup_region(self, longitude: ScalarCoordinate, latitude: ScalarCoordinate) -> Region:
         """Compatibility alias for :meth:`lookup_geographic_region`."""
 
         return self.lookup_geographic_region(longitude, latitude)
@@ -173,7 +183,12 @@ class FlinnEngdahlLookup:
     def geographic_number_to_name(self, number: int) -> str:
         """Return the packaged geographical-region name for one active number."""
 
-        index = _scalar_region_index(number, self.names, "geographical")
+        index = _scalar_region_index(
+            number,
+            self.names,
+            "geographical",
+            active=self._active_geographic,
+        )
         return str(self.names[index])
 
     def number_to_name(self, number: int) -> str:
@@ -184,7 +199,12 @@ class FlinnEngdahlLookup:
     def geographic_numbers_to_names(self, numbers: npt.ArrayLike) -> npt.NDArray[np.str_]:
         """Convert geographical-region numbers to same-shape packaged names."""
 
-        return _numbers_to_names(numbers, self.names, "geographical")
+        return _numbers_to_names(
+            numbers,
+            self.names,
+            "geographical",
+            active=self._active_geographic,
+        )
 
     def numbers_to_names(self, numbers: npt.ArrayLike) -> npt.NDArray[np.str_]:
         """Compatibility alias for :meth:`geographic_numbers_to_names`."""
@@ -195,7 +215,12 @@ class FlinnEngdahlLookup:
         """Return the seismic parent of one active geographical-region number."""
 
         crosswalk, _ = self._require_seismic_data()
-        index = _scalar_region_index(number, self.names, "geographical")
+        index = _scalar_region_index(
+            number,
+            self.names,
+            "geographical",
+            active=self._active_geographic,
+        )
         seismic = int(crosswalk[index])
         if seismic == 0:
             raise RegionNumberError(f"geographical region {index} has no active seismic mapping")
@@ -205,7 +230,12 @@ class FlinnEngdahlLookup:
         """Convert geographical-region numbers to same-shape seismic numbers."""
 
         crosswalk, _ = self._require_seismic_data()
-        array = _integer_region_array(numbers, self.names, "geographical")
+        array = _integer_region_array(
+            numbers,
+            self.names,
+            "geographical",
+            active=self._active_geographic,
+        )
         if array.size == 0:
             return np.empty(array.shape, dtype=np.uint8)
         result = crosswalk[array]
@@ -215,12 +245,14 @@ class FlinnEngdahlLookup:
             )
         return cast(SeismicNumberArray, result)
 
-    def lookup_seismic_number(self, longitude: float, latitude: float) -> int:
+    def lookup_seismic_number(self, longitude: ScalarCoordinate, latitude: ScalarCoordinate) -> int:
         """Return the seismic-region number for one coordinate pair."""
 
         return self.geographic_to_seismic_number(self.lookup_geographic_number(longitude, latitude))
 
-    def lookup_seismic_region(self, longitude: float, latitude: float) -> SeismicRegion:
+    def lookup_seismic_region(
+        self, longitude: ScalarCoordinate, latitude: ScalarCoordinate
+    ) -> SeismicRegion:
         """Return the seismic-region number and packaged name for one coordinate pair."""
 
         number = self.lookup_seismic_number(longitude, latitude)
@@ -291,7 +323,13 @@ def _validate_name_array(names: np.ndarray, label: str) -> None:
         raise DataFileError(f"{label} must reserve empty index 0")
 
 
-def _scalar_region_index(number: int, names: np.ndarray, level: str) -> int:
+def _scalar_region_index(
+    number: int,
+    names: np.ndarray,
+    level: str,
+    *,
+    active: npt.NDArray[np.bool_] | None = None,
+) -> int:
     """Validate one active integer region number for a one-based name table."""
 
     if isinstance(number, (bool, np.bool_)):
@@ -300,12 +338,23 @@ def _scalar_region_index(number: int, names: np.ndarray, level: str) -> int:
         index = operator.index(number)
     except TypeError as exc:
         raise RegionNumberError(f"{level} region number must be an integer") from exc
-    if index < 1 or index >= names.size or names[index] == "":
+    if (
+        index < 1
+        or index >= names.size
+        or names[index] == ""
+        or (active is not None and not bool(active[index]))
+    ):
         raise RegionNumberError(f"unknown Flinn-Engdahl {level} region number: {index}")
     return index
 
 
-def _integer_region_array(numbers: npt.ArrayLike, names: np.ndarray, level: str) -> np.ndarray:
+def _integer_region_array(
+    numbers: npt.ArrayLike,
+    names: np.ndarray,
+    level: str,
+    *,
+    active: npt.NDArray[np.bool_] | None = None,
+) -> np.ndarray:
     """Validate an integer region-number array without changing its shape."""
 
     try:
@@ -320,21 +369,29 @@ def _integer_region_array(numbers: npt.ArrayLike, names: np.ndarray, level: str)
         raise RegionNumberError(f"one or more Flinn-Engdahl {level} region numbers are unknown")
     if np.any(names[array] == ""):
         raise RegionNumberError(f"one or more Flinn-Engdahl {level} region numbers are unknown")
+    if active is not None and np.any(~active[array]):
+        raise RegionNumberError(f"one or more Flinn-Engdahl {level} region numbers are inactive")
     return array
 
 
 def _numbers_to_names(
-    numbers: npt.ArrayLike, names: npt.NDArray[np.str_], level: str
+    numbers: npt.ArrayLike,
+    names: npt.NDArray[np.str_],
+    level: str,
+    *,
+    active: npt.NDArray[np.bool_] | None = None,
 ) -> npt.NDArray[np.str_]:
     """Convert a validated region-number array through one name table."""
 
-    array = _integer_region_array(numbers, names, level)
+    array = _integer_region_array(numbers, names, level, active=active)
     if array.size == 0:
         return np.empty(array.shape, dtype=names.dtype)
     return cast(npt.NDArray[np.str_], names[array])
 
 
-def _validate_scalar_coordinate_types(longitude: float, latitude: float) -> None:
+def _validate_scalar_coordinate_types(
+    longitude: ScalarCoordinate, latitude: ScalarCoordinate
+) -> None:
     """Reject scalar types that the public coordinate contract does not accept."""
 
     for value in (longitude, latitude):
@@ -344,7 +401,9 @@ def _validate_scalar_coordinate_types(longitude: float, latitude: float) -> None
             raise CoordinateTypeError("coordinates must be real numbers")
 
 
-def _validate_scalar_coordinate_values(longitude: float, latitude: float) -> None:
+def _validate_scalar_coordinate_values(
+    longitude: ScalarCoordinate, latitude: ScalarCoordinate
+) -> None:
     """Validate scalar finiteness and ranges without creating NumPy arrays."""
 
     if not _scalar_is_finite(longitude):
@@ -357,7 +416,19 @@ def _validate_scalar_coordinate_values(longitude: float, latitude: float) -> Non
         raise CoordinateRangeError("latitude must be within [-90, 90]")
 
 
-def _scalar_is_finite(value: float) -> bool:
+def _absolute_degree_index(value: ScalarCoordinate) -> int:
+    """Return the non-negative integer-degree index for a validated scalar.
+
+    NumPy scalar stubs expose the result of ``abs()`` more broadly than the
+    runtime scalar-coordinate contract.  The scalar type validator guarantees
+    that accepted values support integer conversion.  This cast records that
+    fact for static type checking without narrowing extended floating values.
+    """
+
+    return int(cast(SupportsInt, abs(value)))
+
+
+def _scalar_is_finite(value: ScalarCoordinate) -> bool:
     """Check scalar finiteness without narrowing extended NumPy floats."""
 
     if isinstance(value, float):
