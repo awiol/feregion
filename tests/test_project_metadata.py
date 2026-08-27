@@ -176,6 +176,7 @@ def test_tox_uv_matrix_covers_supported_python_and_coherent_lower_bounds() -> No
 
     minimum = config["env"]["minimum"]
     assert minimum["runner"] == "uv-venv-runner"
+    assert minimum["recreate"] is True
     assert minimum["base_python"] == ["3.11"]
     assert minimum["package"] == "uv-editable"
     assert minimum["extras"] == ["test"]
@@ -271,7 +272,8 @@ def test_ci_uses_locked_normal_environments_and_bounds_runs() -> None:
     assert workflow.count("timeout-minutes:") == 4
     assert "branches: [main]" in workflow
     assert workflow.count("persist-credentials: false") == 4
-    assert "uv build --locked" in workflow
+    assert "run: uv build" in workflow
+    assert "uv build --locked" not in workflow
 
 
 def test_static_tooling_is_limited_to_ruff_and_pre_commit() -> None:

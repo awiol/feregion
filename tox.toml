@@ -22,6 +22,7 @@ commands = [
 [env.minimum]
 description = "run tests on Python 3.11 with one coherent lowest-direct project resolution"
 runner = "uv-venv-runner"
+recreate = true
 base_python = ["3.11"]
 package = "uv-editable"
 extras = ["test"]

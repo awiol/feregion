@@ -115,7 +115,7 @@ jobs:
       - name: Run Ruff
         run: uv run --locked ruff check .
       - name: Build distributions
-        run: uv build --locked
+        run: uv build
       - name: Verify wheel in an isolated environment
         run: >-
           uv run --locked python -m tools.verify_wheel

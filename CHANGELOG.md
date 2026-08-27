@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.1.2a10 — 2026-08-27
+
+- Fix hosted packaging CI by replacing unsupported `uv build --locked` with `uv build`.
+- Keep lock enforcement on `uv sync --locked` and `uv run --locked`, where uv supports it.
+- Add a repository-contract regression check that rejects `uv build --locked`.
+- Record the corrected build/lock boundary in the engineering requirements and decision ledger.
+
+## 0.1.2a9 — 2026-08-27
+
+- Always recreate the special `minimum` tox environment before resolving lower-bound dependencies.
+- Prevent stale tox installer metadata from surviving changes to the minimum environment's runner or installation strategy.
+- Keep normal lock-backed compatibility and pre-commit environments reusable for fast local feedback.
+
 ## 0.1.2a8 — 2026-08-27
 
 - Route pre-commit behavioral tests through a dedicated tox environment instead of invoking pytest directly.

@@ -112,11 +112,16 @@ NumPy and pandas direct requirements of the same lower-bound resolution and avoi
 old-pandas/new-NumPy ABI combinations caused by split installation. Project and
 test lower bounds are therefore taken from `pyproject.toml` instead of a separate
 list of exact pins. It prints the resolved Python, NumPy, pandas, Shapely, and
-pytest versions before running the suite. Run only that check with:
+pytest versions before running the suite. The minimum environment is recreated
+for every run so a previous tox installer cache cannot contaminate lower-bound
+resolution after configuration changes. Run only that check with:
 
 ```bash
 uv run --locked --group matrix tox run -e minimum
 ```
+
+If testing an older repository revision that does not yet enforce recreation, use
+`tox run --recreate -e minimum` once after changing its runner or install policy.
 
 This matrix is intended as a pre-push compatibility check. It does not replace
 locked normal-environment verification or hosted CI evidence.

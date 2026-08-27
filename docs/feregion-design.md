@@ -227,7 +227,9 @@ For local compatibility checks, `tox.toml` defines lock-backed `py311` through
 `py314` environments plus a Python 3.11 `lowest-direct` environment. tox provides
 environment orchestration; tox-uv delegates interpreter/environment creation and
 dependency installation to uv. The minimum environment installs the project and
-its `test` extra together with `uv-editable`, so direct NumPy and pandas lower
+its `test` extra together with `uv-editable` and is recreated for every run, so
+stale tox installer metadata cannot affect lower-bound resolution. Direct NumPy
+and pandas lower
 bounds are co-resolved instead of being installed in separate steps. Hosted
 lower-bound CI invokes the same `minimum` environment to prevent local/CI
 definition drift.

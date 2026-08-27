@@ -239,9 +239,11 @@ exclude an unreviewed major-version contract change. CI must let `setup-uv`
 resolve a compatible release from that range instead of pinning one exact uv
 build. Normal test, oracle, and quality environments must use `uv sync --locked`,
 and commands executed in those environments must use a lock-preserving
-`uv run --locked` path. The lower-bound compatibility job may intentionally
-bypass the project lock because its purpose is to exercise the declared minimum
-direct dependencies.
+`uv run --locked` path. Distribution building must use the supported `uv build`
+command without inventing a lock flag that the build command does not accept;
+lock freshness is enforced by the preceding locked synchronization. The lower-bound
+compatibility job may intentionally bypass the project lock because its purpose is
+to exercise the declared minimum direct dependencies.
 
 **REQ-PKG-018** — CI must bound job runtime and cancel obsolete runs for the same
 workflow and pull request or branch. Push-triggered CI must run on the default
@@ -256,5 +258,8 @@ plus a Python 3.11 `lowest-direct` environment. Normal compatibility environment
 must use the repository lock. The minimum environment must resolve the project
 and its test requirements together in one dependency transaction so declared
 NumPy and pandas lower bounds cannot be split into an ABI-incompatible pair.
-Hosted lower-bound CI must execute that same named minimum environment so local
-and hosted dependency-range checks do not maintain separate test definitions.
+The minimum environment must be recreated for each run so stale tox installer
+metadata or packages cannot influence a lower-bound resolution after its runner
+or installation strategy changes. Hosted lower-bound CI must execute that same
+named minimum environment so local and hosted dependency-range checks do not
+maintain separate test definitions.

@@ -129,10 +129,11 @@ environments are lock-backed. The `minimum` environment intentionally bypasses
 the lock and resolves the project plus its `test` extra together with
 `lowest-direct`, so NumPy and pandas lower bounds are selected in one dependency
 transaction. The environment prints its resolved Python, NumPy, pandas, Shapely,
-and pytest versions before running tests. Run only that environment with
-`uv run --locked --group matrix tox run -e minimum`. uv-backed tox environments
-can use uv-managed Python interpreters, so the required interpreters do not all
-need to be installed manually in advance.
+and pytest versions before running tests. The special lower-bound environment is
+recreated for each run so stale tox installer state cannot affect resolution. Run
+only that environment with `uv run --locked --group matrix tox run -e minimum`.
+uv-backed tox environments can use uv-managed Python interpreters, so the required
+interpreters do not all need to be installed manually in advance.
 
 GitHub Actions verifies Python 3.11, 3.12, 3.13, and 3.14. Dedicated jobs also run the
 installed ObsPy oracle and the same tox-uv minimum-dependency environment. A separate

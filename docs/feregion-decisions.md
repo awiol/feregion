@@ -160,8 +160,9 @@ changed rationale as historical fact.
 - **Context:** Exact `uv` pinning caused otherwise compatible local tooling, tests,
   and builds to fail solely because the installed uv executable had a different
   patch/minor release. The repository relies on stable command contracts such as
-  `sync --locked`, `run --locked`, `build --locked`, and `python install`, not on
-  behavior unique to one uv release.
+  `sync --locked`, `run --locked`, `uv build`, and `python install`, not on
+  behavior unique to one uv release. The earlier draft incorrectly described
+  `uv build --locked`; `DEC-019` records the correction.
 - **Decision:** Require `uv>=0.10,<1`. Let `setup-uv` resolve the highest compatible
   release from the repository constraint. Keep the GitHub Action itself pinned by
   commit SHA for supply-chain stability. Tests verify the compatibility-range and
@@ -288,8 +289,10 @@ changed rationale as historical fact.
   environment as an unlocked `uv-venv-runner` with `package = "uv-editable"`,
   `extras = ["test"]`, and `uv_resolution = "lowest-direct"`. This causes the
   project requirement on NumPy and the test-extra requirement on pandas to be
-  resolved in one uv installation transaction. Pre-commit invokes `tox run -e
-  local` instead of invoking pytest directly.
+  resolved in one uv installation transaction. Set `recreate = true` for this
+  special lower-bound environment so tox never reuses installer metadata or
+  packages from a previous minimum-environment strategy. Pre-commit invokes
+  `tox run -e local` instead of invoking pytest directly.
 - **Alternatives considered:** pin NumPy below 2 globally; raise the pandas floor
   solely to avoid the old ABI boundary; duplicate exact minimum versions in CI;
   keep direct pytest in pre-commit; run the complete four-Python matrix on every
@@ -303,3 +306,21 @@ changed rationale as historical fact.
   lower-bound vector still produces an ABI-incompatible environment, or local
   tox-backed commit checks become disproportionate to their defect-detection
   value.
+
+## `DEC-019` — Keep lock enforcement out of the `uv build` command line
+
+- **Context:** Hosted CI exposed that `uv build --locked` is not a supported uv
+  command form. The repository had conflated lock-preserving project environment
+  operations (`uv sync --locked` and `uv run --locked`) with distribution building.
+- **Decision:** Build distributions with plain `uv build`. Keep lock freshness and
+  reproducible project-environment enforcement in the preceding `uv sync --locked`
+  and subsequent `uv run --locked` verification steps. Repository contract tests
+  must reject reintroduction of `uv build --locked`.
+- **Alternatives considered:** pass `--locked` through to a build backend; weaken
+  locked synchronization; remove lock checks from the quality job.
+- **Compatibility consequence:** The quality job works across the accepted uv
+  compatibility range while preserving locked dependency setup for tests and wheel
+  verification. Build-system requirements remain governed by the build frontend and
+  `build-system` metadata rather than by an unsupported project-lock flag.
+- **Review trigger:** uv adds documented build-lock semantics that materially improve
+  reproducibility, or the project adopts explicit build constraints/hashes.
