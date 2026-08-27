@@ -5,6 +5,7 @@ include LICENSE
 include pyproject.toml
 include README.md
 include THIRD_PARTY_NOTICES.md
+include tox.toml
 recursive-include .github/workflows *.yml
 recursive-include LICENSES *.txt
 recursive-include benchmarks *.py *.md

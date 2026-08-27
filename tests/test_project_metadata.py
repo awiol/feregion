@@ -54,12 +54,13 @@ def test_compatibility_benchmark_extra_matches_benchmark_dependency_group() -> N
 
 
 def test_compatibility_dev_extra_covers_all_development_groups() -> None:
-    """The broad legacy ``dev`` extra must cover test, lint, and benchmark tools."""
+    """The broad legacy ``dev`` extra must cover test, lint, matrix, and benchmark tools."""
 
     data = _pyproject()
     expected = {
         *_requirements_for_group(data, "test"),
         *_requirements_for_group(data, "lint"),
+        *_requirements_for_group(data, "matrix"),
         *_requirements_for_group(data, "benchmark"),
     }
     assert set(data["project"]["optional-dependencies"]["dev"]) == expected
@@ -153,8 +154,31 @@ def test_ci_declares_direct_oracle_and_lower_bound_jobs() -> None:
     assert "reference-oracle:" in workflow
     assert "tests/test_obspy_oracle.py" in workflow
     assert "minimum-dependencies:" in workflow
-    for requirement in ("numpy==1.26.0", "pandas==2.1.0", "shapely==2.0.0"):
-        assert requirement in workflow
+    assert "tox run -e minimum" in workflow
+    assert "--group matrix" in workflow
+
+
+def test_tox_uv_matrix_covers_supported_python_and_declared_lower_bounds() -> None:
+    """Local tox-uv environments mirror Python support and derive direct lower bounds."""
+
+    with (PROJECT_ROOT / "tox.toml").open("rb") as stream:
+        config = tomllib.load(stream)
+
+    assert config["env_list"] == ["3.11", "3.12", "3.13", "3.14", "minimum"]
+    assert config["env_run_base"]["runner"] == "uv-venv-runner"
+    assert config["env_run_base"]["dependency_groups"] == ["test"]
+    minimum = config["env"]["minimum"]
+    assert minimum["base_python"] == ["3.11"]
+    assert minimum["uv_resolution"] == "lowest-direct"
+
+
+def test_tox_uv_is_in_development_matrix_toolchain() -> None:
+    """The development environment installs tox with the uv-backed runner plugin."""
+
+    data = _pyproject()
+    matrix_group = data["dependency-groups"]["matrix"]
+    assert matrix_group == ["tox>=4.51,<5", "tox-uv-bare>=1.33,<2"]
+    assert set(matrix_group) <= set(_requirements_for_group(data, "dev"))
 
 
 def test_python_314_is_explicitly_supported_without_raising_minimum() -> None:

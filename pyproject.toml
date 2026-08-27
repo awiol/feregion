@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "feregion"
-version = "0.1.2a5"
+version = "0.1.2a6"
 description = "Fast scalar and batch Flinn-Engdahl region lookup"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -48,6 +48,8 @@ dev = [
   "obspy>=1.4.2,<1.6",
   "ruff>=0.15,<0.17",
   "pre-commit>=4,<5",
+  "tox>=4.51,<5",
+  "tox-uv-bare>=1.33,<2",
 ]
 
 [dependency-groups]
@@ -61,6 +63,10 @@ lint = [
   "ruff>=0.15,<0.17",
   "pre-commit>=4,<5",
 ]
+matrix = [
+  "tox>=4.51,<5",
+  "tox-uv-bare>=1.33,<2",
+]
 benchmark = [
   "pytest>=8,<9",
   "pytest-benchmark>=4,<6",
@@ -70,6 +76,7 @@ benchmark = [
 dev = [
   {include-group = "test"},
   {include-group = "lint"},
+  {include-group = "matrix"},
 ]
 
 [tool.uv]

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.2a5 — 2026-08-27
+
+- Fix pandas 2.1 nullable numeric coordinate conversion so missing values reach the core non-finite validation path instead of becoming object-dtype type errors.
+- Add a local tox + tox-uv compatibility matrix for Python 3.11 through 3.14.
+- Add a Python 3.11 `lowest-direct` environment that derives minimum direct dependencies from project metadata instead of duplicating exact lower-bound versions in CI.
+- Reuse the same tox minimum-dependency environment in GitHub Actions.
+
 ## 0.1.2a4 — 2026-08-27
 
 - Remove mypy from the project dependency groups and tool configuration.

@@ -1,0 +1,23 @@
+requires = ["tox>=4.51,<5", "tox-uv-bare>=1.33,<2"]
+env_list = ["3.11", "3.12", "3.13", "3.14", "minimum"]
+
+[env_run_base]
+description = "run compatibility tests under {base_python} with uv-backed isolation"
+runner = "uv-venv-runner"
+package = "editable"
+dependency_groups = ["test"]
+commands = [
+  ["python", "-m", "pytest", "-q", "--ignore=tests/test_obspy_oracle.py"],
+]
+
+[env.minimum]
+description = "run tests on Python 3.11 with the lowest declared direct dependencies"
+base_python = ["3.11"]
+uv_resolution = "lowest-direct"
+commands = [
+  [
+    "python", "-m", "pytest", "-q",
+    "--ignore=tests/test_source_reproduction.py",
+    "--ignore=tests/test_obspy_oracle.py",
+  ],
+]

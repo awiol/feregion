@@ -94,8 +94,8 @@ def lookup_dataframe(
             raise CoordinateTypeError(f"DataFrame column {column!r} must be numeric")
 
     target = frame if inplace else frame.copy()
-    longitude = target[longitude_column].to_numpy(copy=False)
-    latitude = target[latitude_column].to_numpy(copy=False)
+    longitude = _coordinate_values(target[longitude_column])
+    latitude = _coordinate_values(target[latitude_column])
     coordinates = np.column_stack((longitude, latitude))
     engine = lookup if lookup is not None else get_default_lookup()
     numbers = engine.lookup_numbers(coordinates)
@@ -103,6 +103,35 @@ def lookup_dataframe(
     if include_names:
         target[name_column] = engine.numbers_to_names(numbers)
     return target
+
+
+def _coordinate_values(series: pd.Series) -> np.ndarray:
+    """Return numeric coordinate values in a NumPy dtype accepted by the core validator.
+
+    pandas nullable numeric extension dtypes can expose an ``object`` array from
+    :meth:`Series.to_numpy` on older supported pandas releases.  That array may
+    contain ``pd.NA``, which would make the core validator classify an otherwise
+    numeric column as an object-type input.  Native NumPy-backed columns retain
+    their dtype.  Only numeric extension arrays that materialize as ``object``
+    are converted, with missing values represented as ``np.nan`` so the core
+    validator preserves its non-finite-coordinate error contract.
+
+    Args:
+        series: A pandas Series already validated as numeric and non-Boolean.
+
+    Returns:
+        A NumPy array suitable for stacking into the core coordinate matrix.
+    """
+
+    values = series.to_numpy(copy=False)
+    if values.dtype.kind != "O":
+        return values
+
+    numpy_dtype = getattr(series.dtype, "numpy_dtype", None)
+    if numpy_dtype is not None and not series.isna().any():
+        return series.to_numpy(dtype=numpy_dtype, copy=False)
+
+    return series.to_numpy(dtype=np.float64, na_value=np.nan, copy=False)
 
 
 def _validate_output_columns(

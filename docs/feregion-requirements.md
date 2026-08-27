@@ -127,6 +127,12 @@ range. In particular, a finite extended floating value that is outside the FE
 coordinate range must raise `CoordinateRangeError` without an overflow warning
 caused by premature `float64` narrowing.
 
+**REQ-PD-008** — pandas nullable numeric extension dtypes must remain numeric at
+the adapter/core boundary. A missing nullable numeric coordinate must reach the
+core non-finite validation path and raise `CoordinateValueError`; it must not be
+reclassified as an object-valued coordinate solely because a supported pandas
+release materializes its extension array as `object`.
+
 ## Errors and invalid input
 
 **REQ-ERR-001** — Public package failures must use package-specific exception

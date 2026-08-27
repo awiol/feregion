@@ -116,8 +116,21 @@ uv run pytest -q --cov=feregion --cov-branch --cov-report=term-missing
 uv build
 ```
 
+Run the local compatibility matrix before a compatibility-sensitive push:
+
+```bash
+uv sync --locked --group dev
+uv run --locked --group matrix tox run
+```
+
+The tox-uv matrix covers Python 3.11 through 3.14 and includes a Python 3.11
+`minimum` environment that resolves the lowest declared direct dependencies.
+Run only that environment with `uv run --locked --group matrix tox run -e minimum`.
+uv-backed tox environments can use uv-managed Python interpreters, so the
+required interpreters do not all need to be installed manually in advance.
+
 GitHub Actions verifies Python 3.11, 3.12, 3.13, and 3.14. Dedicated jobs also run the
-installed ObsPy oracle and the declared lower dependency bounds. A separate
+installed ObsPy oracle and the same tox-uv minimum-dependency environment. A separate
 quality job runs Ruff, distribution builds, wheel archive inspection, and
 dependency-isolated wheel verification.
 

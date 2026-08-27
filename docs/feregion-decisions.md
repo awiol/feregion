@@ -190,3 +190,44 @@ changed rationale as historical fact.
 - **Review trigger:** A future requirement needs static guarantees that the
   configured Ruff rule set cannot provide and evidence supports adding another
   analysis tool.
+
+## `DEC-014` — Use tox-uv for local Python and dependency compatibility matrices
+
+- **Context:** Hosted lower-bound CI exposed behavior that was not reproduced by
+  the maintainer's current Python 3.14/current-dependency environment. The
+  repository needs a fast local way to exercise multiple interpreters and the
+  declared dependency floor without hand-maintaining a second dependency list.
+- **Decision:** Add a native `tox.toml` matrix for CPython 3.11 through 3.14 and a
+  Python 3.11 `minimum` environment. Use tox for orchestration and tox-uv's
+  `uv-venv-runner` for environment creation and installation. Resolve the
+  minimum environment with `lowest-direct`, and make hosted lower-bound CI invoke
+  the same named environment.
+- **Alternatives considered:** retain only hosted CI; maintain a custom shell
+  loop around `uv venv`/`uv pip`; use plain tox with virtualenv/pip; use Nox with
+  custom uv subprocess commands.
+- **Compatibility consequence:** Local compatibility checks may download missing
+  managed Python interpreters and dependency versions. Runtime package
+  dependencies do not change. The normal lock remains separate from the
+  intentionally unlocked lower-bound resolution.
+- **Review trigger:** uv gains an equally declarative native multi-environment
+  matrix, tox-uv no longer tracks supported uv/tox behavior, or matrix runtime
+  becomes disproportionate to the defects it catches.
+
+## `DEC-015` — Exclude `uv.lock` from iterative source handoffs
+
+- **Context:** The repository uses `uv.lock` for local and hosted locked
+  environments, but delivery-side reconstruction cannot reliably preserve the
+  maintainer's locally generated lock and should not block source/patch delivery
+  on it.
+- **Decision:** Keep `uv.lock` as maintainer-generated repository state. Exclude
+  it from AI-produced source archives and incremental patches, and ignore lock
+  hunks when a supplied patch is used only to reconstruct the source baseline.
+  The maintainer regenerates the lock locally after applying source changes.
+- **Alternatives considered:** require exact lock bytes in every source handoff;
+  fabricate/update partial lock content; omit locked repository workflows.
+- **Compatibility consequence:** Source handoffs remain reproducible for tracked
+  project source while the maintainer remains responsible for lock regeneration.
+  Hosted jobs that use `--locked` require the locally regenerated lock to be
+  committed before push.
+- **Review trigger:** Delivery tooling gains reliable repository-native lock
+  synchronization or the project stops using a committed lock.

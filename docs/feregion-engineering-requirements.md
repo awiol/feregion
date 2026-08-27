@@ -118,6 +118,12 @@ the SHA-256 values recorded for those generated assets in packaged provenance
 metadata. Structural shape and dtype checks alone are not sufficient evidence
 for asset identity.
 
+**REQ-TEST-016** — Local compatibility verification must provide isolated test
+environments for every explicitly supported CPython version and a Python 3.11
+lower-bound environment. The lower-bound environment must derive the lowest
+declared direct dependency versions from project metadata rather than maintain a
+second hand-written list of version pins.
+
 **REQ-PERF-001** — The repository must contain automated benchmarks for the
 implemented in-process lookup interfaces: scalar number lookup, scalar region
 lookup, scalar number-to-name conversion, batch number lookup, batch
@@ -234,3 +240,9 @@ workflow and pull request or branch. Push-triggered CI must run on the default
 branch; pull-request CI must run before integration. These controls are resource
 and feedback protections, not substitutes for test or compatibility evidence.
 Checkout steps must not persist the workflow token when later steps do not need Git credentials.
+
+**REQ-PKG-019** — The repository must provide a tox configuration backed by uv
+for local compatibility orchestration. The default matrix must cover CPython
+3.11, 3.12, 3.13, and 3.14 plus a Python 3.11 `lowest-direct` environment.
+Hosted lower-bound CI must execute that same named minimum environment so local
+and hosted dependency-range checks do not maintain separate test definitions.

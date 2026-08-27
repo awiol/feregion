@@ -89,3 +89,9 @@ bundled with an index.
 are complete. The patch must be checked against the exact baseline and must
 reconstruct the target source tree byte-for-byte except for explicitly recorded
 metadata exclusions.
+
+**REQ-DEL-005** — `uv.lock` is local repository state for dependency resolution
+and must be excluded from delivered source archives and incremental patches. If
+a supplied baseline patch contains `uv.lock` changes, delivery reconstruction
+must ignore those hunks. The maintainer regenerates or updates `uv.lock` locally
+after applying source changes.

@@ -93,12 +93,37 @@ regression against the unchanged faulty baseline when practical, or record a
 credible alternative sensitivity demonstration. A passing test that also passed
 before the fix does not establish regression protection for that defect.
 
+## Local compatibility matrix
+
+Use tox with the uv-backed runner for compatibility checks that need isolated
+Python and dependency environments:
+
+```bash
+uv sync --locked --group dev
+uv run --locked --group matrix tox run
+```
+
+The default matrix runs Python 3.11, 3.12, 3.13, and 3.14 plus `minimum`. tox-uv
+uses uv for environment creation and package installation and can obtain a
+managed interpreter when the requested Python is not installed locally. The
+`minimum` environment uses Python 3.11 with `uv_resolution = "lowest-direct"`,
+so project and test lower bounds are taken from `pyproject.toml` instead of a
+separate list of exact pins. Run only that check with:
+
+```bash
+uv run --locked --group matrix tox run -e minimum
+```
+
+This matrix is intended as a pre-push compatibility check. It does not replace
+locked normal-environment verification or hosted CI evidence.
+
 ## Locked CI environment
 
 CI accepts `uv>=0.10,<1`; `setup-uv` resolves a compatible release from that
 range. Normal matrix, oracle, and quality jobs use the committed
 `uv.lock` with `uv sync --locked` and `uv run --locked`. The minimum-dependency
-job intentionally creates a separate environment at declared direct lower bounds.
+job intentionally invokes the tox-uv `minimum` environment, which creates a
+separate Python 3.11 environment at the declared direct lower bounds.
 Workflow jobs have explicit timeouts, and workflow concurrency cancels obsolete
 runs for the same pull request or branch.
 
@@ -110,7 +135,7 @@ runs for the same pull request or branch.
 - branch coverage;
 - source-reproduction checks;
 - a direct installed-ObsPy oracle job;
-- a Python 3.11 lower-bound dependency job;
+- a Python 3.11 lower-bound dependency job that reuses `tox.toml`;
 - Ruff;
 - distribution builds; and
 - dependency-isolated wheel verification.

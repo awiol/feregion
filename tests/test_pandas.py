@@ -97,6 +97,56 @@ def test_dataframe_nullable_missing_coordinate_uses_core_nonfinite_error() -> No
         lookup_dataframe(frame)
 
 
+def test_dataframe_normalizes_legacy_nullable_numeric_object_array(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Older pandas object materialization does not change numeric error semantics."""
+
+    frame = pd.DataFrame(
+        {
+            "longitude": pd.Series([12.0, pd.NA], dtype="Float64"),
+            "latitude": pd.Series([48.0, 49.0], dtype="Float64"),
+        }
+    )
+    original_to_numpy = pd.Series.to_numpy
+
+    def legacy_to_numpy(series: pd.Series, *args: object, **kwargs: object) -> np.ndarray:
+        """Simulate older nullable-float conversion only for the first longitude read."""
+
+        if series.name == "longitude" and kwargs.get("dtype") is None:
+            return np.array([12.0, pd.NA], dtype=object)
+        return original_to_numpy(series, *args, **kwargs)
+
+    monkeypatch.setattr(pd.Series, "to_numpy", legacy_to_numpy)
+    with raises_exact(CoordinateValueError):
+        lookup_dataframe(frame)
+
+
+def test_dataframe_preserves_legacy_nullable_integer_values_without_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Legacy object materialization without missing data keeps the numeric dtype."""
+
+    frame = pd.DataFrame(
+        {
+            "longitude": pd.Series([12], dtype="Int64"),
+            "latitude": pd.Series([48], dtype="Int64"),
+        }
+    )
+    original_to_numpy = pd.Series.to_numpy
+
+    def legacy_to_numpy(series: pd.Series, *args: object, **kwargs: object) -> np.ndarray:
+        """Simulate older nullable-integer object conversion on the first read."""
+
+        if kwargs.get("dtype") is None:
+            return np.array(series.tolist(), dtype=object)
+        return original_to_numpy(series, *args, **kwargs)
+
+    monkeypatch.setattr(pd.Series, "to_numpy", legacy_to_numpy)
+    result = lookup_dataframe(frame)
+    assert result["fe_number"].tolist() == [543]
+
+
 def test_dataframe_rejects_non_dataframe_object() -> None:
     """The adapter does not accept duck-typed arbitrary objects as DataFrames."""
 

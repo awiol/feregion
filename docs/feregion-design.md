@@ -195,8 +195,9 @@ GitHub Actions resolves a compatible `uv>=0.10,<1` release from repository metad
   source tables and runs the runtime suite with branch coverage;
 - an independent-oracle job that installs ObsPy and executes both source-table
   reproduction and direct ObsPy comparison tests;
-- a Python 3.11 lower-bound job that installs the declared minimum NumPy,
-  pandas, Shapely, pytest, and pytest-cov versions; and
+- a Python 3.11 lower-bound job that reuses the tox-uv `minimum` environment
+  and resolves the lowest declared direct NumPy, pandas, Shapely, pytest, and
+  pytest-cov versions; and
 - a Python 3.11 quality job that runs Ruff, distribution builds, wheel
   archive inspection, and dependency-isolated wheel verification.
 
@@ -210,6 +211,12 @@ The repository uses local pre-commit hooks that execute the synchronized `uv`
 development environment. The hooks run Ruff formatting, Ruff linting, and the
 full pytest suite. This keeps commit-time checks aligned with repository tooling
 without creating independent hook-specific Python environments.
+
+For local compatibility checks, `tox.toml` defines uv-backed environments for
+Python 3.11 through 3.14 and a Python 3.11 `lowest-direct` environment. tox
+provides environment orchestration; tox-uv delegates interpreter/environment
+creation and dependency installation to uv. Hosted lower-bound CI invokes the
+same `minimum` environment to prevent local/CI definition drift.
 
 The repository also contains synchronization and integrity tests for:
 
