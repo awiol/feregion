@@ -1,6 +1,6 @@
 # feregion
 
-`feregion` maps WGS84 longitude/latitude coordinates to Flinn-Engdahl (FE)
+`feregion` maps longitude/latitude coordinates to Flinn-Engdahl (FE)
 geographical regions and their parent seismic regions. It provides scalar,
 NumPy batch, hierarchy-conversion, pandas, CSV, and optional GeoJSON interfaces.
 
@@ -65,8 +65,11 @@ feregion.geographic_to_seismic_number(543)
 # 36
 ```
 
-A coordinate array always uses `[longitude, latitude]` column order. Use batch
-lookup when throughput matters.
+A coordinate array always uses `[longitude, latitude]` column order. By package
+convention, these values are interpreted as WGS84 geographic degrees. The
+package does not transform coordinates between CRSs, and the WGS84 convention
+is separate from the historical FE degree-grid definition. Use batch lookup
+when throughput matters.
 
 The pre-existing generic functions (`lookup_number`, `lookup_region`,
 `lookup_numbers`, `number_to_name`, and `numbers_to_names`) remain geographical
@@ -93,9 +96,10 @@ seismic = lookup_dataframe(frame, level="seismic", include_names=True)
 ```
 
 The adapter requires distinct, unique longitude and latitude columns. Boolean
-coordinate columns are rejected. Supported numeric dtypes retain their source
-precision through finiteness and range classification, including extended
-floating dtypes. Output columns are additive and cannot replace existing input
+coordinate columns are rejected. Supported numeric dtypes retain their source precision through validation and FE
+cell-ownership selection, including extended floating dtypes. This prevents a
+wide floating value immediately beside an integer-degree boundary from being
+rounded into the adjacent FE cell. Output columns are additive and cannot replace existing input
 columns.
 
 ## Command line
@@ -160,8 +164,10 @@ interpreters do not all need to be installed manually in advance.
 
 GitHub Actions verifies Python 3.11, 3.12, 3.13, and 3.14. Dedicated jobs also run the
 installed ObsPy oracle and the same tox-uv minimum-dependency environment. A separate
-quality job runs Ruff, distribution builds, wheel archive inspection, and
-dependency-isolated wheel verification.
+quality job runs Ruff, mypy public typing, distribution builds, wheel archive
+inspection, and dependency-isolated wheel verification. A scheduled/manual job
+performs the live ISC semantic comparison without making pull-request tests
+network-dependent.
 
 `uv.lock` is committed and is the dependency-resolution authority for normal
 repository and CI environments. Use `--locked` in verification workflows so a
@@ -181,11 +187,13 @@ uv run python -m tools.build_assets
 
 The ObsPy fetcher pins tag `1.4.2` at immutable commit
 `a629e8c021052904b6b8d62699d03f2a3721ae63` and verifies source-file SHA-256
-values. The ISC fetcher parses the declared FE standards page, validates all 50
-seismic regions and 754 active geographical memberships, and verifies a
-normalized semantic SHA-256 so HTML-layout changes are not treated as data
-changes. `tools/build_assets.py` converts the retrieved sources into the four
-runtime arrays shipped with the package.
+values. The ISC fetcher parses the declared FE standards page, validates all 50 seismic
+regions and 754 active geographical memberships, and compares the normalized
+content with a literal reviewed semantic SHA-256. The digest is not recomputed
+automatically from the Python hierarchy declarations it protects, so a coherent
+name/membership edit cannot silently redefine the expected source.
+`tools/build_assets.py` converts verified retrieved sources into the four runtime
+arrays shipped with the package.
 
 The source-data license status remains unresolved where an explicit reuse grant
 has not been established. See `src/feregion/data/metadata.json` and
@@ -201,9 +209,10 @@ uv run --locked pre-commit install
 ```
 
 The pre-commit pipeline formats Python files with Ruff, runs Ruff lint checks,
-and then delegates behavioral tests to tox's `local` environment. This keeps the
-commit-time test command aligned with the tox test definition while using the
-Python interpreter that hosts tox. Run the same pipeline manually with:
+and then delegates behavioral tests to tox's `local` environment. Hosted quality
+verification additionally runs mypy over the public package modules and a small
+downstream-consumer typing fixture because the wheel ships `py.typed`. Run the
+commit-time pipeline manually with:
 
 ```bash
 uv run --locked pre-commit run --all-files
@@ -225,10 +234,11 @@ Routine benchmarks cover in-process scalar, batch, name-conversion, and pandas
 interfaces. They exclude CLI and GeoJSON timing. Generated benchmark results are
 delivery evidence and are not repository source.
 
-`PERF-INV-001` records a future investigation of already-separated longitude and
-latitude arrays. A new split-array API is deferred until benchmarks show that
-avoiding `(n, 2)` stacking/copying is material enough to justify another public
-contract.
+`PERF-INV-001` records an active investigation of already-separated longitude
+and latitude arrays. Exploratory evidence shows material stacking/copy cost, but
+the external review requires the corrected boundary semantics and controlled
+release baseline before a public split-array contract is considered. A private
+internal path should be measured first.
 
 
 Compare the same locked benchmark environment across all explicitly supported
@@ -242,7 +252,23 @@ uv run --locked --group matrix --group benchmark tox run \
 
 The per-version JSON files and `python-comparison.md` are written below
 `.tox/benchmark-results/`. The combined report compares eight representative
-throughput metrics and records exact Python, NumPy, and pandas versions.
+throughput metrics, records exact Python, NumPy, and pandas versions, and reports
+the geometric mean explicitly as an equal-weight summary of those selected
+metrics rather than as a product workload model.
+
+For release-to-release regression review, compare two raw standalone benchmark
+records produced on the same controlled host/interpreter/dependency/workload
+context:
+
+```bash
+uv run --group benchmark python -m benchmarks.compare_releases \
+  --baseline baseline.json --candidate candidate.json --fail-on-trigger
+```
+
+The review trigger is a slowdown greater than 25 percent at two adjacent batch
+sizes of at least 10,000 points. If no comparable accepted baseline exists, the
+release-specific performance gate remains incomplete rather than being reported
+as passed.
 
 ## Clean repository handoff
 

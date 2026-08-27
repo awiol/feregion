@@ -41,9 +41,12 @@ standards page at `https://www.isc.ac.uk/standards/FEregions/`.
 
 `tools/fetch_isc_fe_regions.py` retrieves that page for maintainer regeneration,
 normalizes its 50 seismic regions and 754 active geographical memberships, and
-verifies a semantic SHA-256 before `tools/build_assets.py` creates the packaged
-runtime arrays. Downloaded source material is not required for normal installed
-use.
+verifies them against a literal reviewed semantic SHA-256 before
+`tools/build_assets.py` creates the packaged runtime arrays. The expected digest
+is not recomputed automatically from the hierarchy declarations. A scheduled or
+manual CI route can compare the current ISC page with the same semantic identity;
+ordinary package use and ordinary tests remain network-independent. Downloaded
+source material is not required for normal installed use.
 
 No explicit ISC/FE data redistribution license has been established by this
 project. The hierarchy/name source-data license status is therefore recorded as

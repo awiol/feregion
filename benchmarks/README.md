@@ -61,3 +61,22 @@ report compares eight representative scalar, batch, name-conversion, and pandas
 throughput metrics, normalizes them to Python 3.11, and records the exact NumPy
 and pandas versions used by each interpreter environment. Run all interpreter
 measurements on the same machine when using the ratios as performance evidence.
+
+
+## Compare package releases
+
+Release-to-release regression is separate from the source-scanner speedup and
+from the cross-Python matrix. Run the same standalone harness for the accepted
+baseline package and candidate in the same controlled host/interpreter/dependency
+context. Then compare the raw JSON records:
+
+```bash
+uv run --group benchmark python -m benchmarks.compare_releases \
+  --baseline baseline.json --candidate candidate.json --fail-on-trigger
+```
+
+The comparison requires matching recorded platform, interpreter/compiler, machine,
+CPU model, logical CPU count, NumPy version, seed, coordinate distribution, and
+timing contract. It triggers review if candidate median batch throughput is more
+than 25 percent slower at two adjacent recorded sizes of at least 10,000 points.
+The harness cannot establish CPU power/frequency policy; control that externally.

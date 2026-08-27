@@ -48,6 +48,8 @@ def test_geographic_geojson_germany_geometry_and_collection_metadata() -> None:
         "scheme": "Flinn-Engdahl",
         "revision": "1995",
         "level": "geographic",
+        "coordinate_convention": "WGS84 geographic degrees by package convention",
+        "crs_transformation": "none",
         "boundary_model": "area-equivalent 1-degree cells",
         "boundary_semantics": "numeric lookup is authoritative on exact cell boundaries",
     }
@@ -186,3 +188,30 @@ def test_geojson_seismic_name_can_be_requested_without_generic_name() -> None:
 
     document = regions_geojson(level="seismic", properties=("seismic_name",))
     assert document["features"][0]["properties"] == {"seismic_name": "Alaska - Aleutian Arc"}
+
+
+@pytest.mark.parametrize("level", ["geographic", "seismic"])
+def test_geojson_covers_every_cell_center_owned_by_numeric_lookup(level: str) -> None:
+    """Every global one-degree cell center lies in its numeric lookup feature."""
+
+    from shapely.geometry import MultiPoint
+
+    engine = get_default_lookup()
+    longitudes = np.arange(-180.0, 180.0) + 0.5
+    latitudes = np.arange(-90.0, 90.0) + 0.5
+    longitude_grid, latitude_grid = np.meshgrid(longitudes, latitudes)
+    coordinates = np.column_stack((longitude_grid.ravel(), latitude_grid.ravel()))
+    geographic = engine.lookup_geographic_numbers(coordinates)
+    if level == "geographic":
+        numbers = geographic
+    else:
+        numbers = engine.geographic_numbers_to_seismic_numbers(geographic)
+
+    document = regions_geojson(level=level)
+    geometries = {
+        int(feature["properties"]["number"]): shape(feature["geometry"])
+        for feature in document["features"]
+    }
+    for number in np.unique(numbers):
+        owned = coordinates[numbers == number]
+        assert geometries[int(number)].covers(MultiPoint(owned))

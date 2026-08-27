@@ -78,6 +78,11 @@ def test_metadata_schema_three_records_multiple_source_roles_and_offline_runtime
     assert obspy["commit"] == "a629e8c021052904b6b8d62699d03f2a3721ae63"
     assert obspy["source_data_license_status"] == "unresolved"
     assert metadata["sources"]["isc-fe-standard"]["source_data_license_status"] == "unresolved"
+    isc = metadata["sources"]["isc-fe-standard"]
+    assert (
+        isc["normalized_semantic_sha256"]
+        == "e0bb924754f2aa2d8c1c025fc3ee5e074db90cc49d7ad8cd46e26353aa12079b"
+    )
     assert metadata["runtime"] == {
         "network_required": False,
         "source_retrieval_required_for_normal_use": False,

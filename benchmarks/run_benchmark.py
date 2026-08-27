@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import platform
 import statistics
 import sys
@@ -30,6 +31,18 @@ from tools.obspy_fe_source import DEFAULT_SOURCE_DIR, verify_source_dir
 
 SOURCE = DEFAULT_SOURCE_DIR
 SEED = 20260813
+
+
+def cpu_model() -> str | None:
+    """Return a best-effort CPU model string for benchmark comparability."""
+
+    cpuinfo = Path("/proc/cpuinfo")
+    if cpuinfo.is_file():
+        for line in cpuinfo.read_text(encoding="utf-8", errors="replace").splitlines():
+            if line.lower().startswith("model name") and ":" in line:
+                return line.split(":", 1)[1].strip()
+    value = platform.processor().strip()
+    return value or None
 
 
 def timed(callable_: Callable[[], object], repeats: int) -> list[float]:
@@ -314,12 +327,15 @@ def main(argv: list[str] | None = None) -> int:
     reference = SourceReference(SOURCE)
 
     report: dict[str, Any] = {
-        "schema_version": 5,
+        "schema_version": 6,
         "environment": {
             "platform": platform.platform(),
             "python": sys.version.split()[0],
             "python_implementation": platform.python_implementation(),
             "python_compiler": platform.python_compiler(),
+            "machine": platform.machine(),
+            "cpu_model": cpu_model(),
+            "logical_cpu_count": os.cpu_count(),
             "numpy": np.__version__,
             "feregion": feregion.__version__,
         },
@@ -345,6 +361,10 @@ def main(argv: list[str] | None = None) -> int:
             ),
             "ObsPy is measured only when installed; it is never a runtime dependency.",
             "Results are environment-specific microbenchmarks, not a performance SLA.",
+            (
+                "CPU power/frequency policy is not measured by this harness and must be "
+                "controlled externally when release-to-release ratios are used as a gate."
+            ),
         ],
     }
 

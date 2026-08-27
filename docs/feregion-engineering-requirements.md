@@ -74,6 +74,12 @@ layout.
 Unicode seismic-name array with 51 entries. Index 0 and retired geographical
 identifiers must use the hierarchy sentinel value zero.
 
+**REQ-DATA-016** — The expected ISC hierarchy semantic SHA-256 must be a
+literal reviewed value, not a value recomputed automatically from the Python
+hierarchy declarations it protects. A name or membership change must fail
+ordinary verification until an explicit source-review decision updates the
+literal semantic identity.
+
 **REQ-NP-005** — The vectorized dense-table implementation must use compact
 integer indices suitable for the fixed FE grid and must store region numbers as
 `uint16`. This is an engineering constraint, not a requirement on caller input
@@ -157,6 +163,24 @@ hashing, validation, and atomic normalized-data publication without depending
 on a live network service during the ordinary test suite. Live source retrieval
 may be a separate integration check.
 
+**REQ-TEST-019** — On platforms where `longdouble` has more precision than
+`float64`, regression tests must compare scalar and batch geographical and
+seismic lookup immediately on both sides of FE integer-degree boundaries,
+including antimeridian interiors, zero/quadrant transitions, and poles. The
+regression evidence must demonstrate sensitivity to the predecessor narrowing
+defect.
+
+**REQ-TEST-020** — Thin routing tests must cover every top-level convenience
+function exported by the package, the `python -m feregion` entry point, both
+pandas hierarchy levels, both GeoJSON generation/write routes, and explicit
+geographical-only engine failures for seismic operations. Deep engine behavior
+need not be duplicated at the wrapper layer.
+
+**REQ-TEST-021** — GeoJSON verification must check that every one-degree global
+cell center is covered by the generated feature whose identifier is returned by
+numeric lookup at both geographical and seismic levels. This does not establish
+exact polygon-edge equivalence, which remains outside the GeoJSON contract.
+
 **REQ-PERF-001** — The repository must contain automated benchmarks for the
 implemented in-process lookup interfaces: scalar geographical and seismic number
 lookup, scalar region lookup, scalar number-to-name conversion, geographical and
@@ -187,6 +211,15 @@ dependency resolution does not drift independently between interpreter runs,
 must retain exact interpreter and direct benchmark-library versions in each raw
 result, and must produce one compact report comparing between four and eight
 representative throughput metrics across the supported Python versions.
+
+**REQ-PERF-006** — A release-to-release performance regression gate must compare
+a named accepted baseline benchmark record with the candidate record from the
+same recorded host/interpreter/dependency/workload context. The gate must use
+median batch throughput and must trigger review when slowdown exceeds 25 percent
+at two adjacent recorded batch sizes of at least 10,000 points. If a comparable
+baseline record is unavailable, the release-specific performance gate is
+incomplete rather than passed. Baseline/candidate raw records and the comparison
+result must be retained as delivery evidence.
 
 ## Packaging, development environment, and license
 
@@ -220,8 +253,9 @@ patch release. Repository development must use dependency groups as the
 authoritative dependency source for `uv` workflows.
 
 **REQ-PKG-008** — GitHub Actions CI must run the full test suite with branch
-coverage on Python 3.11, 3.12, 3.13, and 3.14. A separate quality job must check Ruff
-formatting, run Ruff linting, build distributions, and run dependency-isolated wheel verification.
+coverage on Python 3.11, 3.12, 3.13, and 3.14. A separate quality job must check
+Ruff formatting, run Ruff linting, run the configured public typing check, build
+distributions, and run dependency-isolated wheel verification.
 
 **REQ-PKG-009** — The repository must contain automated synchronization checks
 for the package version and duplicated compatibility dependency declarations.
@@ -296,3 +330,14 @@ metadata or packages cannot influence a lower-bound resolution after its runner
 or installation strategy changes. Hosted lower-bound CI must execute that same
 named minimum environment so local and hosted dependency-range checks do not
 maintain separate test definitions.
+
+
+**REQ-PKG-020** — Because the distributed package ships `py.typed`, hosted
+quality verification must run a supported static type checker over the public
+package modules and a small downstream-consumer typing fixture. Ruff remains
+the lint/format authority; type checking is a separate evidence class.
+
+**REQ-PKG-021** — Repository CI must provide a scheduled or manually triggered
+live ISC semantic comparison that fetches the declared standards page and
+verifies it against the independently retained reviewed semantic identity.
+Ordinary pull-request tests must remain network-independent.

@@ -129,12 +129,21 @@ def test_pre_commit_is_in_uv_development_toolchain() -> None:
     assert "pre-commit>=4,<5" in _requirements_for_group(data, "dev")
 
 
-def test_pre_commit_runs_ruff_and_tox_tests_through_uv() -> None:
-    """Commit-time hooks reuse Ruff and the shared tox behavioral-test definition."""
+def test_mypy_lint_group_includes_optional_dependency_stubs() -> None:
+    """Static typing must install stubs for optional pandas and Shapely adapters."""
+
+    lint = _requirements_for_group(_pyproject(), "lint")
+    assert "pandas-stubs>=2.1,<4" in lint
+    assert "types-shapely>=2.0,<3" in lint
+
+
+def test_pre_commit_runs_ruff_mypy_and_tox_tests_through_uv() -> None:
+    """Commit-time hooks reuse static tools and the shared tox test definition."""
 
     config = (PROJECT_ROOT / ".pre-commit-config.yaml").read_text(encoding="utf-8")
     assert "entry: uv run --locked --no-sync ruff format" in config
     assert "entry: uv run --locked --no-sync ruff check" in config
+    assert "entry: uv run --locked --no-sync mypy" in config
     assert "entry: uv run --locked --no-sync tox run -e local" in config
     assert "entry: uv run --locked --no-sync pytest" not in config
     assert "pass_filenames: false" in config
@@ -269,22 +278,39 @@ def test_ci_uses_locked_normal_environments_and_bounds_runs() -> None:
     assert "uv run --locked ruff check ." in workflow
     assert "concurrency:" in workflow
     assert "cancel-in-progress: true" in workflow
-    assert workflow.count("timeout-minutes:") == 4
+    assert workflow.count("timeout-minutes:") == 5
     assert "branches: [main]" in workflow
-    assert workflow.count("persist-credentials: false") == 4
+    assert workflow.count("persist-credentials: false") == 5
     assert "run: uv build" in workflow
     assert "uv build --locked" not in workflow
 
 
-def test_static_tooling_is_limited_to_ruff_and_pre_commit() -> None:
-    """Only Ruff and pre-commit remain in static/commit-time project configuration."""
+def test_static_tooling_includes_ruff_and_public_type_checking() -> None:
+    """Ruff remains lint/format authority while mypy checks the shipped typed API."""
 
     data = _pyproject()
     lint_group = data["dependency-groups"]["lint"]
-    assert lint_group == ["ruff>=0.15,<0.17", "pre-commit>=4,<5"]
+    assert lint_group == [
+        "ruff>=0.15,<0.17",
+        "mypy>=1.15,<2",
+        "pandas-stubs>=2.1,<4",
+        "types-shapely>=2.0,<3",
+        "pre-commit>=4,<5",
+    ]
 
     workflow = (PROJECT_ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
-    gitignore = (PROJECT_ROOT / ".gitignore").read_text(encoding="utf-8")
-    assert "mypy" not in workflow.lower()
-    assert "mypy" not in gitignore.lower()
-    assert "mypy" not in data.get("tool", {})
+    assert "uv run --locked mypy" in workflow
+    assert data["tool"]["mypy"]["files"] == ["src/feregion", "tests/typing/public_api.py"]
+    assert data["tool"]["mypy"]["python_version"] == "3.14"
+    assert 'UV_PYTHON: "3.14"' in workflow
+
+
+def test_ci_declares_scheduled_live_isc_semantic_check() -> None:
+    """Live ISC comparison is separate from ordinary network-independent tests."""
+
+    workflow = (PROJECT_ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    assert "schedule:" in workflow
+    assert "workflow_dispatch:" in workflow
+    assert "isc-source-check:" in workflow
+    assert "python -m tools.fetch_isc_fe_regions" in workflow
+    assert "github.event_name == 'schedule'" in workflow

@@ -26,7 +26,7 @@ small hierarchy crosswalk as a distinct data relation.
 
 ## 2. Behavioral model
 
-A valid coordinate pair is `[longitude, latitude]` in WGS84 degrees.
+A valid coordinate pair is `[longitude, latitude]`. By package convention, values are interpreted as WGS84 geographic degrees. The package does not perform CRS transformation, and this convention is separate from the historical FE degree-grid definition.
 
 The lookup procedure is:
 
@@ -119,9 +119,13 @@ that hierarchy.
 
 ## 5. Coordinate and adapter validation
 
-The core batch API validates shape and dtype before numeric conversion. String,
-object, Boolean, and complex coordinate dtypes are rejected. Finiteness and
-range are checked before narrowing a wider floating dtype to `float64`.
+The core batch API validates shape and dtype before cell-index computation.
+String, object, Boolean, and complex coordinate dtypes are rejected. Finiteness
+and range are checked in the source dtype. The lookup kernel preserves that
+dtype until absolute integer cell indices and quadrant ownership are selected;
+it does not narrow valid extended-precision coordinates to `float64` first.
+Exact `-180` uses longitude index 180 with east-side quadrant semantics without
+rewriting the full longitude array.
 
 The pandas adapter follows the same semantic coordinate-type contract and accepts an explicit geographical/seismic `level`. The default remains geographical. It:
 
@@ -225,12 +229,13 @@ check, and speedup.
 Scalar performance is a review signal. The batch interface remains the
 performance-oriented API.
 
-**Deferred investigation `PERF-INV-001`:** evaluate whether a batch kernel or
-public/internal API that receives longitude and latitude as separate arrays can
-avoid material allocation/copy cost relative to the current `(n, 2)` contract.
-Benchmark representative already-split inputs before selecting an API. Do not
-add a compatibility surface merely because the internal implementation can
-accept two arrays.
+**Active investigation `PERF-INV-001`:** exploratory evidence shows that callers
+which already hold longitude and latitude separately can incur material stacking
+and memory cost under the current `(n, 2)` public contract. The external review
+requires correctness repair and controlled baseline evidence before adopting a
+new public surface. The next optimization evaluation should measure a private
+split-array kernel and pandas end-to-end/peak-memory behavior first. A public
+split-array API remains undecided.
 
 Cross-Python benchmarking is a separate matrix from compatibility testing. Four
 lock-backed tox-uv environments run the same standalone benchmark harness on
@@ -242,11 +247,11 @@ package versions and normalizes throughput to Python 3.11. Using one lock and on
 machine reduces dependency and hardware confounding; recorded versions keep any
 remaining environment-marker differences visible.
 
-The proposed mask-only longitude/quadrant kernel remains deferred in this
-iteration. Scratch evidence suggested lower temporary allocation and a modest
-kernel improvement, but the project will not change the hot path until a
-full-public-API and process-level peak-memory comparison confirms a material
-benefit.
+The longitude/quadrant kernel now uses mask-only antimeridian handling as part
+of the extended-precision correctness repair. This removes the prior full-size
+normalized-longitude temporary without changing the public batch shape contract.
+Further split-array and pandas allocation changes remain subject to
+`PERF-INV-001`.
 
 A Rust backend remains deferred. Current NumPy throughput does not establish a
 need for another runtime backend.
@@ -266,8 +271,11 @@ GitHub Actions resolves a compatible `uv>=0.10,<1` release from repository metad
 - a Python 3.11 lower-bound job that reuses the tox-uv `minimum` environment
   and resolves the lowest declared direct NumPy, pandas, Shapely, pytest, and
   pytest-cov versions; and
-- a Python 3.11 quality job that runs Ruff, distribution builds, wheel
-  archive inspection, and dependency-isolated wheel verification.
+- a Python 3.14 quality job that runs Ruff, mypy public typing, distribution
+  builds, wheel archive inspection, and dependency-isolated wheel verification;
+  and
+- a scheduled/manual live ISC semantic check that remains outside ordinary
+  pull-request tests.
 
 `tools/verify_wheel.py` first inspects the built archive for runtime files,
 package data, metadata, extras, the console entry point, and license/provenance
@@ -276,8 +284,8 @@ packages, installs the wheel with dependencies, and exercises Python and CLI
 APIs.
 
 The repository uses local pre-commit hooks that execute the synchronized `uv`
-development environment. The hooks run Ruff formatting and Ruff linting, then
-invoke tox's `local` environment for behavioral tests. This keeps commit-time
+development environment. The hooks run Ruff formatting, Ruff linting, and
+mypy public typing, then invoke tox's `local` environment for behavioral tests. This keeps commit-time
 tests aligned with the tox test definition without creating independent
 hook-specific Python environments.
 
@@ -343,6 +351,6 @@ contract real.
 
 The source-data license remains unresolved in project provenance. Release
 records must state whether dependency locking, the supported-Python matrix,
-lower-bound dependency checks, the direct ObsPy oracle, Ruff, and clean
+lower-bound dependency checks, the direct ObsPy oracle, Ruff, mypy public typing, and clean
 installation were actually observed. Workflow configuration alone is not a
 verification result.

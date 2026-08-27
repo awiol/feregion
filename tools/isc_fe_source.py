@@ -178,4 +178,4 @@ def semantic_sha256(document: dict[str, object]) -> str:
     return hashlib.sha256(canonical_bytes(document)).hexdigest()
 
 
-EXPECTED_SEMANTIC_SHA256 = semantic_sha256(normalized_document())
+EXPECTED_SEMANTIC_SHA256 = "e0bb924754f2aa2d8c1c025fc3ee5e074db90cc49d7ad8cd46e26353aa12079b"

@@ -14,6 +14,7 @@ Prepare the development environment and run the normal checks:
 ```bash
 uv sync
 uv run ruff check .
+uv run mypy
 uv run pytest -q
 uv run pytest -q --cov=feregion --cov-branch --cov-report=term-missing
 ```
@@ -156,6 +157,8 @@ runs for the same pull request or branch.
 - a direct installed-ObsPy oracle job;
 - a Python 3.11 lower-bound dependency job that reuses `tox.toml`;
 - Ruff;
+- mypy public-package/downstream-consumer typing;
+- a scheduled/manual live ISC semantic comparison;
 - distribution builds; and
 - dependency-isolated wheel verification.
 
@@ -172,8 +175,11 @@ by the crosswalk before timing; the hierarchy-only crosswalk is measured
 separately.
 
 Reports retain workload, environment, repetitions, median duration, throughput,
-and speedup. Generated benchmark JSON and human-readable reports are delivery
-artifacts and should not be committed to the source repository.
+speedup, CPU model when discoverable, machine architecture, and logical CPU
+count. Generated benchmark JSON and human-readable reports are delivery artifacts
+and should not be committed to the source repository. CPU power/frequency policy
+is not measured by the harness and must be controlled externally for a release
+ratio used as a gate.
 
 
 Run the supported-Python benchmark matrix after generating the local lock and
@@ -189,8 +195,22 @@ uv run --locked --group matrix --group benchmark tox run \
 The four benchmark environments use tox-uv's lock runner. Raw reports and the
 combined Markdown report are written under `.tox/benchmark-results/`. The
 comparison report requires all four supported Python versions and summarizes
-eight representative throughput metrics. Run the matrix on one machine when the
-result will be used to compare interpreter versions.
+eight representative throughput metrics with equal weight in the aggregate
+review aid. Run the matrix on one machine when the result will be used to compare
+interpreter versions.
+
+A release regression comparison is a different gate. Produce baseline and
+candidate standalone JSON on the same controlled environment, then run:
+
+```bash
+uv run --group benchmark python -m benchmarks.compare_releases \
+  --baseline baseline.json --candidate candidate.json --fail-on-trigger
+```
+
+The command rejects recorded environment/workload drift and returns status 3 when
+the >25 percent slowdown trigger is crossed at two adjacent batch sizes of at
+least 10,000 points. Without a comparable accepted baseline, record `QG-PERF` as
+incomplete.
 
 ## Clean repository handoff
 

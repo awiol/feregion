@@ -9,13 +9,16 @@ import os
 import secrets
 import stat
 import sys
+from collections.abc import Iterator, Sequence
 from contextlib import contextmanager
 from pathlib import Path
 from typing import TextIO, cast
 
 import numpy as np
+from numpy.typing import NDArray
 
 from ._default import get_default_lookup
+from .core import FlinnEngdahlLookup
 from .exceptions import CsvInputError, FlinnEngdahlError
 
 
@@ -157,7 +160,7 @@ def _csv(args: argparse.Namespace) -> int:
 
 
 @contextmanager
-def _csv_input(path: str):
+def _csv_input(path: str) -> Iterator[TextIO]:
     """Yield stdin or a managed UTF-8 CSV input stream."""
 
     if path == "-":
@@ -340,7 +343,7 @@ def _process_csv(
         )
 
 
-def _duplicate_csv_headers(fieldnames: list[str]) -> list[str]:
+def _duplicate_csv_headers(fieldnames: Sequence[str]) -> list[str]:
     """Return duplicate header labels in first-repeat order."""
 
     seen: set[str] = set()
@@ -360,7 +363,7 @@ def _validate_csv_row_width(row: dict[str | None, str | list[str] | None], row_n
 
 
 def _validate_csv_output_columns(
-    fieldnames: list[str],
+    fieldnames: Sequence[str],
     *,
     longitude_column: str,
     latitude_column: str,
@@ -391,7 +394,7 @@ def _write_csv_chunk(
     row_numbers: list[int],
     writer: csv.DictWriter,
     *,
-    engine,
+    engine: FlinnEngdahlLookup,
     longitude_column: str,
     latitude_column: str,
     number_column: str,
@@ -407,6 +410,7 @@ def _write_csv_chunk(
         except (TypeError, ValueError) as exc:
             raise CsvInputError(f"CSV row {row_number} has a non-numeric coordinate") from exc
 
+    numbers: NDArray[np.uint16] | NDArray[np.uint8]
     if level == "geographic":
         numbers = engine.lookup_geographic_numbers(coordinates)
         names = engine.geographic_numbers_to_names(numbers) if include_names else None
@@ -423,13 +427,21 @@ def _write_csv_chunk(
 def _geojson(args: argparse.Namespace) -> int:
     from .geojson import write_regions_geojson
 
-    kwargs = {} if args.properties is None else {"properties": tuple(args.properties)}
-    write_regions_geojson(
-        Path(args.output),
-        level=args.level,
-        label=args.label,
-        include_metadata=not args.no_metadata,
-        indent=args.indent,
-        **kwargs,
-    )
+    if args.properties is None:
+        write_regions_geojson(
+            Path(args.output),
+            level=args.level,
+            label=args.label,
+            include_metadata=not args.no_metadata,
+            indent=args.indent,
+        )
+    else:
+        write_regions_geojson(
+            Path(args.output),
+            level=args.level,
+            properties=tuple(args.properties),
+            label=args.label,
+            include_metadata=not args.no_metadata,
+            indent=args.indent,
+        )
     return 0

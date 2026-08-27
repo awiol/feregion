@@ -396,3 +396,107 @@ changed rationale as historical fact.
   investigation record.
 - **Review trigger:** Representative workloads show stacking/copy cost is
   material, or a downstream integration supplies separate arrays at scale.
+
+## `DEC-025` — Preserve coordinate dtype through FE cell ownership
+
+- **Context:** Review of `0.2.0a1` reproduced scalar/batch disagreement for
+  supported `longdouble` coordinates immediately beside integer-degree
+  boundaries. Validation occurred in source precision, but batch lookup then
+  narrowed the coordinate matrix to `float64` before selecting the FE cell.
+- **Decision:** Keep validated batch coordinates in their source numeric dtype
+  until absolute integer longitude/latitude indices and quadrant ownership are
+  established. Handle exact longitude `-180` through quadrant selection rather
+  than by rewriting the longitude array. Do not narrow valid extended-precision
+  coordinates before FE cell ownership is determined.
+- **Alternatives considered:** retain `float64` internal normalization; reject
+  wider floating dtypes; round scalar lookup to match batch behavior.
+- **Compatibility consequence:** Ordinary `float64`/integer behavior remains
+  unchanged. Supported wider floating inputs now preserve scalar/batch
+  equivalence at FE discontinuities. The change also removes one full-size
+  normalized-longitude temporary from the batch kernel.
+- **Review trigger:** NumPy casting/index behavior changes materially, a future
+  coordinate model introduces another discontinuity rule, or cross-version tests
+  find scalar/batch divergence for a supported dtype.
+
+## `DEC-026` — Keep the ISC semantic source identity independent from hierarchy code
+
+- **Context:** In `0.2.0a1`, the expected ISC semantic hash and ordinary source
+  fixture were generated from the same hard-coded Python hierarchy that they
+  were intended to protect. A coherent hierarchy edit could therefore update
+  expected content without an independent source identity.
+- **Decision:** Keep the expected ISC semantic SHA-256 as a literal reviewed
+  value that is not recomputed from the Python hierarchy declarations. Ordinary
+  tests verify that the declared hierarchy still matches that literal identity,
+  and live ISC retrieval remains a scheduled/manual external comparison. An
+  update to names or memberships therefore requires an explicit source-review
+  change to the literal identity as well as any regenerated assets.
+- **Alternatives considered:** retain a self-derived expected hash; track a full
+  normalized ISC snapshot despite unresolved redistribution status; pin raw ISC
+  HTML byte-for-byte; make live network retrieval part of ordinary tests.
+- **Compatibility consequence:** Runtime assets and public APIs do not change.
+  A hierarchy source update now requires an explicit reviewed semantic-pin update
+  before verification and asset regeneration can pass.
+- **Review trigger:** ISC publishes a new FE structural revision, the normalized
+  source schema changes, or source-retention/licensing policy requires a
+  different provenance mechanism.
+
+## `DEC-027` — Define release performance regression against a named prior record
+
+- **Context:** The existing `>25%` slowdown review trigger had no historical
+  package baseline. Source-scanner and cross-Python comparisons answer different
+  questions and cannot establish release-to-release regression by themselves.
+- **Decision:** Compare a candidate with a named accepted prior-package benchmark
+  record produced by the same harness in the same recorded host, interpreter,
+  dependency, and workload context. Trigger review when median batch throughput
+  slows by more than 25 percent at two adjacent sizes of at least 10,000 points.
+  If a comparable baseline is unavailable, report the release performance gate
+  as incomplete. Retain both raw records and the comparison output as delivery
+  evidence.
+- **Alternatives considered:** remove the regression trigger; use source-scanner
+  speedup as the regression baseline; use the cross-Python aggregate score.
+- **Compatibility consequence:** No runtime behavior changes. Benchmark reports
+  gain host-context fields and release comparison tooling.
+- **Review trigger:** Representative workloads or measurement evidence show that
+  the selected batch sizes/statistic/threshold no longer support the release
+  decision.
+
+## `DEC-028` — Treat WGS84 as a package input convention, not an FE source claim
+
+- **Context:** Project wording described FE inputs as WGS84 coordinates, while
+  the supporting FE evidence establishes a longitude/latitude degree grid but
+  does not establish a historical WGS84 datum requirement. The package performs
+  no CRS transformation.
+- **Decision:** Interpret input longitude/latitude values as WGS84 geographic
+  degrees by package convention. State explicitly that this convention is
+  separate from the historical FE definition and that `feregion` does not
+  transform coordinates between CRSs.
+- **Alternatives considered:** remove all datum-specific wording; implement CRS
+  transformation; imply WGS84 is normative FE provenance.
+- **Compatibility consequence:** Numeric behavior does not change. Public
+  documentation and GeoJSON metadata distinguish the package convention from
+  the FE scientific source definition.
+- **Review trigger:** The package adds CRS transformation or evidence establishes
+  a more appropriate normative coordinate-reference contract.
+
+## `DEC-029` — Add a public typing gate alongside Ruff
+
+- **Context:** `feregion` ships `py.typed`, which asks downstream type checkers to
+  rely on inline annotations. Review identified that Ruff-only static checks do
+  not verify that advertised typing surface. This satisfies the review trigger
+  recorded by `DEC-013`.
+- **Decision:** Keep Ruff as the lint/format authority and add mypy as a separate
+  static check over public package modules plus a small downstream consumer
+  fixture. Run mypy in pre-commit and hosted quality verification. Target the
+  newest supported Python, currently 3.14, for mypy so current NumPy typing
+  syntax is supported; Ruff remains targeted at Python 3.11 and the runtime/tox
+  matrix enforces Python 3.11-3.14 compatibility. This decision supersedes the
+  "sole static-analysis authority" part of `DEC-013`; its Ruff
+  formatting/linting choice remains.
+- **Alternatives considered:** remove `py.typed`; keep typing unchecked; add a
+  type checker only as non-gating local tooling.
+- **Compatibility consequence:** Runtime dependencies do not change. The
+  development/quality dependency set gains mypy and locked CI must be refreshed
+  by the maintainer before hosted verification.
+- **Review trigger:** The package stops shipping `py.typed`, mypy no longer
+  supports the project environment adequately, or another checker provides
+  materially better evidence at acceptable maintenance cost.

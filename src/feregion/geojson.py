@@ -128,6 +128,8 @@ def regions_geojson(
             "scheme": "Flinn-Engdahl",
             "revision": "1995",
             "level": level,
+            "coordinate_convention": "WGS84 geographic degrees by package convention",
+            "crs_transformation": "none",
             "boundary_model": "area-equivalent 1-degree cells",
             "boundary_semantics": "numeric lookup is authoritative on exact cell boundaries",
         }
@@ -207,16 +209,16 @@ def _feature_properties(
             geographic_name = engine.geographic_number_to_name(number)
         current_name = geographic_name
     else:
-        seismic_name: str | None = None
+        current_seismic_name: str | None = None
         geographic_numbers: list[int] | None = None
 
         for field in selected:
             if field in {"number", "seismic_number"}:
                 result[field] = number
             elif field in {"name", "seismic_name"}:
-                if seismic_name is None:
-                    seismic_name = engine.seismic_number_to_name(number)
-                result[field] = seismic_name
+                if current_seismic_name is None:
+                    current_seismic_name = engine.seismic_number_to_name(number)
+                result[field] = current_seismic_name
             elif field in {"geographic_numbers", "geographic_names"}:
                 if geographic_numbers is None:
                     crosswalk = engine.seismic_by_geographic
@@ -230,9 +232,9 @@ def _feature_properties(
                         engine.geographic_number_to_name(value) for value in geographic_numbers
                     ]
 
-        if need_name and seismic_name is None:
-            seismic_name = engine.seismic_number_to_name(number)
-        current_name = seismic_name
+        if need_name and current_seismic_name is None:
+            current_seismic_name = engine.seismic_number_to_name(number)
+        current_name = current_seismic_name
 
     if label == "number":
         result["label"] = str(number)

@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 import numpy as np
+import numpy.typing as npt
 
 from ._default import get_default_lookup
 from .core import FlinnEngdahlLookup
@@ -115,27 +116,28 @@ def lookup_dataframe(
     coordinates = np.column_stack((longitude, latitude))
     engine = lookup if lookup is not None else get_default_lookup()
     if level == "geographic":
-        numbers = engine.lookup_geographic_numbers(coordinates)
-        names = engine.geographic_numbers_to_names(numbers) if include_names else None
+        geographic_numbers = engine.lookup_geographic_numbers(coordinates)
+        target[resolved_number_column] = geographic_numbers
+        if include_names:
+            target[resolved_name_column] = engine.geographic_numbers_to_names(geographic_numbers)
     else:
-        numbers = engine.lookup_seismic_numbers(coordinates)
-        names = engine.seismic_numbers_to_names(numbers) if include_names else None
-    target[resolved_number_column] = numbers
-    if names is not None:
-        target[resolved_name_column] = names
+        seismic_numbers = engine.lookup_seismic_numbers(coordinates)
+        target[resolved_number_column] = seismic_numbers
+        if include_names:
+            target[resolved_name_column] = engine.seismic_numbers_to_names(seismic_numbers)
     return target
 
 
-def _coordinate_values(series: pd.Series) -> np.ndarray:
+def _coordinate_values(series: pd.Series[Any]) -> npt.NDArray[Any]:
     """Return numeric coordinate values in a NumPy dtype accepted by core validation."""
 
-    values = series.to_numpy(copy=False)
+    values = np.asarray(series.to_numpy(copy=False))
     if values.dtype.kind != "O":
         return values
     numpy_dtype = getattr(series.dtype, "numpy_dtype", None)
     if numpy_dtype is not None and not series.isna().any():
-        return series.to_numpy(dtype=numpy_dtype, copy=False)
-    return series.to_numpy(dtype=np.float64, na_value=np.nan, copy=False)
+        return np.asarray(series.to_numpy(dtype=numpy_dtype, copy=False))
+    return np.asarray(series.to_numpy(dtype=np.float64, na_value=np.nan, copy=False))
 
 
 def _validate_output_columns(

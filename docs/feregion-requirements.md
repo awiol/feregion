@@ -37,9 +37,12 @@ Related contracts:
 
 ## Purpose and terms
 
-The package must map WGS84 longitude/latitude coordinates to Flinn-Engdahl
-(FE) geographical regions and their parent seismic regions. A **coordinate
-pair** is ordered as `[longitude, latitude]`. The generic compatibility term
+The package must map longitude/latitude coordinates to Flinn-Engdahl (FE)
+geographical regions and their parent seismic regions. By package convention,
+input longitude/latitude values are interpreted as WGS84 geographic degrees.
+This convention is separate from the historical FE degree-grid definition, and
+the package does not transform coordinates between coordinate reference systems.
+A **coordinate pair** is ordered as `[longitude, latitude]`. The generic compatibility term
 **region** means a geographical region unless an interface explicitly selects
 a level. Packaged names retain the spelling of their declared source; the
 package does not claim one spelling is uniquely authoritative across FE history.
@@ -59,6 +62,11 @@ longitude `+180`.
 **REQ-FE-004** — Lookup must select one of four quadrants from coordinate
 signs, then use the integer part of each absolute coordinate. Negative zero
 must behave as zero.
+
+**REQ-FE-005** — `feregion` must interpret public longitude/latitude inputs as
+WGS84 geographic degrees by package convention. This is not a claim that the
+historical FE scheme itself is defined by the WGS84 datum. The package must not
+claim or perform coordinate-reference-system transformation.
 
 ## FE hierarchy
 
@@ -144,6 +152,12 @@ contract and return one-dimensional `uint8` seismic identifiers with shape
 integer array of active geographical identifiers to a same-shape `uint8`
 seismic-identifier array.
 
+**REQ-NP-010** — Batch lookup must preserve the validated caller numeric dtype
+until FE integer cell indices and quadrant ownership are established. It must
+not narrow a valid extended-precision coordinate to `float64` before cell
+ownership is selected. For every supported numeric coordinate, scalar and batch
+lookup must produce the same geographical and seismic identifiers.
+
 ## pandas interface
 
 **REQ-PD-001** — The optional pandas adapter must accept configurable longitude
@@ -183,6 +197,10 @@ release materializes its extension array as `object`.
 `level="seismic"`. Existing calls without a level must remain geographical and
 retain `fe_number`/`fe_region` defaults. Seismic defaults must be
 `fe_seismic_number`/`fe_seismic_region`.
+
+**REQ-PD-010** — When pandas preserves a supported numeric dtype wider than
+`float64`, adapter lookup must preserve the corrected core cell-ownership
+semantics and must agree with scalar lookup at integer-degree boundaries.
 
 ## Errors and invalid input
 

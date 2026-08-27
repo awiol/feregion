@@ -197,8 +197,9 @@ def render_report(reports: dict[str, dict[str, Any]]) -> str:
             "",
             "## Aggregate view",
             "",
-            "The geometric mean summarizes the eight relative-throughput ratios above. "
-            "It is a review aid, not a weighting claim or performance SLA.",
+            "The geometric mean is an equal-weight summary of the eight selected "
+            "relative-throughput ratios in log-ratio space. It is a review aid, not a "
+            "product workload model or performance SLA.",
             "",
             "| Python | Geometric mean vs baseline |",
             "|---|---:|",

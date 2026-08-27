@@ -5,6 +5,7 @@ from __future__ import annotations
 import math
 import operator
 from dataclasses import dataclass
+from typing import cast
 
 import numpy as np
 import numpy.typing as npt
@@ -30,7 +31,7 @@ _NUMERIC_KINDS = frozenset("iuf")
 
 @dataclass(frozen=True, slots=True, eq=False)
 class FlinnEngdahlLookup:
-    """Map WGS84 coordinates to FE geographical and seismic regions.
+    """Map longitude/latitude degrees to FE geographical and seismic regions.
 
     Args:
         table: Immutable geographical lookup source after construction. The
@@ -159,11 +160,10 @@ class FlinnEngdahlLookup:
         array = _coordinate_array(coordinates)
         if array.shape[0] == 0:
             return np.empty(0, dtype=np.uint16)
-        source_longitude = array[:, 0]
-        source_latitude = array[:, 1]
-        _validate_coordinate_values(source_longitude, source_latitude)
-        numeric = array.astype(np.float64, copy=False)
-        return self._lookup_validated(numeric[:, 0], numeric[:, 1])
+        longitude = array[:, 0]
+        latitude = array[:, 1]
+        _validate_coordinate_values(longitude, latitude)
+        return self._lookup_validated(longitude, latitude)
 
     def lookup_numbers(self, coordinates: npt.ArrayLike) -> GeographicNumberArray:
         """Compatibility alias for :meth:`lookup_geographic_numbers`."""
@@ -213,7 +213,7 @@ class FlinnEngdahlLookup:
             raise RegionNumberError(
                 "one or more geographical regions have no active seismic mapping"
             )
-        return result
+        return cast(SeismicNumberArray, result)
 
     def lookup_seismic_number(self, longitude: float, latitude: float) -> int:
         """Return the seismic-region number for one coordinate pair."""
@@ -258,18 +258,26 @@ class FlinnEngdahlLookup:
 
     def _lookup_validated(
         self,
-        longitude: npt.NDArray[np.float64],
-        latitude: npt.NDArray[np.float64],
+        longitude: np.ndarray,
+        latitude: np.ndarray,
     ) -> GeographicNumberArray:
-        """Lookup already validated arrays without Python-level point loops."""
+        """Lookup validated coordinate arrays without narrowing their source dtype.
 
-        normalized_longitude = np.where(longitude == -180.0, 180.0, longitude)
-        absolute_longitude = np.abs(normalized_longitude).astype(np.uint8)
+        FE cell ownership is discontinuous at integer degrees. Preserving the
+        validated dtype until absolute integer indices and quadrant ownership are
+        established prevents extended-precision values immediately beside a
+        boundary from being rounded into the adjacent cell. Exact ``-180`` keeps
+        longitude index 180 but uses the east-side quadrant by package convention.
+        """
+
+        absolute_longitude = np.abs(longitude).astype(np.uint8)
         absolute_latitude = np.abs(latitude).astype(np.uint8)
-        quadrant = (normalized_longitude < 0.0).astype(np.uint8) + 2 * (latitude < 0.0).astype(
-            np.uint8
+        west = (longitude < 0) & (longitude != -180)
+        quadrant = west.astype(np.uint8) + 2 * (latitude < 0).astype(np.uint8)
+        return cast(
+            GeographicNumberArray,
+            self.table[quadrant, absolute_latitude, absolute_longitude],
         )
-        return self.table[quadrant, absolute_latitude, absolute_longitude]
 
 
 def _validate_name_array(names: np.ndarray, label: str) -> None:
@@ -323,7 +331,7 @@ def _numbers_to_names(
     array = _integer_region_array(numbers, names, level)
     if array.size == 0:
         return np.empty(array.shape, dtype=names.dtype)
-    return names[array]
+    return cast(npt.NDArray[np.str_], names[array])
 
 
 def _validate_scalar_coordinate_types(longitude: float, latitude: float) -> None:
@@ -378,7 +386,7 @@ def _coordinate_array(coordinates: npt.ArrayLike) -> np.ndarray:
 
 
 def _validate_coordinate_values(longitude: np.ndarray, latitude: np.ndarray) -> None:
-    """Validate values in their source dtype before narrowing to float64."""
+    """Validate coordinate values in their source dtype."""
 
     if not np.all(np.isfinite(longitude)):
         raise CoordinateValueError("longitude contains a NaN or infinite value")

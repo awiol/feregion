@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.2.0a2 — 2026-08-27
+
+- Fix extended-precision batch lookup so validated coordinate dtypes are preserved through FE cell ownership; scalar, batch, seismic-batch, and pandas routes now agree immediately around integer-degree boundaries.
+- Remove the full-size normalized-longitude temporary and implement exact `-180` east-side semantics through quadrant selection without narrowing coordinate values.
+- Make the expected ISC hierarchy semantic SHA-256 a literal reviewed source identity rather than a value recomputed from the hierarchy declarations; add scheduled/manual live ISC verification while keeping ordinary tests network-independent.
+- Define release-to-release performance-regression evidence around named baseline/candidate benchmark records in the same recorded environment, and add deterministic comparison tooling for the existing greater-than-25-percent adjacent-size review trigger.
+- Clarify that WGS84 geographic degrees are a `feregion` package input convention, separate from the historical FE degree-grid definition; the package performs no CRS transformation.
+- Expand public-route, extended-precision boundary, pandas, and all-cell-center GeoJSON regression coverage, including predecessor-sensitive tests for the boundary defect.
+- Add mypy verification for the shipped inline typing contract while retaining Ruff as the formatting/lint authority.
+- Keep the split longitude/latitude public API and further batch-allocation optimization deferred until the corrected implementation is evaluated against controlled benchmark and memory evidence.
+- Fixed typing issues found by mypy.
+
 ## 0.2.0a1 — 2026-08-27
 
 - Add explicit FE geographical and seismic region APIs while preserving the existing generic API as geographical compatibility behavior.
