@@ -1,13 +1,28 @@
 # Changelog
 
-## 0.1.2a5 — 2026-08-27
+## 0.1.2a8 — 2026-08-27
+
+- Route pre-commit behavioral tests through a dedicated tox environment instead of invoking pytest directly.
+- Use standard `py311` through `py314` tox environment names and lock-backed normal compatibility environments.
+- Make the Python 3.11 minimum-dependency environment resolve the project plus its test extra in one `lowest-direct` uv transaction, avoiding incompatible old-pandas/new-NumPy ABI combinations caused by split resolution.
+- Rename benchmark tox environments to explicit `benchmark-py311` through `benchmark-py314` factors and remove an unnecessary Python pin from the report reducer.
+- Replace ambiguous Unicode multiplication signs in Python benchmark-report strings and retain the Ruff `capture_output` subprocess cleanup from the maintainer handoff.
+
+## 0.1.2a7 — 2026-08-27
+
+- Add a deterministic Git-tracked working-tree exporter for clean repository handoffs.
+- Exclude `uv.lock` from handoff archives even when it is tracked, and warn about non-ignored untracked files that are not exported.
+- Add lock-backed tox-uv benchmark environments for Python 3.11 through 3.14.
+- Add a compact cross-Python benchmark report for eight representative scalar, batch, name-conversion, and pandas throughput metrics.
+
+## 0.1.2a6 — 2026-08-27
 
 - Fix pandas 2.1 nullable numeric coordinate conversion so missing values reach the core non-finite validation path instead of becoming object-dtype type errors.
 - Add a local tox + tox-uv compatibility matrix for Python 3.11 through 3.14.
 - Add a Python 3.11 `lowest-direct` environment that derives minimum direct dependencies from project metadata instead of duplicating exact lower-bound versions in CI.
 - Reuse the same tox minimum-dependency environment in GitHub Actions.
 
-## 0.1.2a4 — 2026-08-27
+## 0.1.2a5 — 2026-08-27
 
 - Remove mypy from the project dependency groups and tool configuration.
 - Remove mypy from GitHub Actions and repository verification requirements.

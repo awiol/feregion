@@ -123,11 +123,16 @@ uv sync --locked --group dev
 uv run --locked --group matrix tox run
 ```
 
-The tox-uv matrix covers Python 3.11 through 3.14 and includes a Python 3.11
-`minimum` environment that resolves the lowest declared direct dependencies.
-Run only that environment with `uv run --locked --group matrix tox run -e minimum`.
-uv-backed tox environments can use uv-managed Python interpreters, so the
-required interpreters do not all need to be installed manually in advance.
+The tox-uv matrix uses the standard `py311`, `py312`, `py313`, and `py314`
+environment names plus a Python 3.11 `minimum` environment. Normal compatibility
+environments are lock-backed. The `minimum` environment intentionally bypasses
+the lock and resolves the project plus its `test` extra together with
+`lowest-direct`, so NumPy and pandas lower bounds are selected in one dependency
+transaction. The environment prints its resolved Python, NumPy, pandas, Shapely,
+and pytest versions before running tests. Run only that environment with
+`uv run --locked --group matrix tox run -e minimum`. uv-backed tox environments
+can use uv-managed Python interpreters, so the required interpreters do not all
+need to be installed manually in advance.
 
 GitHub Actions verifies Python 3.11, 3.12, 3.13, and 3.14. Dedicated jobs also run the
 installed ObsPy oracle and the same tox-uv minimum-dependency environment. A separate
@@ -170,7 +175,9 @@ uv run --locked pre-commit install
 ```
 
 The pre-commit pipeline formats Python files with Ruff, runs Ruff lint checks,
-and then runs the full pytest suite. Run the same pipeline manually with:
+and then delegates behavioral tests to tox's `local` environment. This keeps the
+commit-time test command aligned with the tox test definition while using the
+Python interpreter that hosts tox. Run the same pipeline manually with:
 
 ```bash
 uv run --locked pre-commit run --all-files
@@ -191,6 +198,35 @@ uv run --group benchmark python -m benchmarks.run_benchmark \
 Routine benchmarks cover in-process scalar, batch, name-conversion, and pandas
 interfaces. They exclude CLI and GeoJSON timing. Generated benchmark results are
 delivery evidence and are not repository source.
+
+
+Compare the same locked benchmark environment across all explicitly supported
+Python versions:
+
+```bash
+uv run --locked python -m tools.fetch_obspy_fe_data
+uv run --locked --group matrix --group benchmark tox run \
+  -e benchmark-py311,benchmark-py312,benchmark-py313,benchmark-py314,benchmark-report
+```
+
+The per-version JSON files and `python-comparison.md` are written below
+`.tox/benchmark-results/`. The combined report compares eight representative
+throughput metrics and records exact Python, NumPy, and pandas versions.
+
+## Clean repository handoff
+
+To hand the current repository source to another reviewer or agent without local
+caches, environments, run output, IDE files, or `uv.lock`, run:
+
+```bash
+uv run --locked python -m tools.export_repository
+```
+
+The exporter packages only Git-tracked paths, but reads their current
+working-tree bytes, so tracked Ruff/pre-commit edits do not need a special
+filesystem cleanup first. It warns about non-ignored untracked files; stage or
+commit genuine new source before handoff, or use `--fail-on-untracked` to require
+a clean tracked-source boundary.
 
 ## Project documents
 

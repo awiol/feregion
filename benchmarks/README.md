@@ -43,3 +43,21 @@ provides an additional reference-implementation comparison when installed.
 Benchmark code is repository and source-distribution tooling. It is not part of
 the installed runtime package. Generated results are delivery evidence and
 should stay outside the repository.
+
+## Compare supported Python versions
+
+The local benchmark matrix reuses the repository lock to reduce dependency drift
+between interpreter runs. Generate/update `uv.lock` locally, fetch the verified
+source tables once, then run:
+
+```bash
+uv run --locked --group matrix --group benchmark tox run \
+  -e benchmark-py311,benchmark-py312,benchmark-py313,benchmark-py314,benchmark-report
+```
+
+Raw standalone results are written to `.tox/benchmark-results/python-*.json`.
+The final environment writes `.tox/benchmark-results/python-comparison.md`. The
+report compares eight representative scalar, batch, name-conversion, and pandas
+throughput metrics, normalizes them to Python 3.11, and records the exact NumPy
+and pandas versions used by each interpreter environment. Run all interpreter
+measurements on the same machine when using the ratios as performance evidence.

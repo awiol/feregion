@@ -128,13 +128,14 @@ changed rationale as historical fact.
 - **Context:** Maintainers need the same formatter, linter, and tests before a
   commit without maintaining another dependency environment.
 - **Decision:** Declare `pre-commit` in the `uv` development toolchain and use
-  local hooks that run Ruff format, Ruff check, and pytest through `uv --no-sync`.
+  local hooks that run Ruff format and Ruff check through `uv --no-sync`, then
+  delegate behavioral tests to tox's `local` environment.
 - **Alternatives considered:** hook-managed Ruff environments; a custom shell
   script; no commit-time checks.
 - **Compatibility consequence:** Developers must run `uv sync --group dev` before
   installing hooks. Package runtime dependencies do not change.
-- **Review trigger:** Commit-time full pytest becomes materially too expensive or
-  repository tooling moves away from `uv`/pre-commit.
+- **Review trigger:** Commit-time tox-backed tests become materially too expensive
+  or repository tooling moves away from `uv`/pre-commit.
 
 ## `DEC-011` — Support CPython 3.11 through 3.14 and harden hosted CI
 
@@ -198,17 +199,18 @@ changed rationale as historical fact.
   repository needs a fast local way to exercise multiple interpreters and the
   declared dependency floor without hand-maintaining a second dependency list.
 - **Decision:** Add a native `tox.toml` matrix for CPython 3.11 through 3.14 and a
-  Python 3.11 `minimum` environment. Use tox for orchestration and tox-uv's
-  `uv-venv-runner` for environment creation and installation. Resolve the
-  minimum environment with `lowest-direct`, and make hosted lower-bound CI invoke
-  the same named environment.
+  Python 3.11 `minimum` environment. Use tox for orchestration and tox-uv for
+  environment creation and installation. Normal compatibility environments use
+  the repository lock. The minimum environment resolves with `lowest-direct`, and
+  hosted lower-bound CI invokes the same named environment.
 - **Alternatives considered:** retain only hosted CI; maintain a custom shell
   loop around `uv venv`/`uv pip`; use plain tox with virtualenv/pip; use Nox with
   custom uv subprocess commands.
 - **Compatibility consequence:** Local compatibility checks may download missing
   managed Python interpreters and dependency versions. Runtime package
   dependencies do not change. The normal lock remains separate from the
-  intentionally unlocked lower-bound resolution.
+  intentionally unlocked lower-bound resolution. `DEC-018` refines the minimum
+  installation shape after hosted CI exposed a split-resolution ABI mismatch.
 - **Review trigger:** uv gains an equally declarative native multi-environment
   matrix, tox-uv no longer tracks supported uv/tox behavior, or matrix runtime
   becomes disproportionate to the defects it catches.
@@ -231,3 +233,73 @@ changed rationale as historical fact.
   committed before push.
 - **Review trigger:** Delivery tooling gains reliable repository-native lock
   synchronization or the project stops using a committed lock.
+
+## `DEC-016` — Export maintainer handoffs from Git-tracked working-tree files
+
+- **Context:** Maintainer repositories accumulate virtual environments, caches,
+  benchmark runs, IDE/user configuration, and locally generated `uv.lock`, while
+  local format/check steps can legitimately modify tracked source before the next
+  handoff. Broad filesystem archiving either leaks local state or requires a
+  fragile exclusion list.
+- **Decision:** Provide `tools.export_repository`. Discover source paths from
+  `git ls-files`, read current working-tree bytes, preserve executable state,
+  explicitly exclude `uv.lock`, and omit all untracked files by default. Warn on
+  non-ignored untracked files and provide a strict mode that rejects them. Build
+  deterministic ZIP bytes for an unchanged tree.
+- **Alternatives considered:** `git archive HEAD` only; archive the filesystem and
+  maintain a large deny list; require every local edit to be committed before
+  handoff.
+- **Compatibility consequence:** Tracked local edits are preserved without
+  collecting local-only state. A genuinely new source file must be staged or
+  committed before default export.
+- **Review trigger:** The project adopts another source-control system or requires
+  deliberate handoff of untracked generated source.
+
+## `DEC-017` — Benchmark supported Python versions with one locked environment model
+
+- **Context:** Compatibility tests answer whether the project works across Python
+  versions but do not show interpreter-sensitive performance. Independent
+  benchmark environments can also drift in dependency resolution and make the
+  comparison hard to interpret.
+- **Decision:** Add lock-backed tox-uv benchmark environments for Python 3.11,
+  3.12, 3.13, and 3.14. Run the same deterministic standalone harness in each
+  environment and aggregate eight representative throughput metrics into one
+  Markdown report normalized to Python 3.11. Record exact interpreter, NumPy,
+  pandas, and package versions in the report.
+- **Alternatives considered:** benchmark only the maintainer interpreter; publish
+  the full raw metric set without reduction; resolve each interpreter environment
+  independently without a lock.
+- **Compatibility consequence:** Benchmark execution is heavier than the routine
+  test matrix and requires a locally generated `uv.lock`, but the resulting
+  comparison is substantially easier to interpret.
+- **Review trigger:** The supported Python matrix changes, dependency markers make
+  locked comparisons materially asymmetric, or evidence shows a different metric
+  subset better represents user-visible performance.
+## `DEC-018` — Share tox test definitions and co-resolve minimum dependencies
+
+- **Context:** The first tox lower-bound environment selected pandas 2.1 while a
+  separate installation step retained a NumPy 2.x release. That pair can fail at
+  pandas import because older pandas wheels were built against the NumPy 1.x ABI.
+  Pre-commit also duplicated the behavioral test command by invoking pytest
+  directly instead of using the tox test definition.
+- **Decision:** Name normal compatibility environments `py311` through `py314` and
+  run them with tox-uv's lock runner. Add a lock-backed `local` tox environment
+  for commit-time behavioral tests. Configure the Python 3.11 `minimum`
+  environment as an unlocked `uv-venv-runner` with `package = "uv-editable"`,
+  `extras = ["test"]`, and `uv_resolution = "lowest-direct"`. This causes the
+  project requirement on NumPy and the test-extra requirement on pandas to be
+  resolved in one uv installation transaction. Pre-commit invokes `tox run -e
+  local` instead of invoking pytest directly.
+- **Alternatives considered:** pin NumPy below 2 globally; raise the pandas floor
+  solely to avoid the old ABI boundary; duplicate exact minimum versions in CI;
+  keep direct pytest in pre-commit; run the complete four-Python matrix on every
+  commit.
+- **Compatibility consequence:** The declared runtime dependency bounds do not
+  change. Minimum-dependency testing now exercises a coherent lower-bound vector
+  instead of an accidental old-pandas/new-NumPy combination. Commit-time testing
+  incurs tox environment orchestration but reuses a cached lock-backed local
+  environment after initial creation.
+- **Review trigger:** tox-uv changes package/extras resolution semantics, the
+  lower-bound vector still produces an ABI-incompatible environment, or local
+  tox-backed commit checks become disproportionate to their defect-detection
+  value.

@@ -11,9 +11,9 @@ repos:
         entry: uv run --locked --no-sync ruff check
         language: system
         types_or: [python, pyi]
-      - id: pytest
-        name: pytest
-        entry: uv run --locked --no-sync pytest -q
+      - id: tox-tests
+        name: tox tests (local Python)
+        entry: uv run --locked --no-sync tox run -e local
         language: system
         pass_filenames: false
         always_run: true

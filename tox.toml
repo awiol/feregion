@@ -1,9 +1,18 @@
 requires = ["tox>=4.51,<5", "tox-uv-bare>=1.33,<2"]
-env_list = ["3.11", "3.12", "3.13", "3.14", "minimum"]
+env_list = ["py311", "py312", "py313", "py314", "minimum"]
 
 [env_run_base]
-description = "run compatibility tests under {base_python} with uv-backed isolation"
-runner = "uv-venv-runner"
+description = "run locked compatibility tests under {base_python}"
+runner = "uv-venv-lock-runner"
+package = "editable"
+dependency_groups = ["test"]
+commands = [
+  ["python", "-m", "pytest", "-q", "--ignore=tests/test_obspy_oracle.py"],
+]
+
+[env.local]
+description = "run the locked test suite under the Python interpreter hosting tox"
+runner = "uv-venv-lock-runner"
 package = "editable"
 dependency_groups = ["test"]
 commands = [
@@ -11,13 +20,85 @@ commands = [
 ]
 
 [env.minimum]
-description = "run tests on Python 3.11 with the lowest declared direct dependencies"
+description = "run tests on Python 3.11 with one coherent lowest-direct project resolution"
+runner = "uv-venv-runner"
 base_python = ["3.11"]
+package = "uv-editable"
+extras = ["test"]
+dependency_groups = []
 uv_resolution = "lowest-direct"
 commands = [
+  [
+    "python", "-c",
+    "import sys; from importlib.metadata import version; print('minimum environment:', 'python=' + sys.version.split()[0], *(name + '=' + version(name) for name in ('numpy', 'pandas', 'shapely', 'pytest')))",
+  ],
   [
     "python", "-m", "pytest", "-q",
     "--ignore=tests/test_source_reproduction.py",
     "--ignore=tests/test_obspy_oracle.py",
+  ],
+]
+
+[env.benchmark-py311]
+description = "benchmark the locked project on Python 3.11"
+runner = "uv-venv-lock-runner"
+package = "editable"
+dependency_groups = ["benchmark"]
+commands = [
+  [
+    "python", "-m", "benchmarks.run_benchmark",
+    "--output", ".tox/benchmark-results/python-3.11.json",
+  ],
+]
+
+[env.benchmark-py312]
+description = "benchmark the locked project on Python 3.12"
+runner = "uv-venv-lock-runner"
+package = "editable"
+dependency_groups = ["benchmark"]
+commands = [
+  [
+    "python", "-m", "benchmarks.run_benchmark",
+    "--output", ".tox/benchmark-results/python-3.12.json",
+  ],
+]
+
+[env.benchmark-py313]
+description = "benchmark the locked project on Python 3.13"
+runner = "uv-venv-lock-runner"
+package = "editable"
+dependency_groups = ["benchmark"]
+commands = [
+  [
+    "python", "-m", "benchmarks.run_benchmark",
+    "--output", ".tox/benchmark-results/python-3.13.json",
+  ],
+]
+
+[env.benchmark-py314]
+description = "benchmark the locked project on Python 3.14"
+runner = "uv-venv-lock-runner"
+package = "editable"
+dependency_groups = ["benchmark"]
+commands = [
+  [
+    "python", "-m", "benchmarks.run_benchmark",
+    "--output", ".tox/benchmark-results/python-3.14.json",
+  ],
+]
+
+[env.benchmark-report]
+description = "compare selected benchmark metrics across supported Python versions"
+runner = "uv-venv-runner"
+package = "skip"
+commands = [
+  [
+    "python", "-m", "benchmarks.compare_python_versions",
+    "--input-dir", ".tox/benchmark-results",
+    "--output", ".tox/benchmark-results/python-comparison.md",
+    "--require-python", "3.11",
+    "--require-python", "3.12",
+    "--require-python", "3.13",
+    "--require-python", "3.14",
   ],
 ]

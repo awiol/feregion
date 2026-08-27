@@ -129,13 +129,14 @@ def test_pre_commit_is_in_uv_development_toolchain() -> None:
     assert "pre-commit>=4,<5" in _requirements_for_group(data, "dev")
 
 
-def test_pre_commit_runs_ruff_format_check_and_pytest_through_uv() -> None:
-    """Commit-time hooks reuse the synchronized project environment and required checks."""
+def test_pre_commit_runs_ruff_and_tox_tests_through_uv() -> None:
+    """Commit-time hooks reuse Ruff and the shared tox behavioral-test definition."""
 
     config = (PROJECT_ROOT / ".pre-commit-config.yaml").read_text(encoding="utf-8")
     assert "entry: uv run --locked --no-sync ruff format" in config
     assert "entry: uv run --locked --no-sync ruff check" in config
-    assert "entry: uv run --locked --no-sync pytest -q" in config
+    assert "entry: uv run --locked --no-sync tox run -e local" in config
+    assert "entry: uv run --locked --no-sync pytest" not in config
     assert "pass_filenames: false" in config
 
 
@@ -158,18 +159,29 @@ def test_ci_declares_direct_oracle_and_lower_bound_jobs() -> None:
     assert "--group matrix" in workflow
 
 
-def test_tox_uv_matrix_covers_supported_python_and_declared_lower_bounds() -> None:
-    """Local tox-uv environments mirror Python support and derive direct lower bounds."""
+def test_tox_uv_matrix_covers_supported_python_and_coherent_lower_bounds() -> None:
+    """tox uses locked normal environments and one-transaction minimum resolution."""
 
     with (PROJECT_ROOT / "tox.toml").open("rb") as stream:
         config = tomllib.load(stream)
 
-    assert config["env_list"] == ["3.11", "3.12", "3.13", "3.14", "minimum"]
-    assert config["env_run_base"]["runner"] == "uv-venv-runner"
+    assert config["env_list"] == ["py311", "py312", "py313", "py314", "minimum"]
+    assert config["env_run_base"]["runner"] == "uv-venv-lock-runner"
     assert config["env_run_base"]["dependency_groups"] == ["test"]
+
+    local = config["env"]["local"]
+    assert local["runner"] == "uv-venv-lock-runner"
+    assert local["dependency_groups"] == ["test"]
+    assert "base_python" not in local
+
     minimum = config["env"]["minimum"]
+    assert minimum["runner"] == "uv-venv-runner"
     assert minimum["base_python"] == ["3.11"]
+    assert minimum["package"] == "uv-editable"
+    assert minimum["extras"] == ["test"]
+    assert minimum["dependency_groups"] == []
     assert minimum["uv_resolution"] == "lowest-direct"
+    assert "importlib.metadata" in " ".join(minimum["commands"][0])
 
 
 def test_tox_uv_is_in_development_matrix_toolchain() -> None:
@@ -179,6 +191,47 @@ def test_tox_uv_is_in_development_matrix_toolchain() -> None:
     matrix_group = data["dependency-groups"]["matrix"]
     assert matrix_group == ["tox>=4.51,<5", "tox-uv-bare>=1.33,<2"]
     assert set(matrix_group) <= set(_requirements_for_group(data, "dev"))
+
+
+def test_tox_benchmark_matrix_covers_supported_python_versions() -> None:
+    """Lock-backed benchmark environments and the reducer cover every support target."""
+
+    with (PROJECT_ROOT / "tox.toml").open("rb") as stream:
+        config = tomllib.load(stream)
+
+    environments = (
+        ("3.11", "benchmark-py311"),
+        ("3.12", "benchmark-py312"),
+        ("3.13", "benchmark-py313"),
+        ("3.14", "benchmark-py314"),
+    )
+    for version, env_name in environments:
+        environment = config["env"][env_name]
+        assert environment["runner"] == "uv-venv-lock-runner"
+        assert "base_python" not in environment
+        assert environment["dependency_groups"] == ["benchmark"]
+        assert f"python-{version}.json" in " ".join(environment["commands"][0])
+
+    report = config["env"]["benchmark-report"]
+    assert "base_python" not in report
+    command = " ".join(report["commands"][0])
+    assert "benchmarks.compare_python_versions" in command
+    for version in ("3.11", "3.12", "3.13", "3.14"):
+        assert version in command
+
+
+def test_repository_handoff_export_is_documented_and_excludes_lock() -> None:
+    """The maintainer handoff command and explicit lock exclusion remain visible."""
+
+    readme = (PROJECT_ROOT / "README.md").read_text(encoding="utf-8")
+    exporter = (PROJECT_ROOT / "tools" / "export_repository.py").read_text(encoding="utf-8")
+    requirements = (DOCS / "feregion-repository-delivery-requirements.md").read_text(
+        encoding="utf-8"
+    )
+
+    assert "python -m tools.export_repository" in readme
+    assert 'PurePosixPath("uv.lock")' in exporter
+    assert "REQ-REPO-010" in requirements
 
 
 def test_python_314_is_explicitly_supported_without_raising_minimum() -> None:
@@ -222,8 +275,14 @@ def test_ci_uses_locked_normal_environments_and_bounds_runs() -> None:
 
 
 def test_static_tooling_is_limited_to_ruff_and_pre_commit() -> None:
-    """The lint group must contain only the approved static/commit-time tools."""
+    """Only Ruff and pre-commit remain in static/commit-time project configuration."""
 
     data = _pyproject()
     lint_group = data["dependency-groups"]["lint"]
     assert lint_group == ["ruff>=0.15,<0.17", "pre-commit>=4,<5"]
+
+    workflow = (PROJECT_ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    gitignore = (PROJECT_ROOT / ".gitignore").read_text(encoding="utf-8")
+    assert "mypy" not in workflow.lower()
+    assert "mypy" not in gitignore.lower()
+    assert "mypy" not in data.get("tool", {})

@@ -67,6 +67,14 @@ delivery-dependent requirements must identify their required environment or
 release evidence instead of being marked verified solely because a related
 test or workflow exists.
 
+**REQ-REPO-010** — The repository must provide a maintainer command that exports a
+clean handoff ZIP from Git-tracked working-tree files. The exporter must preserve
+current tracked file bytes and executable state, exclude `uv.lock` even when it
+is tracked, exclude ignored and untracked local state by default, warn when
+non-ignored untracked files are omitted, and provide a strict mode that fails on
+such untracked files. The archive must be deterministic for an unchanged working
+tree and must use the stable `feregion/` internal root.
+
 ## Iterative delivery contract
 
 **REQ-DEL-001** — Each iterative source delivery must provide a complete

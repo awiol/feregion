@@ -174,6 +174,16 @@ check, and speedup.
 Scalar performance is a review signal. The batch interface remains the
 performance-oriented API.
 
+Cross-Python benchmarking is a separate matrix from compatibility testing. Four
+lock-backed tox-uv environments run the same standalone benchmark harness on
+Python 3.11 through 3.14 and write raw JSON below `.tox/benchmark-results/`. A
+report reducer selects eight public-path throughput metrics: three scalar
+operations, two batch-number workloads, one batch name-conversion workload, and
+two pandas copy workloads. The report records exact Python, NumPy, pandas, and
+package versions and normalizes throughput to Python 3.11. Using one lock and one
+machine reduces dependency and hardware confounding; recorded versions keep any
+remaining environment-marker differences visible.
+
 The proposed mask-only longitude/quadrant kernel remains deferred in this
 iteration. Scratch evidence suggested lower temporary allocation and a modest
 kernel improvement, but the project will not change the hot path until a
@@ -208,15 +218,19 @@ packages, installs the wheel with dependencies, and exercises Python and CLI
 APIs.
 
 The repository uses local pre-commit hooks that execute the synchronized `uv`
-development environment. The hooks run Ruff formatting, Ruff linting, and the
-full pytest suite. This keeps commit-time checks aligned with repository tooling
-without creating independent hook-specific Python environments.
+development environment. The hooks run Ruff formatting and Ruff linting, then
+invoke tox's `local` environment for behavioral tests. This keeps commit-time
+tests aligned with the tox test definition without creating independent
+hook-specific Python environments.
 
-For local compatibility checks, `tox.toml` defines uv-backed environments for
-Python 3.11 through 3.14 and a Python 3.11 `lowest-direct` environment. tox
-provides environment orchestration; tox-uv delegates interpreter/environment
-creation and dependency installation to uv. Hosted lower-bound CI invokes the
-same `minimum` environment to prevent local/CI definition drift.
+For local compatibility checks, `tox.toml` defines lock-backed `py311` through
+`py314` environments plus a Python 3.11 `lowest-direct` environment. tox provides
+environment orchestration; tox-uv delegates interpreter/environment creation and
+dependency installation to uv. The minimum environment installs the project and
+its `test` extra together with `uv-editable`, so direct NumPy and pandas lower
+bounds are co-resolved instead of being installed in separate steps. Hosted
+lower-bound CI invokes the same `minimum` environment to prevent local/CI
+definition drift.
 
 The repository also contains synchronization and integrity tests for:
 
@@ -251,6 +265,14 @@ The maintained contract set uses stable repository paths. Git history records
 contract revisions. Delivery manifests, checksum lists, raw benchmark results,
 verification logs, and per-iteration review reports remain outside the source
 tree.
+
+For maintainer-to-agent handoff, `tools.export_repository` uses Git-tracked paths
+as the source boundary but reads their current working-tree bytes. This preserves
+tracked local formatting/checking edits without collecting editor settings,
+virtual environments, caches, benchmark runs, or other untracked state.
+`uv.lock` is excluded explicitly. Non-ignored untracked paths are reported so a
+new source file must be staged/committed (or otherwise deliberately handled)
+before it can be mistaken for project source.
 
 ## 12. Compatibility and residual limits
 

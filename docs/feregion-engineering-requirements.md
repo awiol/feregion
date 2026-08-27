@@ -148,6 +148,13 @@ otherwise. Scalar performance is a review signal, not a throughput SLA. A
 material scalar regression must not justify changes that complicate the batch
 hot path without corresponding evidence.
 
+**REQ-PERF-005** — The repository must provide a cross-Python benchmark matrix for
+CPython 3.11, 3.12, 3.13, and 3.14. The matrix must use the repository lock so
+dependency resolution does not drift independently between interpreter runs,
+must retain exact interpreter and direct benchmark-library versions in each raw
+result, and must produce one compact report comparing between four and eight
+representative throughput metrics across the supported Python versions.
+
 ## Packaging, development environment, and license
 
 **REQ-PKG-001** — The package must require Python 3.11 or newer. Automated
@@ -220,10 +227,11 @@ an explicitly approved alternative resolved-dependency record.
 
 **REQ-PKG-016** — Repository development must include `pre-commit` in the `uv`
 development toolchain. The repository pre-commit configuration must run Ruff
-formatting, Ruff linting, and the full pytest suite. The hooks must use the
-project `uv` environment rather than maintaining independent Python tool
-environments, and they must reject a stale project lock instead of refreshing it
-implicitly.
+formatting and Ruff linting, then execute behavioral tests through a named tox
+environment that reuses the repository test definition. The hooks must use the
+project `uv` environment rather than maintaining independent hook-managed Python
+tool environments, and they must reject a stale project lock instead of
+refreshing it implicitly.
 
 **REQ-PKG-017** — Repository tooling must declare a compatible uv version range
 that is broad enough for supported developer environments and narrow enough to
@@ -243,6 +251,10 @@ Checkout steps must not persist the workflow token when later steps do not need 
 
 **REQ-PKG-019** — The repository must provide a tox configuration backed by uv
 for local compatibility orchestration. The default matrix must cover CPython
-3.11, 3.12, 3.13, and 3.14 plus a Python 3.11 `lowest-direct` environment.
+3.11, 3.12, 3.13, and 3.14 through explicit Python-factor environment names,
+plus a Python 3.11 `lowest-direct` environment. Normal compatibility environments
+must use the repository lock. The minimum environment must resolve the project
+and its test requirements together in one dependency transaction so declared
+NumPy and pandas lower bounds cannot be split into an ABI-incompatible pair.
 Hosted lower-bound CI must execute that same named minimum environment so local
 and hosted dependency-range checks do not maintain separate test definitions.

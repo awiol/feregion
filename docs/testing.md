@@ -103,12 +103,16 @@ uv sync --locked --group dev
 uv run --locked --group matrix tox run
 ```
 
-The default matrix runs Python 3.11, 3.12, 3.13, and 3.14 plus `minimum`. tox-uv
+The default matrix runs `py311`, `py312`, `py313`, and `py314` plus `minimum`. tox-uv
 uses uv for environment creation and package installation and can obtain a
 managed interpreter when the requested Python is not installed locally. The
-`minimum` environment uses Python 3.11 with `uv_resolution = "lowest-direct"`,
-so project and test lower bounds are taken from `pyproject.toml` instead of a
-separate list of exact pins. Run only that check with:
+`minimum` environment uses Python 3.11 with `uv_resolution = "lowest-direct"` and
+installs the project plus its `test` extra in one uv transaction. This makes both
+NumPy and pandas direct requirements of the same lower-bound resolution and avoids
+old-pandas/new-NumPy ABI combinations caused by split installation. Project and
+test lower bounds are therefore taken from `pyproject.toml` instead of a separate
+list of exact pins. It prints the resolved Python, NumPy, pandas, Shapely, and
+pytest versions before running the suite. Run only that check with:
 
 ```bash
 uv run --locked --group matrix tox run -e minimum
@@ -153,6 +157,42 @@ Reports retain workload, environment, repetitions, median duration, throughput,
 and speedup. Generated benchmark JSON and human-readable reports are delivery
 artifacts and should not be committed to the source repository.
 
+
+Run the supported-Python benchmark matrix after generating the local lock and
+fetching the verified FE source tables:
+
+```bash
+uv lock
+uv run --locked python -m tools.fetch_obspy_fe_data
+uv run --locked --group matrix --group benchmark tox run \
+  -e benchmark-py311,benchmark-py312,benchmark-py313,benchmark-py314,benchmark-report
+```
+
+The four benchmark environments use tox-uv's lock runner. Raw reports and the
+combined Markdown report are written under `.tox/benchmark-results/`. The
+comparison report requires all four supported Python versions and summarizes
+eight representative throughput metrics. Run the matrix on one machine when the
+result will be used to compare interpreter versions.
+
+## Clean repository handoff
+
+Create a source handoff from the current tracked working tree with:
+
+```bash
+uv run --locked python -m tools.export_repository
+```
+
+The default output is `../feregion-handoff.zip`. Tracked working-tree edits are
+included even when they are not committed. `uv.lock`, ignored paths, and all
+untracked paths are excluded. The command warns about non-ignored untracked
+paths because a new source file must be staged or committed before the default
+exporter can distinguish it from local configuration or run output. Use strict
+mode before an important handoff:
+
+```bash
+uv run --locked python -m tools.export_repository --fail-on-untracked
+```
+
 ## Commit-time checks
 
 Install the development environment and hooks once:
@@ -169,4 +209,6 @@ uv run pre-commit run --all-files
 ```
 
 The hooks use the synchronized project environment. Ruff formatting can modify
-Python files; review and re-stage those changes before committing.
+Python files; review and re-stage those changes before committing. Behavioral
+tests run through `tox run -e local`, so pre-commit and the compatibility matrix
+share one tox test definition instead of duplicating a direct pytest command.

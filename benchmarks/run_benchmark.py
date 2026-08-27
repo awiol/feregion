@@ -288,6 +288,8 @@ def main(argv: list[str] | None = None) -> int:
         "environment": {
             "platform": platform.platform(),
             "python": sys.version.split()[0],
+            "python_implementation": platform.python_implementation(),
+            "python_compiler": platform.python_compiler(),
             "numpy": np.__version__,
             "feregion": feregion.__version__,
         },
@@ -317,6 +319,7 @@ def main(argv: list[str] | None = None) -> int:
 
     text = json.dumps(report, indent=2, sort_keys=True) + "\n"
     if args.output:
+        args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(text, encoding="utf-8")
     print(text, end="")
     return 0
