@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.2a3 — 2026-08-27
+
+- Replace the exact uv executable pin with the compatibility range `uv>=0.10,<1`.
+- Let `setup-uv` resolve a compatible uv release from repository metadata instead of forcing one literal version.
+- Keep locked CI/pre-commit semantics and full-SHA GitHub Action pins unchanged.
+- Change repository tests and maintained documentation to verify uv behavior/range contracts rather than an exact executable version.
+
 ## 0.1.2a2 — 2026-08-26
 
 - Add explicit CPython 3.14 support while preserving Python 3.11 as the minimum supported version.

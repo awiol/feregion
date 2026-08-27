@@ -166,14 +166,17 @@ def test_python_314_is_explicitly_supported_without_raising_minimum() -> None:
     assert "Programming Language :: Python :: 3.14" in classifiers
 
 
-def test_uv_version_is_pinned_for_repository_and_ci() -> None:
-    """The repository and setup action must resolve the same exact uv version."""
+def test_uv_version_uses_compatible_range_without_exact_ci_pin() -> None:
+    """Repository tooling must allow compatible uv releases instead of one exact build."""
 
     data = _pyproject()
-    assert data["tool"]["uv"]["required-version"] == "==0.12.6"
+    required_version = data["tool"]["uv"]["required-version"]
+    assert required_version == ">=0.10,<1"
+    assert "==" not in required_version
+
     workflow = (PROJECT_ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
-    assert 'UV_VERSION: "0.12.6"' in workflow
-    assert "version: ${{ env.UV_VERSION }}" in workflow
+    assert "UV_VERSION:" not in workflow
+    assert "version: ${{ env.UV_VERSION }}" not in workflow
 
 
 def test_ci_uses_locked_normal_environments_and_bounds_runs() -> None:

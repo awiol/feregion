@@ -9,7 +9,7 @@ from ._default import get_default_lookup
 from .core import FlinnEngdahlLookup
 from .types import Region
 
-__version__ = "0.1.2a2"
+__version__ = "0.1.2a3"
 
 
 def lookup_number(longitude: float, latitude: float) -> int:

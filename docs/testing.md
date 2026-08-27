@@ -96,7 +96,8 @@ before the fix does not establish regression protection for that defect.
 
 ## Locked CI environment
 
-CI pins uv `0.12.6`. Normal matrix, oracle, and quality jobs use the committed
+CI accepts `uv>=0.10,<1`; `setup-uv` resolves a compatible release from that
+range. Normal matrix, oracle, and quality jobs use the committed
 `uv.lock` with `uv sync --locked` and `uv run --locked`. The minimum-dependency
 job intentionally creates a separate environment at declared direct lower bounds.
 Workflow jobs have explicit timeouts, and workflow concurrency cancels obsolete

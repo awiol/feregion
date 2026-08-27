@@ -142,12 +142,33 @@ changed rationale as historical fact.
   hosted compatibility matrix stopped at 3.13. CI also allowed uv and the lock
   state to change implicitly during normal jobs.
 - **Decision:** Keep Python 3.11 as the minimum supported version and verify
-  CPython 3.11, 3.12, 3.13, and 3.14. Pin uv to `0.12.6`, require locked sync for
+  CPython 3.11, 3.12, 3.13, and 3.14. Originally pin uv to `0.12.6`, require locked sync for
   normal jobs, bound job runtimes, and cancel obsolete workflow runs.
 - **Alternatives considered:** raise the minimum Python version; treat 3.14 as
   unverified; install latest uv on each run; allow normal CI to refresh the lock.
 - **Compatibility consequence:** Python 3.11 remains supported. Python 3.14 becomes
   an explicit compatibility target. The lower-bound dependency job remains on
   Python 3.11.
-- **Review trigger:** a supported Python or pinned uv version reaches end of
-  project support, or hosted CI shows a dependency/packaging incompatibility.
+- **Supersession:** The exact uv pin is superseded by `DEC-012`; the Python matrix,
+  locked-environment, timeout, and concurrency decisions remain active.
+- **Review trigger:** a supported Python version reaches end of project support,
+  or hosted CI shows a dependency/packaging incompatibility.
+
+## `DEC-012` — Constrain uv by compatibility range, not exact release
+
+- **Context:** Exact `uv` pinning caused otherwise compatible local tooling, tests,
+  and builds to fail solely because the installed uv executable had a different
+  patch/minor release. The repository relies on stable command contracts such as
+  `sync --locked`, `run --locked`, `build --locked`, and `python install`, not on
+  behavior unique to one uv release.
+- **Decision:** Require `uv>=0.10,<1`. Let `setup-uv` resolve the highest compatible
+  release from the repository constraint. Keep the GitHub Action itself pinned by
+  commit SHA for supply-chain stability. Tests verify the compatibility-range and
+  locked-workflow contracts, not one literal uv executable version.
+- **Alternatives considered:** no uv version constraint; exact executable pin;
+  per-workflow uv pins independent of repository metadata.
+- **Compatibility consequence:** Existing uv 0.10+ developer environments can run
+  repository commands without artificial failure, while uv 1.x requires an explicit
+  future review before becoming part of the tooling contract.
+- **Review trigger:** required commands become unavailable or materially change
+  semantics within the accepted range, or uv 1.x is evaluated for adoption.

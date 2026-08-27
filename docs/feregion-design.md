@@ -189,7 +189,7 @@ The repository uses `uv` as the development and build frontend.
 
 GitHub Actions contains:
 
-GitHub Actions pins uv `0.12.6`, validates normal environments against the committed lock, bounds job runtimes, and cancels obsolete runs for the same branch or pull request.
+GitHub Actions resolves a compatible `uv>=0.10,<1` release from repository metadata, validates normal environments against the committed lock, bounds job runtimes, and cancels obsolete runs for the same branch or pull request.
 
 - a Python 3.11, 3.12, 3.13, and 3.14 matrix that fetches the hash-verified pinned FE
   source tables and runs the runtime suite with branch coverage;

@@ -220,12 +220,15 @@ project `uv` environment rather than maintaining independent Python tool
 environments, and they must reject a stale project lock instead of refreshing it
 implicitly.
 
-**REQ-PKG-017** — CI must pin the uv executable to the exact version declared by
-`[tool.uv].required-version`. Normal test, oracle, and quality environments must
-use `uv sync --locked`, and commands executed in those environments must use a
-lock-preserving `uv run --locked` path. The lower-bound compatibility job may
-intentionally bypass the project lock because its purpose is to exercise the
-declared minimum direct dependencies.
+**REQ-PKG-017** — Repository tooling must declare a compatible uv version range
+that is broad enough for supported developer environments and narrow enough to
+exclude an unreviewed major-version contract change. CI must let `setup-uv`
+resolve a compatible release from that range instead of pinning one exact uv
+build. Normal test, oracle, and quality environments must use `uv sync --locked`,
+and commands executed in those environments must use a lock-preserving
+`uv run --locked` path. The lower-bound compatibility job may intentionally
+bypass the project lock because its purpose is to exercise the declared minimum
+direct dependencies.
 
 **REQ-PKG-018** — CI must bound job runtime and cancel obsolete runs for the same
 workflow and pull request or branch. Push-triggered CI must run on the default
