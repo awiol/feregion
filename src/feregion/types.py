@@ -5,7 +5,12 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True, slots=True)
 class GeographicRegion:
-    """A Flinn-Engdahl geographical-region number and packaged name."""
+    """Immutable geographical-region value returned by scalar lookup.
+
+    Attributes:
+        number: Active Flinn-Engdahl geographical-region identifier.
+        name: Packaged name associated with ``number``.
+    """
 
     number: int
     name: str
@@ -13,7 +18,12 @@ class GeographicRegion:
 
 @dataclass(frozen=True, slots=True)
 class SeismicRegion:
-    """A Flinn-Engdahl seismic-region number and packaged name."""
+    """Immutable seismic-region value returned by scalar lookup.
+
+    Attributes:
+        number: Flinn-Engdahl seismic-region identifier.
+        name: Packaged seismic-region name associated with ``number``.
+    """
 
     number: int
     name: str

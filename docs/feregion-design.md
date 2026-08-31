@@ -133,6 +133,12 @@ it does not narrow valid extended-precision coordinates to `float64` first.
 Exact `-180` uses longitude index 180 with east-side quadrant semantics without
 rewriting the full longitude array.
 
+Plural region-number conversion APIs accept NumPy-compatible `ArrayLike`
+inputs and always return NumPy arrays. This includes scalar array-like values:
+a scalar input has shape `()` and produces a zero-dimensional result rather
+than a NumPy scalar. This keeps the runtime result consistent with the published
+`NDArray` return type while preserving the accepted input surface.
+
 The pandas adapter follows the same semantic coordinate-type contract and accepts an explicit geographical/seismic `level`. The default remains geographical. It:
 
 - requires distinct longitude and latitude selectors;
@@ -181,12 +187,15 @@ broader storage-transaction guarantee:
 7. publish it with `os.replace()`.
 
 An ordinary processing failure before replacement leaves an existing
-destination unchanged and does not publish a new partial destination. The
-contract does not claim crash durability, directory fsync, ACL preservation,
-owner preservation, or cross-filesystem atomicity.
+destination unchanged and does not publish a new partial destination. The CLI
+diagnostic states this preserved filesystem condition so an operator does not
+need to infer recovery state from implementation details. The contract does not
+claim crash durability, directory fsync, ACL preservation, owner preservation,
+or cross-filesystem atomicity.
 
 stdout is a streaming sink. A later failure can leave earlier bytes visible.
-The command still returns its failure status and diagnostic.
+The command returns its failure status and states that partial stdout may exist
+and should be discarded before retrying.
 
 ## 8. GeoJSON derivation
 

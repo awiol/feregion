@@ -57,6 +57,26 @@ def test_batch_geographic_to_seismic_preserves_shape_and_uint8_dtype() -> None:
     assert result.dtype == np.uint8
 
 
+def test_scalar_array_like_hierarchy_conversion_returns_zero_dimensional_array() -> None:
+    """Scalar ArrayLike hierarchy input preserves the public ndarray result contract."""
+
+    result = feregion.geographic_numbers_to_seismic_numbers(543)
+    assert type(result) is np.ndarray
+    assert result.shape == ()
+    assert result.dtype == np.uint8
+    assert result.item() == 36
+
+
+def test_scalar_array_like_seismic_names_returns_zero_dimensional_array() -> None:
+    """Scalar ArrayLike seismic-name input returns a zero-dimensional Unicode array."""
+
+    result = feregion.seismic_numbers_to_names(36)
+    assert type(result) is np.ndarray
+    assert result.shape == ()
+    assert result.dtype.kind == "U"
+    assert result.item() == "Northwestern Europe"
+
+
 def test_retired_geographical_number_has_no_seismic_parent() -> None:
     """Storage-range holes are not promoted into active hierarchy members."""
 

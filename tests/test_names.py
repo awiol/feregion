@@ -40,6 +40,18 @@ def test_number_to_name_rejects_invalid_number(lookup: FlinnEngdahlLookup, numbe
         lookup.number_to_name(number)  # type: ignore[arg-type]
 
 
+def test_numbers_to_names_scalar_array_like_returns_zero_dimensional_array(
+    lookup: FlinnEngdahlLookup,
+) -> None:
+    """A scalar ArrayLike still satisfies the documented ndarray return contract."""
+
+    result = lookup.numbers_to_names(543)
+    assert type(result) is np.ndarray
+    assert result.shape == ()
+    assert result.dtype.kind == "U"
+    assert result.item() == "REGION_543"
+
+
 def test_numbers_to_names_preserves_multidimensional_shape(lookup: FlinnEngdahlLookup) -> None:
     """Vector name conversion preserves the caller's region-number array shape."""
 

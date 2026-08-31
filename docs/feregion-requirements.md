@@ -142,8 +142,10 @@ numbers with shape `(n,)`.
 **REQ-NP-003** — Batch lookup must not return region names.
 
 **REQ-NP-004** — Separate array functions must convert valid integer region
-numbers to same-shape Unicode name arrays. Geographical conversion must reject
-retired or otherwise inactive identifiers with `RegionNumberError`.
+number `ArrayLike` inputs to Unicode NumPy arrays with the same shape. A scalar
+`ArrayLike` input has shape `()` and must return a zero-dimensional NumPy array,
+not a NumPy scalar. Geographical conversion must reject retired or otherwise
+inactive identifiers with `RegionNumberError`.
 
 **REQ-NP-006** — Batch lookup must not modify caller-owned coordinate data.
 
@@ -154,9 +156,10 @@ retired or otherwise inactive identifiers with `RegionNumberError`.
 contract and return one-dimensional `uint8` seismic identifiers with shape
 `(n,)`.
 
-**REQ-NP-009** — A separate vectorized hierarchy function must convert an
-integer array of active geographical identifiers to a same-shape `uint8`
-seismic-identifier array.
+**REQ-NP-009** — A separate hierarchy function must convert an integer
+`ArrayLike` of active geographical identifiers to a same-shape `uint8` NumPy
+array. A scalar `ArrayLike` input must return a zero-dimensional NumPy array, not
+a NumPy scalar.
 
 **REQ-NP-010** — Batch lookup must preserve the validated caller numeric dtype
 until FE integer cell indices and quadrant ownership are established. It must
@@ -261,12 +264,15 @@ for writing.
 publication. The command must write a temporary sibling and replace the
 requested destination only after all input has been processed successfully.
 Header, conversion, lookup, or later-chunk failure must leave an existing
-destination unchanged and must not publish a new partial destination. This
-requirement does not claim crash-durable storage semantics.
+destination unchanged and must not publish a new partial destination. The CLI
+diagnostic must state that no partial filesystem destination was published and
+that an existing destination, if any, was preserved. This requirement does not
+claim crash-durable storage semantics.
 
 **REQ-CLI-008** — stdout is a streaming destination and is not atomic. If
 a later row fails, rows already written to stdout may remain visible. The
-command must still return the normal failure status and diagnostic.
+command must still return the normal failure status, and its diagnostic must
+state that partial stdout may exist and should be discarded before retrying.
 
 **REQ-CLI-009** — CSV output columns must be additive. A requested output
 column must not replace a coordinate column or any existing input field. When

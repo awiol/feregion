@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.0a4 — 2026-08-31
+
+- Make plural region-number conversion APIs honor their published NumPy-array return contract for scalar `ArrayLike` input by returning zero-dimensional arrays instead of NumPy scalar objects.
+- Improve CSV failure diagnostics so filesystem failures state that no partial destination was published and stdout failures warn that earlier streamed rows may need to be discarded before retry.
+- Correct the README `lookup_region()` representation and document scalar-versus-plural conversion behavior.
+- Expand caller-facing docstrings for the explicit public lookup, conversion, default-engine, value-type, and GeoJSON-write interfaces.
+- Retain the `0.3.0a3` scientific assets, coordinate semantics, hierarchy, and batch-optimization implementation unchanged.
+
 ## 0.3.0a3 — 2026-08-31
 
 - Replaced seismic GeoJSON parallel child-number/name properties with structured `geographic_regions` number/name objects.

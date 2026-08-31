@@ -90,10 +90,32 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "geojson":
             return _geojson(args)
     except (FlinnEngdahlError, OSError) as exc:
-        print(f"error: {exc}", file=sys.stderr)
+        print(f"error: {_diagnostic_message(args, exc)}", file=sys.stderr)
         return 2
     parser.error("unknown command")  # pragma: no cover -- argparse restricts choices
     return 2  # pragma: no cover -- parser.error always raises
+
+
+def _diagnostic_message(args: argparse.Namespace, exc: Exception) -> str:
+    """Return an actionable CLI diagnostic for the observed failure.
+
+    CSV diagnostics state the recoverable output condition because filesystem
+    output is transactional while stdout is intentionally streaming. Other
+    commands retain the exception's consumer-facing message unchanged.
+    """
+
+    message = str(exc)
+    if args.command != "csv":
+        return message
+    if args.output == "-":
+        return (
+            f"{message}; stdout may contain CSV rows written before this failure; "
+            "discard partial stdout before retrying"
+        )
+    return (
+        f"{message}; no partial CSV destination was published; "
+        "an existing destination, if any, was preserved"
+    )
 
 
 def _point(args: argparse.Namespace) -> int:

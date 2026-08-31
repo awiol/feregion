@@ -160,3 +160,27 @@ def test_geographical_only_engine_rejects_all_public_seismic_operations() -> Non
         engine.seismic_number_to_name(36)
     with raises_exact(SeismicDataUnavailableError):
         engine.seismic_numbers_to_names(np.asarray([36], dtype=np.uint8))
+
+
+def test_explicit_public_function_docstrings_expose_call_contract() -> None:
+    """Canonical public functions document inputs, outputs, and owned failures."""
+
+    functions = (
+        feregion.lookup_geographic_number,
+        feregion.lookup_geographic_region,
+        feregion.lookup_geographic_numbers,
+        feregion.geographic_number_to_name,
+        feregion.geographic_numbers_to_names,
+        feregion.geographic_to_seismic_number,
+        feregion.geographic_numbers_to_seismic_numbers,
+        feregion.lookup_seismic_number,
+        feregion.lookup_seismic_region,
+        feregion.lookup_seismic_numbers,
+        feregion.seismic_number_to_name,
+        feregion.seismic_numbers_to_names,
+    )
+    for function in functions:
+        docstring = function.__doc__ or ""
+        assert "Args:" in docstring, function.__name__
+        assert "Returns:" in docstring, function.__name__
+        assert "Raises:" in docstring, function.__name__

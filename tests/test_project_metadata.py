@@ -330,3 +330,11 @@ def test_canonical_documented_uv_verification_commands_preserve_lock() -> None:
             command = line.strip()
             if command.startswith(("uv sync", "uv run")):
                 assert "--locked" in command, f"{relative}:{line_number}: {command}"
+
+
+def test_readme_region_example_matches_public_runtime_representation() -> None:
+    """The primary scalar-region example must show the value type users actually see."""
+
+    readme = (PROJECT_ROOT / "README.md").read_text(encoding="utf-8")
+    expected = f"# {feregion.lookup_region(12.0, 48.0)!r}"
+    assert expected in readme

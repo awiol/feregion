@@ -693,3 +693,25 @@ changed rationale as historical fact.
   `geographic_names`. Default GeoJSON properties and geometry are unchanged.
 - **Review trigger:** A concrete downstream GeoJSON schema requires a different
   representation of parent/child region relationships.
+
+## `DEC-039` — Preserve scalar `ArrayLike` inputs and normalize plural conversion results to arrays
+
+- **Context:** Review of `0.3.0a3` found that plural region-number conversion
+  functions publish `ArrayLike` inputs and `NDArray` outputs. A scalar integer is
+  a valid `ArrayLike`, but NumPy advanced indexing returned `np.str_` or
+  `np.uint8` scalar objects for that input, contradicting the published return
+  contract.
+- **Decision:** Keep scalar `ArrayLike` input support. Plural geographical-name,
+  geographical-to-seismic, and seismic-name conversion functions must always
+  return NumPy arrays. Scalar input has shape `()` and returns a zero-dimensional
+  array. Scalar-specific APIs remain available when a Python scalar result is
+  desired.
+- **Alternatives considered:** reject scalar inputs from the plural functions;
+  broaden the return type to include NumPy scalars; leave the mismatch only in
+  documentation.
+- **Compatibility consequence:** Array inputs are unchanged. A caller that passed
+  a scalar to a plural function now receives a zero-dimensional `ndarray` instead
+  of a NumPy scalar, which makes runtime behavior match the existing typed
+  contract.
+- **Review trigger:** The public input type is narrowed deliberately, or NumPy's
+  scalar/indexing type behavior changes materially.

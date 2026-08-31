@@ -270,7 +270,31 @@ def write_regions_geojson(
     lookup: FlinnEngdahlLookup | None = None,
     indent: int | None = None,
 ) -> None:
-    """Write configured area-equivalent FE geometry as UTF-8 GeoJSON."""
+    """Write configured one-degree-cell-union FE geometry as UTF-8 GeoJSON.
+
+    Args:
+        path: Destination filesystem path. Existing content is replaced by
+            ``Path.write_text``; this function does not claim atomic publication.
+        level: Geometry level, either ``"geographic"`` or ``"seismic"``.
+        properties: Ordered feature-property names valid for the selected level.
+        label: Optional convenience label representation.
+        include_metadata: Include the collection-level ``feregion`` metadata
+            foreign member when true.
+        lookup: Explicit lookup engine, or ``None`` for the packaged default.
+        indent: Optional JSON indentation passed to :func:`json.dumps`.
+
+    Returns:
+        ``None`` after the complete UTF-8 document has been written.
+
+    Raises:
+        RegionLevelError: If ``level`` is unsupported.
+        GeoJSONOptionError: If a property or label option is unsupported or
+            duplicated.
+        GeoJSONDependencyError: If Shapely is unavailable.
+        SeismicDataUnavailableError: If seismic output is requested from an
+            engine without hierarchy data.
+        OSError: If the destination cannot be written.
+    """
 
     destination = Path(path)
     destination.write_text(

@@ -195,6 +195,8 @@ def test_cli_csv_midstream_failure_preserves_existing_output_file(tmp_path: Path
 
     assert status == 2
     assert "CSV row 3 has a non-numeric coordinate" in captured.err
+    assert "no partial CSV destination was published" in captured.err
+    assert "an existing destination, if any, was preserved" in captured.err
     assert output.read_text(encoding="utf-8") == "keep-me\n"
     assert list(tmp_path.glob(".output.csv.*.tmp")) == []
 
@@ -216,6 +218,8 @@ def test_cli_csv_stdout_can_contain_partial_rows_after_late_failure(monkeypatch,
     assert status == 2
     assert captured.out == "longitude,latitude,fe_number\r\n12,48,543\r\n"
     assert "CSV row 3 has a non-numeric coordinate" in captured.err
+    assert "stdout may contain CSV rows written before this failure" in captured.err
+    assert "discard partial stdout before retrying" in captured.err
 
 
 def test_cli_csv_rejects_identical_number_and_name_output_columns(tmp_path: Path, capsys) -> None:

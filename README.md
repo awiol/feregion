@@ -44,7 +44,7 @@ feregion.lookup_number(12.0, 48.0)
 # 543
 
 feregion.lookup_region(12.0, 48.0)
-# Region(number=543, name='GERMANY')
+# GeographicRegion(number=543, name='GERMANY')
 
 coordinates = np.array(
     [
@@ -85,6 +85,12 @@ The pre-existing generic functions (`lookup_number`, `lookup_region`,
 `lookup_numbers`, `number_to_name`, and `numbers_to_names`) remain geographical
 compatibility interfaces. New code can use the explicit `geographic_*` and
 `seismic_*` forms when the level matters.
+
+Plural region-number conversion functions accept NumPy-compatible array-like
+values and always return NumPy arrays. A scalar input returns a
+zero-dimensional array. Use `geographic_number_to_name()`,
+`geographic_to_seismic_number()`, or `seismic_number_to_name()` when a
+Python scalar result is required.
 
 Packaged geographical names are derived from pinned ObsPy `names.asc`; packaged
 seismic names retain the declared ISC FE standards spelling. The project does

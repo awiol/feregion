@@ -45,6 +45,10 @@ class FlinnEngdahlLookup:
         seismic_names: Optional one-based Unicode seismic-region names. This
             argument must be supplied together with ``seismic_by_geographic``.
 
+    Raises:
+        DataFileError: If the table, name arrays, or optional hierarchy arrays
+            violate the engine's structural invariants.
+
     Notes:
         Explicit two-array construction remains supported for alternate
         geographical datasets. The packaged default engine supplies the two
@@ -136,7 +140,20 @@ class FlinnEngdahlLookup:
     def lookup_geographic_number(
         self, longitude: ScalarCoordinate, latitude: ScalarCoordinate
     ) -> int:
-        """Return the geographical-region number for one coordinate pair."""
+        """Return the geographical-region number for one coordinate pair.
+
+        Args:
+            longitude: Longitude in ``[-180, 180]`` geographic degrees.
+            latitude: Latitude in ``[-90, 90]`` geographic degrees.
+
+        Returns:
+            The active geographical-region identifier containing the coordinate.
+
+        Raises:
+            CoordinateTypeError: If either coordinate is not a supported real scalar.
+            CoordinateValueError: If either coordinate is not finite.
+            CoordinateRangeError: If either coordinate is outside the supported range.
+        """
 
         _validate_scalar_coordinate_types(longitude, latitude)
         _validate_scalar_coordinate_values(longitude, latitude)
@@ -154,7 +171,20 @@ class FlinnEngdahlLookup:
     def lookup_geographic_region(
         self, longitude: ScalarCoordinate, latitude: ScalarCoordinate
     ) -> GeographicRegion:
-        """Return the geographical-region number and packaged name."""
+        """Return the geographical-region number and packaged name.
+
+        Args:
+            longitude: Longitude in ``[-180, 180]`` geographic degrees.
+            latitude: Latitude in ``[-90, 90]`` geographic degrees.
+
+        Returns:
+            An immutable geographical-region value for the coordinate.
+
+        Raises:
+            CoordinateTypeError: If either coordinate is not a supported real scalar.
+            CoordinateValueError: If either coordinate is not finite.
+            CoordinateRangeError: If either coordinate is outside the supported range.
+        """
 
         number = self.lookup_geographic_number(longitude, latitude)
         return GeographicRegion(number=number, name=self.geographic_number_to_name(number))
@@ -165,7 +195,21 @@ class FlinnEngdahlLookup:
         return self.lookup_geographic_region(longitude, latitude)
 
     def lookup_geographic_numbers(self, coordinates: npt.ArrayLike) -> GeographicNumberArray:
-        """Return geographical-region numbers for a two-column coordinate array."""
+        """Return geographical-region numbers for a coordinate batch.
+
+        Args:
+            coordinates: Numeric array-like input with shape ``(n, 2)`` in
+                ``[longitude, latitude]`` column order.
+
+        Returns:
+            A one-dimensional ``uint16`` array with shape ``(n,)``.
+
+        Raises:
+            CoordinateShapeError: If the input does not have shape ``(n, 2)``.
+            CoordinateTypeError: If the input dtype is unsupported.
+            CoordinateValueError: If a coordinate is not finite.
+            CoordinateRangeError: If a coordinate is outside the supported range.
+        """
 
         array = _coordinate_array(coordinates)
         if array.shape[0] == 0:
@@ -199,7 +243,17 @@ class FlinnEngdahlLookup:
         return self.lookup_geographic_numbers(coordinates)
 
     def geographic_number_to_name(self, number: int) -> str:
-        """Return the packaged geographical-region name for one active number."""
+        """Return the packaged geographical-region name for one active number.
+
+        Args:
+            number: Active geographical-region identifier.
+
+        Returns:
+            The packaged name as a Python string.
+
+        Raises:
+            RegionNumberError: If ``number`` is not an active geographical identifier.
+        """
 
         index = _scalar_region_index(
             number,
@@ -215,7 +269,20 @@ class FlinnEngdahlLookup:
         return self.geographic_number_to_name(number)
 
     def geographic_numbers_to_names(self, numbers: npt.ArrayLike) -> npt.NDArray[np.str_]:
-        """Convert geographical-region numbers to same-shape packaged names."""
+        """Convert geographical-region identifiers to packaged names.
+
+        Args:
+            numbers: Integer array-like active geographical identifiers. Scalar
+                input is accepted and has shape ``()``.
+
+        Returns:
+            A Unicode NumPy array with the same shape as ``numbers``. Scalar
+            input returns a zero-dimensional array.
+
+        Raises:
+            RegionNumberError: If the input is not integer-valued or contains an
+                inactive or unknown geographical identifier.
+        """
 
         return _numbers_to_names(
             numbers,
@@ -230,7 +297,18 @@ class FlinnEngdahlLookup:
         return self.geographic_numbers_to_names(numbers)
 
     def geographic_to_seismic_number(self, number: int) -> int:
-        """Return the seismic parent of one active geographical-region number."""
+        """Return the seismic parent of one active geographical-region number.
+
+        Args:
+            number: Active geographical-region identifier.
+
+        Returns:
+            The parent seismic-region identifier.
+
+        Raises:
+            RegionNumberError: If ``number`` is inactive, unknown, or unmapped.
+            SeismicDataUnavailableError: If this engine has no seismic hierarchy.
+        """
 
         crosswalk, _ = self._require_seismic_data()
         index = _scalar_region_index(
@@ -245,7 +323,21 @@ class FlinnEngdahlLookup:
         return seismic
 
     def geographic_numbers_to_seismic_numbers(self, numbers: npt.ArrayLike) -> SeismicNumberArray:
-        """Convert geographical-region numbers to same-shape seismic numbers."""
+        """Convert geographical identifiers to same-shape seismic identifiers.
+
+        Args:
+            numbers: Integer array-like active geographical identifiers. Scalar
+                input is accepted and has shape ``()``.
+
+        Returns:
+            A ``uint8`` NumPy array with the same shape as ``numbers``. Scalar
+            input returns a zero-dimensional array.
+
+        Raises:
+            RegionNumberError: If the input is not integer-valued or contains an
+                inactive, unknown, or unmapped geographical identifier.
+            SeismicDataUnavailableError: If this engine has no seismic hierarchy.
+        """
 
         crosswalk, _ = self._require_seismic_data()
         array = _integer_region_array(
@@ -256,7 +348,7 @@ class FlinnEngdahlLookup:
         )
         if array.size == 0:
             return np.empty(array.shape, dtype=np.uint8)
-        result = crosswalk[array]
+        result = np.asarray(crosswalk[array], dtype=np.uint8)
         if np.any(result == 0):
             raise RegionNumberError(
                 "one or more geographical regions have no active seismic mapping"
@@ -264,20 +356,63 @@ class FlinnEngdahlLookup:
         return cast(SeismicNumberArray, result)
 
     def lookup_seismic_number(self, longitude: ScalarCoordinate, latitude: ScalarCoordinate) -> int:
-        """Return the seismic-region number for one coordinate pair."""
+        """Return the seismic-region number for one coordinate pair.
+
+        Args:
+            longitude: Longitude in ``[-180, 180]`` geographic degrees.
+            latitude: Latitude in ``[-90, 90]`` geographic degrees.
+
+        Returns:
+            The seismic-region identifier containing the coordinate.
+
+        Raises:
+            CoordinateTypeError: If either coordinate is not a supported real scalar.
+            CoordinateValueError: If either coordinate is not finite.
+            CoordinateRangeError: If either coordinate is outside the supported range.
+            SeismicDataUnavailableError: If this engine has no seismic hierarchy.
+        """
 
         return self.geographic_to_seismic_number(self.lookup_geographic_number(longitude, latitude))
 
     def lookup_seismic_region(
         self, longitude: ScalarCoordinate, latitude: ScalarCoordinate
     ) -> SeismicRegion:
-        """Return the seismic-region number and packaged name for one coordinate pair."""
+        """Return the seismic-region number and packaged name for one coordinate pair.
+
+        Args:
+            longitude: Longitude in ``[-180, 180]`` geographic degrees.
+            latitude: Latitude in ``[-90, 90]`` geographic degrees.
+
+        Returns:
+            An immutable seismic-region value for the coordinate.
+
+        Raises:
+            CoordinateTypeError: If either coordinate is not a supported real scalar.
+            CoordinateValueError: If either coordinate is not finite.
+            CoordinateRangeError: If either coordinate is outside the supported range.
+            SeismicDataUnavailableError: If this engine has no seismic hierarchy.
+        """
 
         number = self.lookup_seismic_number(longitude, latitude)
         return SeismicRegion(number=number, name=self.seismic_number_to_name(number))
 
     def lookup_seismic_numbers(self, coordinates: npt.ArrayLike) -> SeismicNumberArray:
-        """Return seismic-region numbers for a two-column coordinate array."""
+        """Return seismic-region numbers for a coordinate batch.
+
+        Args:
+            coordinates: Numeric array-like input with shape ``(n, 2)`` in
+                ``[longitude, latitude]`` column order.
+
+        Returns:
+            A one-dimensional ``uint8`` array with shape ``(n,)``.
+
+        Raises:
+            CoordinateShapeError: If the input does not have shape ``(n, 2)``.
+            CoordinateTypeError: If the input dtype is unsupported.
+            CoordinateValueError: If a coordinate is not finite.
+            CoordinateRangeError: If a coordinate is outside the supported range.
+            SeismicDataUnavailableError: If this engine has no seismic hierarchy.
+        """
 
         geographic = self.lookup_geographic_numbers(coordinates)
         return self._seismic_numbers_for_lookup_result(geographic)
@@ -321,14 +456,39 @@ class FlinnEngdahlLookup:
         return cast(SeismicNumberArray, crosswalk[geographic])
 
     def seismic_number_to_name(self, number: int) -> str:
-        """Return the packaged seismic-region name for one region number."""
+        """Return the packaged seismic-region name for one region number.
+
+        Args:
+            number: Seismic-region identifier.
+
+        Returns:
+            The packaged seismic-region name as a Python string.
+
+        Raises:
+            RegionNumberError: If ``number`` is not a known seismic identifier.
+            SeismicDataUnavailableError: If this engine has no seismic hierarchy.
+        """
 
         _, names = self._require_seismic_data()
         index = _scalar_region_index(number, names, "seismic")
         return str(names[index])
 
     def seismic_numbers_to_names(self, numbers: npt.ArrayLike) -> npt.NDArray[np.str_]:
-        """Convert seismic-region numbers to same-shape packaged names."""
+        """Convert seismic-region identifiers to packaged names.
+
+        Args:
+            numbers: Integer array-like seismic identifiers. Scalar input is
+                accepted and has shape ``()``.
+
+        Returns:
+            A Unicode NumPy array with the same shape as ``numbers``. Scalar
+            input returns a zero-dimensional array.
+
+        Raises:
+            RegionNumberError: If the input is not integer-valued or contains an
+                unknown seismic identifier.
+            SeismicDataUnavailableError: If this engine has no seismic hierarchy.
+        """
 
         _, names = self._require_seismic_data()
         return _numbers_to_names(numbers, names, "seismic")
@@ -442,7 +602,7 @@ def _numbers_to_names(
     array = _integer_region_array(numbers, names, level, active=active)
     if array.size == 0:
         return np.empty(array.shape, dtype=names.dtype)
-    return cast(npt.NDArray[np.str_], names[array])
+    return cast(npt.NDArray[np.str_], np.asarray(names[array], dtype=names.dtype))
 
 
 def _validate_scalar_coordinate_types(

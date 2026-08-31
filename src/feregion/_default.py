@@ -10,7 +10,16 @@ _default_lookup_lock = Lock()
 
 
 def get_default_lookup() -> FlinnEngdahlLookup:
-    """Return exactly one immutable default lookup engine per Python process."""
+    """Return the process-cached lookup engine backed by packaged FE data.
+
+    Returns:
+        The immutable default :class:`FlinnEngdahlLookup` instance. Repeated
+        successful calls in one Python process return the same object.
+
+    Raises:
+        DataFileError: If a packaged runtime asset is missing, unreadable, or
+            fails structural/integrity validation during first construction.
+    """
 
     global _default_lookup
     cached = _default_lookup
