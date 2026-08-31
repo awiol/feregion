@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Behavioral contract series | `0.2` |
-| Status | Implemented beta design |
+| Status | Implemented alpha design |
 
 ## 1. Design result
 
@@ -235,13 +235,15 @@ check, and speedup.
 Scalar performance is a review signal. The batch interface remains the
 performance-oriented API.
 
-**Active investigation `PERF-INV-001`:** exploratory evidence shows that callers
-which already hold longitude and latitude separately can incur material stacking
-and memory cost under the current `(n, 2)` public contract. The external review
-requires correctness repair and controlled baseline evidence before adopting a
-new public surface. The next optimization evaluation should measure a private
-split-array kernel and pandas end-to-end/peak-memory behavior first. A public
-split-array API remains undecided.
+**Resolved internal optimization `PERF-INV-001`:** controlled measurements on the
+accepted beta baseline show material stacking, hierarchy-revalidation, and
+peak-memory cost. The engine therefore has package-internal split-vector paths
+that accept equal-length one-dimensional longitude and latitude arrays without
+broadcasting. pandas uses those paths directly. Public matrix lookup and the
+internal split path converge on the same validated indexing kernel so the
+source-dtype boundary semantics remain identical. Coordinate-to-seismic lookup
+may apply the hierarchy crosswalk directly only to geographical numbers produced
+by that same engine. A public split-array API remains deferred.
 
 Cross-Python benchmarking is a separate matrix from compatibility testing. Four
 lock-backed tox-uv environments run the same standalone benchmark harness on
@@ -256,8 +258,9 @@ remaining environment-marker differences visible.
 The longitude/quadrant kernel now uses mask-only antimeridian handling as part
 of the extended-precision correctness repair. This removes the prior full-size
 normalized-longitude temporary without changing the public batch shape contract.
-Further split-array and pandas allocation changes remain subject to
-`PERF-INV-001`.
+Further public split-array API changes remain deferred until an external
+consumer need or new benchmark evidence justifies the additional compatibility
+surface.
 
 A Rust backend remains deferred. Current NumPy throughput does not establish a
 need for another runtime backend.

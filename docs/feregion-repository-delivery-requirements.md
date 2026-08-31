@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Status | Implemented beta repository/delivery contract |
+| Status | Implemented alpha repository/delivery contract |
 
 This document uses the normative profile defined by `feregion-requirements.md`.
 

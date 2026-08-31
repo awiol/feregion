@@ -241,11 +241,13 @@ Routine benchmarks cover in-process scalar, batch, name-conversion, and pandas
 interfaces. They exclude CLI and GeoJSON timing. Generated benchmark results are
 delivery evidence and are not repository source.
 
-`PERF-INV-001` records an active investigation of already-separated longitude
-and latitude arrays. Exploratory evidence shows material stacking/copy cost, but
-the external review requires the corrected boundary semantics and controlled
-release baseline before a public split-array contract is considered. A private
-internal path should be measured first.
+`PERF-INV-001` is resolved for package-internal use. Controlled baseline/candidate
+measurements show material stacking, seismic revalidation, and peak-memory cost.
+The core therefore provides package-internal equal-length one-dimensional
+longitude/latitude paths used by pandas, and coordinate-to-seismic lookup trusts
+only geographical numbers produced by the same validated engine. The public
+`(n, 2)` NumPy contract remains unchanged. A public split-array API remains
+deferred until an external consumer need justifies another compatibility surface.
 
 
 Compare the same locked benchmark environment across all explicitly supported

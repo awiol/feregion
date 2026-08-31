@@ -172,6 +172,57 @@ def benchmark_batch(repeats: int) -> list[dict[str, float | int]]:
     return rows
 
 
+def benchmark_internal_batch_optimization(repeats: int) -> list[dict[str, Any]]:
+    """Benchmark matrix, stacking, and package-internal split-vector paths.
+
+    This diagnostic records the representation and hierarchy-composition costs
+    that motivated ``PERF-INV-001``. Private timings do not declare a public
+    split-array API. Every timed path is checked against the public matrix result
+    before measurements are reported.
+    """
+
+    engine = feregion.get_default_lookup()
+    rows: list[dict[str, Any]] = []
+    for size in (1_000, 10_000, 100_000, 1_000_000):
+        rng = np.random.default_rng(SEED + 21 + size)
+        longitude = rng.uniform(-180.0, 180.0, size)
+        latitude = rng.uniform(-90.0, 90.0, size)
+        matrix = np.column_stack((longitude, latitude))
+        expected_geographic = engine.lookup_geographic_numbers(matrix)
+        expected_seismic = engine.geographic_numbers_to_seismic_numbers(expected_geographic)
+
+        matrix_geographic = partial(engine.lookup_geographic_numbers, matrix)
+
+        def stack_geographic(
+            longitude: np.ndarray = longitude,
+            latitude: np.ndarray = latitude,
+        ) -> np.ndarray:
+            return engine.lookup_geographic_numbers(np.column_stack((longitude, latitude)))
+
+        split_geographic = partial(
+            engine._lookup_geographic_numbers_from_vectors, longitude, latitude
+        )
+        matrix_seismic = partial(engine.lookup_seismic_numbers, matrix)
+        split_seismic = partial(engine._lookup_seismic_numbers_from_vectors, longitude, latitude)
+
+        for run in (matrix_geographic, stack_geographic, split_geographic):
+            np.testing.assert_array_equal(run(), expected_geographic)
+        for run in (matrix_seismic, split_seismic):
+            np.testing.assert_array_equal(run(), expected_seismic)
+
+        rows.append(
+            {
+                "points": size,
+                "matrix_geographic": summarize(timed(matrix_geographic, repeats), size),
+                "stack_plus_geographic": summarize(timed(stack_geographic, repeats), size),
+                "split_geographic_private": summarize(timed(split_geographic, repeats), size),
+                "matrix_seismic": summarize(timed(matrix_seismic, repeats), size),
+                "split_seismic_private": summarize(timed(split_seismic, repeats), size),
+            }
+        )
+    return rows
+
+
 def _reference_batch(reference: SourceReference, points: np.ndarray) -> np.ndarray:
     """Return region numbers from the direct source-table scanner."""
 
@@ -327,7 +378,7 @@ def main(argv: list[str] | None = None) -> int:
     reference = SourceReference(SOURCE)
 
     report: dict[str, Any] = {
-        "schema_version": 6,
+        "schema_version": 7,
         "environment": {
             "platform": platform.platform(),
             "python": sys.version.split()[0],
@@ -348,6 +399,7 @@ def main(argv: list[str] | None = None) -> int:
         },
         "scalar": benchmark_scalar(reference, args.repeats),
         "batch": benchmark_batch(args.repeats),
+        "internal_batch_optimization": benchmark_internal_batch_optimization(args.repeats),
         "batch_comparison": benchmark_batch_comparison(reference, args.repeats),
         "seismic": benchmark_seismic_batch(args.repeats),
         "names": benchmark_names(args.repeats),
@@ -361,6 +413,10 @@ def main(argv: list[str] | None = None) -> int:
             ),
             "ObsPy is measured only when installed; it is never a runtime dependency.",
             "Results are environment-specific microbenchmarks, not a performance SLA.",
+            (
+                "Private split-vector timings are diagnostic implementation evidence and "
+                "do not declare a public split-array API."
+            ),
             (
                 "CPU power/frequency policy is not measured by this harness and must be "
                 "controlled externally when release-to-release ratios are used as a gate."

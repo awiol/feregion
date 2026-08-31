@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Status | Implemented beta engineering contract |
+| Status | Implemented alpha engineering contract |
 
 This document uses the normative profile defined by `feregion-requirements.md`.
 

@@ -6,6 +6,8 @@ These harnesses measure the in-process lookup interfaces:
 - scalar `Region` lookup;
 - scalar region-number-to-name conversion;
 - NumPy batch region-number lookup;
+- matrix-versus-split internal batch representation diagnostics;
+- geographical and seismic batch lookup;
 - batch region-number-to-name conversion; and
 - pandas lookup with and without names.
 
@@ -37,8 +39,11 @@ uv run --group benchmark python -m benchmarks.run_benchmark \
 
 The standalone report directly compares batch `lookup_numbers()` with the
 source-table scanner on identical deterministic arrays of 100, 1,000, 10,000,
-and 100,000 coordinates. It records both medians and candidate speedup. ObsPy
-provides an additional reference-implementation comparison when installed.
+and 100,000 coordinates. It also records matrix, caller-stacking, internal
+split-vector, and seismic-composition diagnostics used to evaluate the batch
+optimization. Private split-vector measurements are implementation evidence, not
+a supported public API. ObsPy provides an additional reference-implementation
+comparison when installed.
 
 Benchmark code is repository and source-distribution tooling. It is not part of
 the installed runtime package. Generated results are delivery evidence and

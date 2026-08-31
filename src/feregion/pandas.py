@@ -113,15 +113,14 @@ def lookup_dataframe(
     target = frame if inplace else frame.copy()
     longitude = _coordinate_values(target[longitude_column])
     latitude = _coordinate_values(target[latitude_column])
-    coordinates = np.column_stack((longitude, latitude))
     engine = lookup if lookup is not None else get_default_lookup()
     if level == "geographic":
-        geographic_numbers = engine.lookup_geographic_numbers(coordinates)
+        geographic_numbers = engine._lookup_geographic_numbers_from_vectors(longitude, latitude)
         target[resolved_number_column] = geographic_numbers
         if include_names:
             target[resolved_name_column] = engine.geographic_numbers_to_names(geographic_numbers)
     else:
-        seismic_numbers = engine.lookup_seismic_numbers(coordinates)
+        seismic_numbers = engine._lookup_seismic_numbers_from_vectors(longitude, latitude)
         target[resolved_number_column] = seismic_numbers
         if include_names:
             target[resolved_name_column] = engine.seismic_numbers_to_names(seismic_numbers)

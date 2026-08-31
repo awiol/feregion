@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Status | Current beta quality contract |
+| Status | Current alpha quality contract |
 
 ## Purpose
 
@@ -57,11 +57,14 @@ stronger product claim by itself.
 
 ## Maturity and release-validation decision
 
-The project uses **beta** to describe product maturity: the
-intended `0.2` functionality is substantially complete and stabilization or
-broader validation can remain. Beta maturity does not mean that all release
-gates passed, that scientific validation is complete, or that public
-distribution is approved.
+Prerelease identifiers describe maturity for the current minor line and remain
+separate from release-validation status. `0.2.0b1` marked the substantially
+complete `0.2` functionality as beta. the first `0.3` prerelease starts a new minor line because
+the batch optimization produces a material backward-compatible performance
+change; that new implementation starts at alpha while stabilization and broader
+validation continue. Alpha or beta maturity does not mean that all release gates
+passed, that scientific validation is complete, or that public distribution is
+approved.
 
 A beta candidate must not be described as **release-validated**,
 **promotion-gate complete**, or ready for unqualified external publication

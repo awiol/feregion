@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.0a1 — 2026-08-31
+
+- Optimize coordinate-to-seismic batch lookup by applying the validated engine hierarchy directly to geographical numbers produced by the same engine, while retaining full validation for caller-supplied geographical-number conversion.
+- Add package-internal split longitude/latitude vector lookup paths and route the pandas adapter through them, avoiding its temporary `(n, 2)` coordinate matrix without adding a new public split-array API.
+- Preserve the existing source-dtype FE cell-ownership and exact-boundary semantics in both matrix and split-vector paths; extend the exhaustive grid-index corpus to exercise both representations.
+- Add direct internal optimization tests, including exhaustive 64,800-cell trusted seismic equivalence and explicit geographical-only engine failure behavior.
+- Extend the benchmark harness with internal split-vector diagnostics while retaining the public release-regression gate separately.
+- Classify the iteration as a new minor line because controlled same-process measurements show a material backward-compatible performance change rather than a defect correction; restart prerelease maturity at alpha for stabilization.
+
 ## 0.2.0b1 — 2026-08-27
 
 - Make geographical identifier validity active-only: retired or otherwise unused IDs are rejected by direct geographical name and hierarchy operations even when historical/custom name or crosswalk slots are populated.

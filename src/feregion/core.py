@@ -175,6 +175,24 @@ class FlinnEngdahlLookup:
         _validate_coordinate_values(longitude, latitude)
         return self._lookup_validated(longitude, latitude)
 
+    def _lookup_geographic_numbers_from_vectors(
+        self, longitude: npt.ArrayLike, latitude: npt.ArrayLike
+    ) -> GeographicNumberArray:
+        """Lookup geographical numbers from separate package-internal vectors.
+
+        This path is for package adapters that already own separate longitude
+        and latitude arrays. It avoids materializing an ``(n, 2)`` coordinate
+        matrix while preserving the same dtype, validation, and FE cell-ownership
+        semantics as :meth:`lookup_geographic_numbers`. Inputs must be
+        one-dimensional and have equal lengths. Broadcasting is not supported.
+        """
+
+        longitude_array, latitude_array = _coordinate_vectors(longitude, latitude)
+        if longitude_array.size == 0:
+            return np.empty(0, dtype=np.uint16)
+        _validate_coordinate_values(longitude_array, latitude_array)
+        return self._lookup_validated(longitude_array, latitude_array)
+
     def lookup_numbers(self, coordinates: npt.ArrayLike) -> GeographicNumberArray:
         """Compatibility alias for :meth:`lookup_geographic_numbers`."""
 
@@ -262,7 +280,30 @@ class FlinnEngdahlLookup:
         """Return seismic-region numbers for a two-column coordinate array."""
 
         geographic = self.lookup_geographic_numbers(coordinates)
-        return self.geographic_numbers_to_seismic_numbers(geographic)
+        return self._seismic_numbers_for_lookup_result(geographic)
+
+    def _lookup_seismic_numbers_from_vectors(
+        self, longitude: npt.ArrayLike, latitude: npt.ArrayLike
+    ) -> SeismicNumberArray:
+        """Lookup seismic numbers from separate package-internal vectors."""
+
+        geographic = self._lookup_geographic_numbers_from_vectors(longitude, latitude)
+        return self._seismic_numbers_for_lookup_result(geographic)
+
+    def _seismic_numbers_for_lookup_result(
+        self, geographic: GeographicNumberArray
+    ) -> SeismicNumberArray:
+        """Map a geographical result produced by this engine to seismic numbers.
+
+        The input is trusted only when it comes directly from this engine's
+        validated dense-table lookup. Constructor invariants guarantee a nonzero
+        seismic mapping for every geographical number used by the table.
+        Arbitrary caller data must continue to use
+        :meth:`geographic_numbers_to_seismic_numbers`, which validates it.
+        """
+
+        crosswalk, _ = self._require_seismic_data()
+        return cast(SeismicNumberArray, crosswalk[geographic])
 
     def seismic_number_to_name(self, number: int) -> str:
         """Return the packaged seismic-region name for one region number."""
@@ -454,6 +495,41 @@ def _coordinate_array(coordinates: npt.ArrayLike) -> np.ndarray:
             f"coordinates must use an integer or floating dtype, got {array.dtype}"
         )
     return array
+
+
+def _coordinate_vectors(
+    longitude: npt.ArrayLike, latitude: npt.ArrayLike
+) -> tuple[np.ndarray, np.ndarray]:
+    """Validate separate coordinate-vector shape and dtype without copying.
+
+    The package-internal split path accepts only one-dimensional vectors with
+    identical shapes. It intentionally does not broadcast inputs. Value
+    validation remains separate so finiteness and range checks run in each
+    source dtype.
+    """
+
+    try:
+        longitude_array = np.asarray(longitude)
+        latitude_array = np.asarray(latitude)
+    except ValueError as exc:
+        raise CoordinateShapeError(
+            "longitude and latitude must form one-dimensional arrays"
+        ) from exc
+
+    for name, array in (("longitude", longitude_array), ("latitude", latitude_array)):
+        if array.ndim != 1:
+            raise CoordinateShapeError(f"{name} must be one-dimensional, got shape {array.shape}")
+        if array.dtype.kind not in _NUMERIC_KINDS:
+            raise CoordinateTypeError(
+                f"{name} must use an integer or floating dtype, got {array.dtype}"
+            )
+
+    if longitude_array.shape != latitude_array.shape:
+        raise CoordinateShapeError(
+            "longitude and latitude must have identical one-dimensional shapes, "
+            f"got {longitude_array.shape} and {latitude_array.shape}"
+        )
+    return longitude_array, latitude_array
 
 
 def _validate_coordinate_values(longitude: np.ndarray, latitude: np.ndarray) -> None:

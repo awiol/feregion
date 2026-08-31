@@ -588,3 +588,63 @@ changed rationale as historical fact.
   acceptance condition.
 - **Review trigger:** The project adopts a different prerelease policy or the
   release-validation gates become inappropriate for the intended distribution.
+
+
+## `DEC-034` — Adopt split-vector lookup internally and keep the public matrix contract
+
+- **Context:** `PERF-INV-001` measured material stacking and contiguity cost for
+  callers that already own separate longitude and latitude arrays. The accepted
+  beta baseline preserves source-dtype boundary correctness, and pandas is a
+  concrete package consumer of separate vectors.
+- **Decision:** Add package-internal equal-length one-dimensional longitude/latitude
+  lookup paths and route pandas through them. Do not broadcast. Preserve the
+  public `(n, 2)` NumPy batch API unchanged. Do not expose the split path publicly
+  in this iteration.
+- **Rationale/evidence:** Same-process controlled measurements show roughly
+  1.5–1.8x improvement for already-split geographical workloads at 10k–1M points,
+  with lower temporary memory. Internal adoption captures the demonstrated value
+  without another public compatibility surface.
+- **Compatibility consequence:** Public API behavior is unchanged. Private method
+  names are not supported extension points.
+- **Review trigger:** A real external consumer requires split vectors at scale, or
+  measurements show material value unavailable through existing adapters.
+
+## `DEC-035` — Trust only engine-produced geographical results in seismic composition
+
+- **Context:** Coordinate-to-seismic batch lookup passed geographical numbers just
+  produced by the engine back through the public geographical-number validator.
+  That path validates arbitrary caller data and materializes large name-table
+  selections that are redundant for engine-produced results.
+- **Decision:** Coordinate lookup may index the already validated hierarchy
+  crosswalk directly with geographical numbers produced by the same engine. Keep
+  `geographic_numbers_to_seismic_numbers()` fully validating for arbitrary caller
+  input.
+- **Rationale/evidence:** Engine construction guarantees a nonzero seismic mapping
+  for every geographical identifier used by its table. Exhaustive global-cell
+  tests verify equivalence with the public conversion route. Controlled timings
+  show about 2.0–3.0x improvement in public seismic batch lookup across 10k–1M
+  points, and a 2M-point memory probe reduces additional RSS from about 264 MiB to
+  about 20 MiB on the measured host.
+- **Compatibility consequence:** Public results and error behavior for caller data
+  remain unchanged; coordinate-to-seismic lookup avoids redundant validation.
+- **Review trigger:** Engine construction invariants, table ownership, active-ID
+  semantics, or hierarchy mutability changes.
+
+## `DEC-036` — Classify the optimization as a new `0.3` minor line
+
+- **Context:** The change is not a defect correction and does not add a public API,
+  but controlled measurements show a material backward-compatible performance and
+  memory change in supported batch and pandas behavior.
+- **Decision:** Start minor line `0.3` and issue its first prerelease candidate as alpha.
+  The MINOR increment communicates substantial backward-compatible behavior; alpha
+  maturity reflects that the new optimized implementation still requires broader
+  supported-environment stabilization.
+- **Alternatives considered:** `0.2.0b2` as an internal-only stabilization change;
+  a patch-style version because no public symbol changed; `0.3.0b1` while retaining
+  beta maturity.
+- **Compatibility consequence:** No intended public API or scientific-result
+  incompatibility. Version consumers can identify the performance-focused minor
+  line separately from the `0.2` beta baseline.
+- **Review trigger:** Benchmark comparison does not reproduce a material gain on
+  supported environments, or a later review identifies an unintended public
+  compatibility change.

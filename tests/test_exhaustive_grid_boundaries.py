@@ -277,15 +277,17 @@ def _assert_index_probes(
 
     coordinates, expected_quadrant, expected_latitude, expected_longitude = corpus
     quadrant_engine, latitude_engine, longitude_engine = engines
-    np.testing.assert_array_equal(
-        quadrant_engine.lookup_geographic_numbers(coordinates), expected_quadrant + 1
-    )
-    np.testing.assert_array_equal(
-        latitude_engine.lookup_geographic_numbers(coordinates), expected_latitude + 1
-    )
-    np.testing.assert_array_equal(
-        longitude_engine.lookup_geographic_numbers(coordinates), expected_longitude + 1
-    )
+    longitude = coordinates[:, 0]
+    latitude = coordinates[:, 1]
+    for engine, expected in (
+        (quadrant_engine, expected_quadrant + 1),
+        (latitude_engine, expected_latitude + 1),
+        (longitude_engine, expected_longitude + 1),
+    ):
+        np.testing.assert_array_equal(engine.lookup_geographic_numbers(coordinates), expected)
+        np.testing.assert_array_equal(
+            engine._lookup_geographic_numbers_from_vectors(longitude, latitude), expected
+        )
 
 
 @pytest.mark.parametrize("dtype", _dtype_cases())

@@ -208,3 +208,65 @@ def test_vectorized_seismic_name_conversion(benchmark, coordinates: np.ndarray) 
     expected = feregion.seismic_numbers_to_names(numbers)
     result = benchmark(feregion.seismic_numbers_to_names, numbers)
     np.testing.assert_array_equal(result, expected)
+
+
+def test_internal_split_geographic_lookup(benchmark, coordinates: np.ndarray) -> None:
+    """Measure the package-internal split-vector geographical path."""
+
+    engine = feregion.get_default_lookup()
+    longitude = coordinates[:, 0].copy()
+    latitude = coordinates[:, 1].copy()
+    expected = engine.lookup_geographic_numbers(coordinates)
+    result = benchmark(
+        engine._lookup_geographic_numbers_from_vectors,
+        longitude,
+        latitude,
+    )
+    np.testing.assert_array_equal(result, expected)
+
+
+def test_internal_split_seismic_lookup(benchmark, coordinates: np.ndarray) -> None:
+    """Measure split-vector lookup plus trusted seismic hierarchy composition."""
+
+    engine = feregion.get_default_lookup()
+    longitude = coordinates[:, 0].copy()
+    latitude = coordinates[:, 1].copy()
+    geographic = engine.lookup_geographic_numbers(coordinates)
+    expected = engine.geographic_numbers_to_seismic_numbers(geographic)
+    result = benchmark(
+        engine._lookup_seismic_numbers_from_vectors,
+        longitude,
+        latitude,
+    )
+    np.testing.assert_array_equal(result, expected)
+
+
+@pytest.mark.parametrize("level", ["geographic", "seismic"])
+def test_pandas_lookup_inplace_by_level(
+    benchmark,
+    scalar_coordinates: np.ndarray,
+    level: str,
+) -> None:
+    """Measure adapter lookup without including DataFrame preparation time."""
+
+    pd = pytest.importorskip("pandas", reason="pandas is an optional benchmark dependency")
+    from feregion.pandas import lookup_dataframe
+
+    template = pd.DataFrame(
+        {"longitude": scalar_coordinates[:, 0], "latitude": scalar_coordinates[:, 1]}
+    )
+    engine = feregion.get_default_lookup()
+    expected = (
+        engine.lookup_geographic_numbers(scalar_coordinates)
+        if level == "geographic"
+        else engine.lookup_seismic_numbers(scalar_coordinates)
+    )
+    number_column = "fe_number" if level == "geographic" else "fe_seismic_number"
+
+    def run() -> np.ndarray:
+        frame = template.copy()
+        result = lookup_dataframe(frame, level=level, inplace=True, lookup=engine)
+        return result[number_column].to_numpy()
+
+    observed = benchmark(run)
+    np.testing.assert_array_equal(observed, expected)
