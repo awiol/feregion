@@ -204,15 +204,21 @@ Geometry selection and annotation selection are separate controls:
   geographical ownership grid and hierarchy;
 - `properties=()` permits geometry-only machine output;
 - a controlled property vocabulary permits generic level-relative
-  `number`/`name` fields and explicit cross-level identifiers/names;
+  `number`/`name` fields and explicit cross-level relationships; geographical
+  features can expose one seismic parent, while seismic features can expose an
+  ordered `geographic_regions` list of `{number, name}` child objects;
 - `label` optionally adds a small human-facing number, name, or combined label;
   and
 - `include_metadata=False` removes collection metadata when payload size matters.
 
 The API intentionally does not implement an arbitrary title/template language
 or every property permutation. The selected property names remain stable
-semantic fields that machines can consume. Expensive cross-level child lists
-are computed only when requested.
+semantic fields that machines can consume. Parallel child-number and child-name
+arrays are avoided because their relationship is positional and easy to misuse.
+Expensive cross-level child lists are computed only when requested. The CLI
+accepts several names after one `--properties` option and expands
+`--properties all` using the same level-specific vocabulary; the older
+repeatable `--property` form remains a compatibility surface.
 
 Dataset-wide scheme, revision, selected level, boundary model, and exact-point
 boundary semantics live once in a collection-level `feregion` foreign member

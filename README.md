@@ -115,10 +115,11 @@ columns.
 ## Command line
 
 ```bash
-uv run fe-region point 12 48 --name
-uv run fe-region point 12 48 --level seismic --name
-uv run fe-region csv input.csv -o output.csv --level seismic --include-names
-uv run --extra geo fe-region geojson .cache/regions.geojson --level seismic --property number
+uv run --locked fe-region point 12 48 --name
+uv run --locked fe-region point 12 48 --level seismic --name
+uv run --locked fe-region csv input.csv -o output.csv --level seismic --include-names
+uv run --locked --extra geo fe-region geojson .cache/regions.geojson \
+  --level seismic --properties seismic_number seismic_name
 ```
 
 Filesystem CSV input must be valid UTF-8 and satisfy strict CSV syntax. CSV
@@ -132,18 +133,78 @@ stdout is a streaming sink and can contain earlier rows if a later row fails.
 The filesystem guarantee does not claim crash durability, directory fsync, ACL
 preservation, or owner preservation.
 
+## GeoJSON generation
+
 With the packaged lookup, GeoJSON emits 754 geographical features or 50
-seismic features from the same one-degree cell grid. The Python GeoJSON API also
-accepts explicit lookup engines; their feature populations and cross-level
-membership follow that engine. Collection metadata identifies FE-1995 only when
-the selected engine is the packaged default instance. Other explicit engines use null scheme/revision
-fields rather than inferred provenance.
-Geometry level is independent of annotation selection. Use repeated `--property`
-options for explicit semantic fields, `--label` for a small human-facing label,
-and `--no-metadata` or no properties for compact machine-oriented output. The
-geometry is **area-equivalent**. Numeric lookup is authoritative for coordinates
-exactly on integer cell boundaries because ordinary closed polygons cannot encode
-every directional FE point-boundary rule.
+seismic features from the same one-degree cell grid. Geometry level and feature
+annotations are independent. Default features contain the selected level's
+`number` and `name`.
+
+CLI examples:
+
+```bash
+# Default geographical regions with number and name.
+uv run --locked --extra geo fe-region geojson .cache/geographic.geojson
+
+# Compact seismic output with several properties after one option.
+uv run --locked --extra geo fe-region geojson .cache/seismic.geojson \
+  --level seismic --properties seismic_number seismic_name --no-metadata
+
+# Include active geographical children as number/name objects and pretty-print.
+uv run --locked --extra geo fe-region geojson .cache/seismic-with-children.geojson \
+  --level seismic --properties seismic_number seismic_name geographic_regions \
+  --label number-name --indent 2
+
+# Ask for every property valid at the selected level.
+uv run --locked --extra geo fe-region geojson .cache/geographic-full.geojson \
+  --properties all --indent 2
+```
+
+The older repeatable `--property NAME` form remains supported for scripts, but
+`--properties NAME [NAME ...]` is the preferred form when selecting several
+fields. At seismic level, geographical child membership is represented only by
+`geographic_regions`, whose value is a list such as
+`[{"number": 543, "name": "GERMANY"}, ...]`. Scalar geographical properties and
+the old parallel `geographic_numbers` / `geographic_names` lists are rejected.
+
+Python API examples:
+
+```python
+from feregion.geojson import regions_geojson, write_regions_geojson
+
+# Geographical features with explicit parent seismic fields.
+geographic = regions_geojson(
+    properties=(
+        "geographic_number",
+        "geographic_name",
+        "seismic_number",
+        "seismic_name",
+    ),
+    label="number-name",
+)
+
+# Seismic features with structured geographical child regions.
+seismic = regions_geojson(
+    level="seismic",
+    properties=("seismic_number", "seismic_name", "geographic_regions"),
+)
+
+# Write a compact machine-oriented seismic file.
+write_regions_geojson(
+    "seismic.geojson",
+    level="seismic",
+    properties=("number",),
+    include_metadata=False,
+)
+```
+
+The Python GeoJSON API also accepts explicit lookup engines; their feature
+populations and cross-level membership follow that engine. Collection metadata
+identifies FE-1995 only when the selected engine is the packaged default
+instance. Other explicit engines use null scheme/revision fields rather than
+inferred provenance. The geometry is **area-equivalent**. Numeric lookup is
+authoritative for coordinates exactly on integer cell boundaries because
+ordinary closed polygons cannot encode every directional FE point-boundary rule.
 
 ## Development and verification
 

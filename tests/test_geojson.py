@@ -82,26 +82,28 @@ def test_geographic_geojson_can_add_parent_seismic_properties_and_label() -> Non
     }
 
 
-def test_seismic_geojson_can_include_geographic_children() -> None:
-    """Explicit seismic output may include its geographical child identifiers and names."""
+def test_seismic_geojson_can_include_geographic_regions() -> None:
+    """Seismic output may expose active child regions as number/name objects."""
 
     document = regions_geojson(
         level="seismic",
-        properties=("seismic_number", "seismic_name", "geographic_numbers", "geographic_names"),
+        properties=("seismic_number", "seismic_name", "geographic_regions"),
     )
     feature = next(
         item for item in document["features"] if item["properties"]["seismic_number"] == 36
     )
-    assert 543 in feature["properties"]["geographic_numbers"]
-    index = feature["properties"]["geographic_numbers"].index(543)
-    assert feature["properties"]["geographic_names"][index] == "GERMANY"
+    assert {"number": 543, "name": "GERMANY"} in feature["properties"]["geographic_regions"]
 
 
-def test_geojson_rejects_level_incompatible_property() -> None:
-    """Property vocabulary is explicit rather than accepting ambiguous permutations."""
+@pytest.mark.parametrize(
+    "property_name",
+    ["geographic_number", "geographic_name", "geographic_numbers", "geographic_names"],
+)
+def test_geojson_rejects_level_incompatible_geographic_property(property_name: str) -> None:
+    """Seismic features reject scalar or legacy parallel geographical properties."""
 
     with raises_exact(GeoJSONOptionError):
-        regions_geojson(level="seismic", properties=("geographic_number",))
+        regions_geojson(level="seismic", properties=(property_name,))
 
 
 def test_geojson_rejects_unknown_level() -> None:
@@ -234,19 +236,20 @@ def test_custom_hierarchy_geojson_excludes_populated_inactive_crosswalk_slots() 
 
     document = regions_geojson(
         level="seismic",
-        properties=("seismic_number", "geographic_numbers", "geographic_names"),
+        properties=("seismic_number", "geographic_regions"),
         lookup=engine,
         include_metadata=False,
     )
     feature = next(
         item for item in document["features"] if item["properties"]["seismic_number"] == 1
     )
-    numbers = feature["properties"]["geographic_numbers"]
-    names = feature["properties"]["geographic_names"]
+    regions = feature["properties"]["geographic_regions"]
 
-    assert 172 not in numbers
-    assert len(names) == len(numbers)
-    assert names == [engine.geographic_number_to_name(number) for number in numbers]
+    assert all(region["number"] != 172 for region in regions)
+    assert regions == [
+        {"number": number, "name": engine.geographic_number_to_name(number)}
+        for number in engine._active_geographic_numbers_for_seismic(1).astype(int).tolist()
+    ]
 
 
 def test_custom_hierarchy_unused_crosswalk_slot_does_not_change_geojson_children() -> None:
@@ -266,13 +269,13 @@ def test_custom_hierarchy_unused_crosswalk_slot_does_not_change_geojson_children
 
     expected = regions_geojson(
         level="seismic",
-        properties=("seismic_number", "geographic_numbers", "geographic_names"),
+        properties=("seismic_number", "geographic_regions"),
         lookup=packaged,
         include_metadata=False,
     )
     actual = regions_geojson(
         level="seismic",
-        properties=("seismic_number", "geographic_numbers", "geographic_names"),
+        properties=("seismic_number", "geographic_regions"),
         lookup=engine,
         include_metadata=False,
     )

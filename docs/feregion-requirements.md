@@ -294,6 +294,11 @@ to select geographical or seismic output. Existing calls without `--level`
 must remain geographical. CSV level-specific default output-column names must
 match the pandas adapter defaults.
 
+**REQ-CLI-014** — The GeoJSON CLI must accept several feature-property names
+after one `--properties` option and must accept `--properties all` as a
+level-aware shorthand for every supported property. The existing repeatable
+`--property NAME` form must remain accepted for compatibility.
+
 ## GeoJSON feature
 
 **REQ-GEO-001** — With the packaged lookup, the optional GeoJSON utility must
@@ -324,8 +329,12 @@ exact reconstruction of the historical point-boundary convention.
 **REQ-GEO-006** — Geographical features must allow selection from `number`,
 `name`, `geographic_number`, `geographic_name`, `seismic_number`, and
 `seismic_name`. Seismic features must allow selection from `number`, `name`,
-`seismic_number`, `seismic_name`, `geographic_numbers`, and
-`geographic_names`. Unsupported or duplicate properties must be rejected.
+`seismic_number`, `seismic_name`, and `geographic_regions`.
+`geographic_regions` must be an ordered list of objects containing one active
+child geographical region's `number` and `name`. Seismic features must reject
+scalar geographical fields and the legacy parallel `geographic_numbers` /
+`geographic_names` representation. Unsupported or duplicate properties must
+be rejected.
 
 **REQ-GEO-007** — The caller may request one optional convenience `label`
 property using the current level's number, name, or number-and-name

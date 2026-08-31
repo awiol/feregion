@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.0a3 — 2026-08-31
+
+- Replaced seismic GeoJSON parallel child-number/name properties with structured `geographic_regions` number/name objects.
+- Added `--properties NAME [NAME ...]` and `--properties all` to the GeoJSON CLI while preserving repeatable `--property`.
+- Expanded README GeoJSON examples for CLI and Python API usage.
+
+
 ## 0.3.0a2 — 2026-08-31
 
 - Fix seismic GeoJSON cross-level child enumeration so populated inactive

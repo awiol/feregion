@@ -17,25 +17,20 @@ from .exceptions import GeoJSONDependencyError, GeoJSONOptionError, RegionLevelE
 RegionLevel = Literal["geographic", "seismic"]
 LabelMode = Literal["number", "name", "number-name"]
 
-_GEOGRAPHIC_PROPERTIES = frozenset(
-    {
-        "number",
-        "name",
-        "geographic_number",
-        "geographic_name",
-        "seismic_number",
-        "seismic_name",
-    }
+_GEOGRAPHIC_PROPERTIES = (
+    "number",
+    "name",
+    "geographic_number",
+    "geographic_name",
+    "seismic_number",
+    "seismic_name",
 )
-_SEISMIC_PROPERTIES = frozenset(
-    {
-        "number",
-        "name",
-        "seismic_number",
-        "seismic_name",
-        "geographic_numbers",
-        "geographic_names",
-    }
+_SEISMIC_PROPERTIES = (
+    "number",
+    "name",
+    "seismic_number",
+    "seismic_name",
+    "geographic_regions",
 )
 _DEFAULT_PROPERTIES = ("number", "name")
 
@@ -57,8 +52,10 @@ def regions_geojson(
             feature populations follow that engine's active ownership grid and
             hierarchy.
         properties: Feature properties to include. ``number`` and ``name`` are
-            relative to ``level``. Explicit cross-level fields are available
-            where their meaning is unambiguous. An empty sequence produces
+            relative to ``level``. Geographical features may expose their
+            seismic parent fields. Seismic features may expose one
+            ``geographic_regions`` list containing ``number``/``name`` objects
+            for active geographical children. An empty sequence produces
             geometry-only features.
         label: Optional convenience ``label`` property for human-facing map
             renderers. The supported values use the current level's number,
@@ -160,13 +157,21 @@ def _cell_number_grid(engine: FlinnEngdahlLookup, level: RegionLevel) -> np.ndar
     return engine.geographic_numbers_to_seismic_numbers(geographic).reshape(180, 360)
 
 
+def _properties_for_level(level: RegionLevel) -> tuple[str, ...]:
+    """Return the stable property vocabulary for one GeoJSON geometry level."""
+
+    if level == "geographic":
+        return _GEOGRAPHIC_PROPERTIES
+    return _SEISMIC_PROPERTIES
+
+
 def _validate_properties(level: RegionLevel, properties: Sequence[str]) -> tuple[str, ...]:
     """Validate property names while preserving caller-specified order."""
 
     selected = tuple(properties)
     if len(set(selected)) != len(selected):
         raise GeoJSONOptionError("GeoJSON properties must not contain duplicates")
-    allowed = _GEOGRAPHIC_PROPERTIES if level == "geographic" else _SEISMIC_PROPERTIES
+    allowed = _properties_for_level(level)
     unsupported = [name for name in selected if name not in allowed]
     if unsupported:
         raise GeoJSONOptionError(
@@ -221,7 +226,7 @@ def _feature_properties(
         current_name = geographic_name
     else:
         current_seismic_name: str | None = None
-        geographic_numbers: list[int] | None = None
+        geographic_regions: list[dict[str, int | str]] | None = None
 
         for field in selected:
             if field in {"number", "seismic_number"}:
@@ -230,17 +235,15 @@ def _feature_properties(
                 if current_seismic_name is None:
                     current_seismic_name = engine.seismic_number_to_name(number)
                 result[field] = current_seismic_name
-            elif field in {"geographic_numbers", "geographic_names"}:
-                if geographic_numbers is None:
-                    geographic_numbers = (
-                        engine._active_geographic_numbers_for_seismic(number).astype(int).tolist()
-                    )
-                if field == "geographic_numbers":
-                    result[field] = geographic_numbers
-                else:
-                    result[field] = [
-                        engine.geographic_number_to_name(value) for value in geographic_numbers
+            elif field == "geographic_regions":
+                if geographic_regions is None:
+                    child_numbers = engine._active_geographic_numbers_for_seismic(number)
+                    child_names = engine.geographic_numbers_to_names(child_numbers)
+                    geographic_regions = [
+                        {"number": int(child_number), "name": str(child_name)}
+                        for child_number, child_name in zip(child_numbers, child_names, strict=True)
                     ]
+                result[field] = geographic_regions
 
         if need_name and current_seismic_name is None:
             current_seismic_name = engine.seismic_number_to_name(number)

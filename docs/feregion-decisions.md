@@ -671,3 +671,25 @@ changed rationale as historical fact.
   seismic child properties.
 - **Review trigger:** The engine gains an explicit provenance contract, or GeoJSON
   metadata needs to distinguish additional named source datasets.
+
+
+## `DEC-038` — Represent seismic geographical children as region objects
+
+- **Context:** Seismic GeoJSON previously exposed child membership through two
+  parallel properties, `geographic_numbers` and `geographic_names`. The
+  positional relationship was easy to misuse, and the names looked like ordinary
+  geographical feature properties even though the feature level was seismic.
+  The CLI also required one `--property` option per requested field.
+- **Decision:** Replace the parallel seismic child properties with one
+  `geographic_regions` property containing ordered `{number, name}` objects.
+  Reject scalar geographical properties and the legacy parallel child-list
+  property names at seismic level. Add `--properties NAME [NAME ...]` and the
+  level-aware `--properties all` shorthand while retaining repeatable
+  `--property NAME` for CLI compatibility.
+- **Alternatives rejected:** Keep parallel number/name arrays; permit arbitrary
+  cross-level property permutations; remove the compatibility `--property` form.
+- **Compatibility consequence:** The alpha GeoJSON property vocabulary changes
+  for callers that explicitly requested `geographic_numbers` or
+  `geographic_names`. Default GeoJSON properties and geometry are unchanged.
+- **Review trigger:** A concrete downstream GeoJSON schema requires a different
+  representation of parent/child region relationships.

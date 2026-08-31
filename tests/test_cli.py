@@ -463,3 +463,58 @@ def test_cli_geojson_supports_compact_seismic_properties(tmp_path: Path) -> None
     assert "feregion" not in document
     assert len(document["features"]) == 50
     assert set(document["features"][0]["properties"]) == {"number"}
+
+
+def test_cli_geojson_accepts_multiple_properties_after_one_option(tmp_path: Path) -> None:
+    """GeoJSON CLI accepts a human-friendly multi-property selector."""
+
+    import json
+
+    output = tmp_path / "seismic-regions.geojson"
+    status = main(
+        [
+            "geojson",
+            str(output),
+            "--level",
+            "seismic",
+            "--properties",
+            "seismic_number",
+            "seismic_name",
+            "geographic_regions",
+        ]
+    )
+    assert status == 0
+    document = json.loads(output.read_text(encoding="utf-8"))
+    properties = document["features"][0]["properties"]
+    assert set(properties) == {"seismic_number", "seismic_name", "geographic_regions"}
+    assert properties["geographic_regions"]
+    assert set(properties["geographic_regions"][0]) == {"number", "name"}
+
+
+def test_cli_geojson_properties_all_expands_selected_level_vocabulary(tmp_path: Path) -> None:
+    """The ``all`` selector expands to every property valid for the selected level."""
+
+    import json
+
+    output = tmp_path / "all-seismic.geojson"
+    status = main(["geojson", str(output), "--level", "seismic", "--properties", "all"])
+    assert status == 0
+    document = json.loads(output.read_text(encoding="utf-8"))
+    assert set(document["features"][0]["properties"]) == {
+        "number",
+        "name",
+        "seismic_number",
+        "seismic_name",
+        "geographic_regions",
+    }
+
+
+def test_cli_geojson_rejects_all_mixed_with_explicit_properties(tmp_path: Path, capsys) -> None:
+    """The ``all`` selector is unambiguous and cannot be mixed with field names."""
+
+    output = tmp_path / "invalid.geojson"
+    status = main(["geojson", str(output), "--properties", "all", "number"])
+    captured = capsys.readouterr()
+    assert status == 2
+    assert "'all' must be the only GeoJSON property selector" in captured.err
+    assert not output.exists()

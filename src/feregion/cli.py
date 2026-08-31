@@ -19,7 +19,7 @@ from numpy.typing import NDArray
 
 from ._default import get_default_lookup
 from .core import FlinnEngdahlLookup
-from .exceptions import CsvInputError, FlinnEngdahlError
+from .exceptions import CsvInputError, FlinnEngdahlError, GeoJSONOptionError
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -55,11 +55,22 @@ def build_parser() -> argparse.ArgumentParser:
     geojson.add_argument("output")
     geojson.add_argument("--indent", type=int, default=None)
     geojson.add_argument("--level", choices=("geographic", "seismic"), default="geographic")
-    geojson.add_argument(
+    property_group = geojson.add_mutually_exclusive_group()
+    property_group.add_argument(
+        "--properties",
+        nargs="+",
+        metavar="NAME",
+        help=(
+            "feature properties to include; pass several names after one option "
+            "or use 'all' for every property valid at the selected level"
+        ),
+    )
+    property_group.add_argument(
         "--property",
-        dest="properties",
+        dest="property_items",
         action="append",
-        help="feature property to include; repeat for multiple properties",
+        metavar="NAME",
+        help="compatibility form for one property; repeat for multiple properties",
     )
     geojson.add_argument("--label", choices=("number", "name", "number-name"), default=None)
     geojson.add_argument("--no-metadata", action="store_true")
@@ -425,9 +436,15 @@ def _write_csv_chunk(
 
 
 def _geojson(args: argparse.Namespace) -> int:
-    from .geojson import write_regions_geojson
+    from .geojson import _properties_for_level, write_regions_geojson
 
-    if args.properties is None:
+    properties = args.properties if args.properties is not None else args.property_items
+    if properties is not None and "all" in properties:
+        if properties != ["all"]:
+            raise GeoJSONOptionError("'all' must be the only GeoJSON property selector")
+        properties = list(_properties_for_level(args.level))
+
+    if properties is None:
         write_regions_geojson(
             Path(args.output),
             level=args.level,
@@ -439,7 +456,7 @@ def _geojson(args: argparse.Namespace) -> int:
         write_regions_geojson(
             Path(args.output),
             level=args.level,
-            properties=tuple(args.properties),
+            properties=tuple(properties),
             label=args.label,
             include_metadata=not args.no_metadata,
             indent=args.indent,
