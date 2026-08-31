@@ -9,27 +9,30 @@ proof of correctness or suitability.
 
 ## Local commands
 
-Prepare the development environment and run the normal checks:
+Prepare the development environment and run the normal lock-preserving checks:
 
 ```bash
-uv sync
-uv run ruff check .
-uv run mypy
-uv run pytest -q
-uv run pytest -q --cov=feregion --cov-branch --cov-report=term-missing
+uv sync --locked --group dev
+uv run --locked ruff check .
+uv run --locked mypy
+uv run --locked pytest -q
+uv run --locked pytest -q --cov=feregion --cov-branch --cov-report=term-missing
 ```
 
-Build distributions with:
+After the locked synchronization above, build distributions with:
 
 ```bash
 uv build
 ```
 
+`uv build` has no lock flag. The preceding `uv sync --locked` establishes lock
+freshness for the build evidence.
+
 Verify a wheel in a dependency-isolated environment when registry access is
 available:
 
 ```bash
-uv run python -m tools.verify_wheel dist/feregion-*.whl --python 3.11
+uv run --locked python -m tools.verify_wheel dist/feregion-*.whl --python 3.11
 ```
 
 The wheel verifier inspects package contents, metadata, extras, console entry
@@ -89,8 +92,8 @@ Fetch both upstream source forms before complete source-reproduction and asset
 regeneration checks:
 
 ```bash
-uv run python -m tools.fetch_obspy_fe_data
-uv run python -m tools.fetch_isc_fe_regions
+uv run --locked python -m tools.fetch_obspy_fe_data
+uv run --locked python -m tools.fetch_isc_fe_regions
 ```
 
 The ObsPy fetcher resolves the required files at immutable commit
@@ -228,7 +231,7 @@ A release regression comparison is a different gate. Produce baseline and
 candidate standalone JSON on the same controlled environment, then run:
 
 ```bash
-uv run --group benchmark python -m benchmarks.compare_releases \
+uv run --locked --group benchmark python -m benchmarks.compare_releases \
   --baseline baseline.json --candidate candidate.json --fail-on-trigger
 ```
 
@@ -262,13 +265,13 @@ Install the development environment and hooks once:
 
 ```bash
 uv sync --locked --group dev
-uv run pre-commit install
+uv run --locked pre-commit install
 ```
 
 Run the complete commit-time pipeline manually with:
 
 ```bash
-uv run pre-commit run --all-files
+uv run --locked pre-commit run --all-files
 ```
 
 The hooks use the synchronized project environment. Ruff formatting can modify

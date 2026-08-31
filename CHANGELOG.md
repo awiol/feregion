@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.3.0a2 — 2026-08-31
+
+- Fix seismic GeoJSON cross-level child enumeration so populated inactive
+  geographical crosswalk slots remain excluded by the engine's active-ID rule.
+- Keep explicit custom-engine GeoJSON support while making collection provenance
+  conditional: FE-1995 scheme/revision metadata is emitted only for the packaged
+  default engine; other explicit engines use null scheme/revision values.
+- Add custom-engine GeoJSON regression coverage for inactive hierarchy slots and
+  provenance-neutral metadata.
+- Make README/testing verification commands consistently lock-preserving under
+  `REQ-PKG-017` and add a repository consistency test for those examples.
+- Make the historical compatibility comment release-neutral.
+
 ## 0.3.0a1 — 2026-08-31
 
 - Optimize coordinate-to-seismic batch lookup by applying the validated engine hierarchy directly to geographical numbers produced by the same engine, while retaining full validation for caller-supplied geographical-number conversion.

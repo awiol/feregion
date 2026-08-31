@@ -296,11 +296,11 @@ match the pandas adapter defaults.
 
 ## GeoJSON feature
 
-**REQ-GEO-001** — The optional GeoJSON utility must support geometry for either
-the 754 active geographical regions or the 50 seismic regions. Both levels
-must be derived from the same global one-degree geographical ownership grid.
-Retired geographical identifiers 172, 299, and 550 must not receive fabricated
-polygons.
+**REQ-GEO-001** — With the packaged lookup, the optional GeoJSON utility must
+support geometry for the 754 active geographical regions and the 50 seismic
+regions. Both levels must be derived from the same global one-degree
+geographical ownership grid. Retired geographical identifiers 172, 299, and
+550 must not receive fabricated polygons.
 
 **REQ-GEO-002** — GeoJSON geometry level and feature-property selection must be
 independent options. The caller must be able to request a compact
@@ -309,7 +309,9 @@ explicit human-oriented representation without changing geometry ownership.
 
 **REQ-GEO-003** — GeoJSON geometry must represent the union of area-equivalent
 one-degree cells owned by each selected region. Seismic cell ownership must be
-exactly the geographical cell ownership mapped through the packaged hierarchy.
+exactly the geographical cell ownership mapped through the selected engine's
+hierarchy. With the packaged lookup, that hierarchy is the packaged FE-1995
+hierarchy.
 
 **REQ-GEO-004** — GeoJSON generation may require an optional geometry
 dependency. Missing geometry support must fail through the package-specific
@@ -333,8 +335,21 @@ templates or every possible property permutation.
 **REQ-GEO-008** — Dataset-wide scheme, revision, level, boundary model, and
 boundary semantics should be stored once in a collection-level `feregion`
 foreign member. The caller must be able to omit this metadata for a smaller
-payload.
+payload. Scheme and revision must identify FE-1995 only when the selected
+engine is the packaged default instance. For another explicit engine, those two
+provenance fields must be null rather than inferred.
 
 **REQ-GEO-009** — Default GeoJSON feature properties must remain the selected
 level's `number` and `name`; changing to seismic geometry must not make generic
 property names refer to geographical values.
+
+**REQ-GEO-010** — GeoJSON generation must support an explicit valid lookup
+engine. Feature populations, names, hierarchy membership, and cross-level
+properties must follow that engine. Inactive geographical identifiers must not
+appear in seismic child properties merely because an unused crosswalk slot is
+populated.
+
+**REQ-GEO-011** — GeoJSON must use one engine-owned active-membership rule for
+cross-level child enumeration. GeoJSON-specific reconstruction of active
+membership from nonzero names or crosswalk slots must not create identifiers
+that the engine rejects as inactive.

@@ -30,6 +30,12 @@ def get_default_lookup() -> FlinnEngdahlLookup:
         return cached
 
 
+def _is_default_lookup_instance(lookup: FlinnEngdahlLookup) -> bool:
+    """Return whether ``lookup`` is the process-wide packaged default engine."""
+
+    return lookup is _default_lookup
+
+
 def _reset_default_lookup_cache_for_testing() -> None:
     """Clear the process cache for deterministic cache-boundary tests."""
 

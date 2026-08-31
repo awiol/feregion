@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 from shapely.geometry import Point, shape
 
-from feregion import get_default_lookup
+from feregion import FlinnEngdahlLookup, get_default_lookup
 from feregion.exceptions import GeoJSONOptionError, RegionLevelError
 from feregion.geojson import regions_geojson
 from tests.helpers import raises_exact
@@ -215,3 +215,115 @@ def test_geojson_covers_every_cell_center_owned_by_numeric_lookup(level: str) ->
     for number in np.unique(numbers):
         owned = coordinates[numbers == number]
         assert geometries[int(number)].covers(MultiPoint(owned))
+
+
+def test_custom_hierarchy_geojson_excludes_populated_inactive_crosswalk_slots() -> None:
+    """Seismic child properties use the engine's active geographical membership."""
+
+    packaged = get_default_lookup()
+    assert packaged.seismic_by_geographic is not None
+    assert packaged.seismic_names is not None
+    crosswalk = packaged.seismic_by_geographic.copy()
+    crosswalk[172] = 1
+    engine = FlinnEngdahlLookup(
+        packaged.table,
+        packaged.names,
+        crosswalk,
+        packaged.seismic_names,
+    )
+
+    document = regions_geojson(
+        level="seismic",
+        properties=("seismic_number", "geographic_numbers", "geographic_names"),
+        lookup=engine,
+        include_metadata=False,
+    )
+    feature = next(
+        item for item in document["features"] if item["properties"]["seismic_number"] == 1
+    )
+    numbers = feature["properties"]["geographic_numbers"]
+    names = feature["properties"]["geographic_names"]
+
+    assert 172 not in numbers
+    assert len(names) == len(numbers)
+    assert names == [engine.geographic_number_to_name(number) for number in numbers]
+
+
+def test_custom_hierarchy_unused_crosswalk_slot_does_not_change_geojson_children() -> None:
+    """An inactive hierarchy slot cannot change cross-level GeoJSON properties."""
+
+    packaged = get_default_lookup()
+    assert packaged.seismic_by_geographic is not None
+    assert packaged.seismic_names is not None
+    crosswalk = packaged.seismic_by_geographic.copy()
+    crosswalk[172] = 1
+    engine = FlinnEngdahlLookup(
+        packaged.table,
+        packaged.names,
+        crosswalk,
+        packaged.seismic_names,
+    )
+
+    expected = regions_geojson(
+        level="seismic",
+        properties=("seismic_number", "geographic_numbers", "geographic_names"),
+        lookup=packaged,
+        include_metadata=False,
+    )
+    actual = regions_geojson(
+        level="seismic",
+        properties=("seismic_number", "geographic_numbers", "geographic_names"),
+        lookup=engine,
+        include_metadata=False,
+    )
+    assert actual == expected
+
+
+def test_custom_geographic_engine_uses_provenance_neutral_collection_metadata() -> None:
+    """Custom geometry must not inherit packaged FE-1995 provenance claims."""
+
+    table = np.ones((4, 91, 181), dtype=np.uint16)
+    names = np.array(["", "CUSTOM"], dtype=np.str_)
+    engine = FlinnEngdahlLookup(table, names)
+
+    document = regions_geojson(lookup=engine)
+
+    assert len(document["features"]) == 1
+    assert document["features"][0]["properties"] == {"number": 1, "name": "CUSTOM"}
+    assert document["feregion"] == {
+        "scheme": None,
+        "revision": None,
+        "level": "geographic",
+        "coordinate_convention": "WGS84 geographic degrees by package convention",
+        "crs_transformation": "none",
+        "boundary_model": "area-equivalent 1-degree cells",
+        "boundary_semantics": "numeric lookup is authoritative on exact cell boundaries",
+    }
+
+
+def test_explicit_packaged_engine_retains_packaged_geojson_metadata() -> None:
+    """An explicit engine that matches packaged data retains FE-1995 metadata."""
+
+    implicit = regions_geojson(properties=())
+    explicit = regions_geojson(properties=(), lookup=get_default_lookup())
+    assert explicit["feregion"] == implicit["feregion"]
+
+
+def test_custom_hierarchy_engine_uses_provenance_neutral_collection_metadata() -> None:
+    """A modified hierarchy must not inherit packaged FE-1995 provenance metadata."""
+
+    packaged = get_default_lookup()
+    assert packaged.seismic_by_geographic is not None
+    assert packaged.seismic_names is not None
+    crosswalk = packaged.seismic_by_geographic.copy()
+    crosswalk[172] = 1
+    engine = FlinnEngdahlLookup(
+        packaged.table,
+        packaged.names,
+        crosswalk,
+        packaged.seismic_names,
+    )
+
+    document = regions_geojson(level="seismic", properties=(), lookup=engine)
+    assert document["feregion"]["scheme"] is None
+    assert document["feregion"]["revision"] is None

@@ -290,6 +290,21 @@ class FlinnEngdahlLookup:
         geographic = self._lookup_geographic_numbers_from_vectors(longitude, latitude)
         return self._seismic_numbers_for_lookup_result(geographic)
 
+    def _active_geographic_numbers_for_seismic(self, seismic_number: int) -> GeographicNumberArray:
+        """Return active geographical children of one seismic region.
+
+        Membership is derived from this engine's active geographical mask and
+        hierarchy crosswalk together. Populated crosswalk slots for identifiers
+        that are not used by the geographical lookup table remain inactive and
+        are therefore excluded. This helper is package-internal; callers that
+        supply arbitrary region numbers must continue to use the validating
+        public conversion APIs.
+        """
+
+        crosswalk, _ = self._require_seismic_data()
+        active = np.flatnonzero(self._active_geographic).astype(np.uint16, copy=False)
+        return cast(GeographicNumberArray, active[crosswalk[active] == seismic_number])
+
     def _seismic_numbers_for_lookup_result(
         self, geographic: GeographicNumberArray
     ) -> SeismicNumberArray:

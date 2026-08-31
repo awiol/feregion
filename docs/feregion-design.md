@@ -198,8 +198,10 @@ polygons and union them into 50 parents.
 
 Geometry selection and annotation selection are separate controls:
 
-- `level="geographic"` produces 754 geographical features;
-- `level="seismic"` produces 50 seismic features;
+- with the packaged lookup, `level="geographic"` produces 754 geographical
+  features and `level="seismic"` produces 50 seismic features;
+- with an explicit lookup, feature populations follow that engine's active
+  geographical ownership grid and hierarchy;
 - `properties=()` permits geometry-only machine output;
 - a controlled property vocabulary permits generic level-relative
   `number`/`name` fields and explicit cross-level identifiers/names;
@@ -214,7 +216,17 @@ are computed only when requested.
 
 Dataset-wide scheme, revision, selected level, boundary model, and exact-point
 boundary semantics live once in a collection-level `feregion` foreign member
-by default. Feature properties contain only values that vary per feature.
+by default. FE-1995 scheme/revision metadata is emitted only when the selected
+engine is the packaged default instance. Other explicit engines retain
+engine-independent coordinate/boundary metadata but use null scheme/revision
+values because the engine constructor does not carry an
+independent provenance declaration. Feature properties contain only values that
+vary per feature.
+
+Seismic cross-level child enumeration uses the engine's active geographical
+membership together with its hierarchy. GeoJSON does not infer active membership
+from all nonzero crosswalk slots, because unused slots may contain retained or
+custom values without becoming active identifiers.
 
 The geometry is **area-equivalent one-degree GeoJSON**. It is not an exact
 encoding of FE ownership for every coordinate on an integer boundary line.

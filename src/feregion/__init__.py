@@ -9,7 +9,7 @@ from ._default import get_default_lookup
 from .core import FlinnEngdahlLookup, ScalarCoordinate
 from .types import GeographicRegion, Region, SeismicRegion
 
-__version__ = "0.3.0a1"
+__version__ = "0.3.0a2"
 
 
 def lookup_geographic_number(longitude: ScalarCoordinate, latitude: ScalarCoordinate) -> int:
@@ -89,7 +89,7 @@ def seismic_numbers_to_names(numbers: npt.ArrayLike) -> npt.NDArray[np.str_]:
 
 
 # Compatibility surface from the 0.1 contract. These names continue to mean
-# geographical regions; no deprecation is planned for the 0.2 development line.
+# geographical regions. No deprecation is planned for this compatibility surface.
 def lookup_number(longitude: ScalarCoordinate, latitude: ScalarCoordinate) -> int:
     """Return the FE geographical-region number for one coordinate pair."""
 

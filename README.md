@@ -23,13 +23,16 @@ uv add 'feregion[pandas]'
 uv add 'feregion[geo]'
 ```
 
-For a source checkout:
+For a Git checkout with its committed lock:
 
 ```bash
-uv sync
+uv sync --locked
 ```
 
-The repository uses `uv` directly and does not use a Makefile.
+A clean source handoff intentionally omits `uv.lock`. An unlocked `uv sync` may
+create a local dependency solution for inspection, but that state is not normal
+repository verification evidence. The repository uses `uv` directly and does
+not use a Makefile.
 
 ## Python API
 
@@ -129,26 +132,36 @@ stdout is a streaming sink and can contain earlier rows if a later row fails.
 The filesystem guarantee does not claim crash durability, directory fsync, ACL
 preservation, or owner preservation.
 
-GeoJSON can emit either 754 geographical features or 50 seismic features from
-the same one-degree cell grid. Geometry level is independent of annotation
-selection. Use repeated `--property` options for explicit semantic fields,
-`--label` for a small human-facing label, and `--no-metadata` or no properties
-for compact machine-oriented output. The geometry is **area-equivalent**.
-Numeric lookup is authoritative for coordinates exactly on integer cell
-boundaries because ordinary closed polygons cannot encode every directional FE
-point-boundary rule.
+With the packaged lookup, GeoJSON emits 754 geographical features or 50
+seismic features from the same one-degree cell grid. The Python GeoJSON API also
+accepts explicit lookup engines; their feature populations and cross-level
+membership follow that engine. Collection metadata identifies FE-1995 only when
+the selected engine is the packaged default instance. Other explicit engines use null scheme/revision
+fields rather than inferred provenance.
+Geometry level is independent of annotation selection. Use repeated `--property`
+options for explicit semantic fields, `--label` for a small human-facing label,
+and `--no-metadata` or no properties for compact machine-oriented output. The
+geometry is **area-equivalent**. Numeric lookup is authoritative for coordinates
+exactly on integer cell boundaries because ordinary closed polygons cannot encode
+every directional FE point-boundary rule.
 
 ## Development and verification
 
-Run local checks with `uv`:
+Run the canonical lock-preserving local checks with `uv`:
 
 ```bash
-uv sync
-uv run ruff check .
-uv run pytest -q
-uv run pytest -q --cov=feregion --cov-branch --cov-report=term-missing
+uv sync --locked --group dev
+uv run --locked ruff format --check .
+uv run --locked ruff check .
+uv run --locked mypy
+uv run --locked pytest -q
+uv run --locked pytest -q --cov=feregion --cov-branch --cov-report=term-missing
 uv build
 ```
+
+`uv build` has no lock flag; lock freshness is established by the preceding
+`uv sync --locked`. Use unlocked dependency operations only when intentionally
+creating or refreshing `uv.lock`, not as verification evidence.
 
 Run the local compatibility matrix before a compatibility-sensitive push:
 
@@ -187,9 +200,9 @@ material is not. Maintainers retrieve both source families before complete
 asset regeneration:
 
 ```bash
-uv run python -m tools.fetch_obspy_fe_data
-uv run python -m tools.fetch_isc_fe_regions
-uv run python -m tools.build_assets
+uv run --locked python -m tools.fetch_obspy_fe_data
+uv run --locked python -m tools.fetch_isc_fe_regions
+uv run --locked python -m tools.build_assets
 ```
 
 The ObsPy fetcher pins tag `1.4.2` at immutable commit
@@ -231,9 +244,9 @@ Install benchmark dependencies and run the repository harnesses:
 
 ```bash
 uv sync --locked --group benchmark
-uv run --group benchmark pytest benchmarks --benchmark-only \
+uv run --locked --group benchmark pytest benchmarks --benchmark-only \
   --benchmark-json=benchmark.json
-uv run --group benchmark python -m benchmarks.run_benchmark \
+uv run --locked --group benchmark python -m benchmarks.run_benchmark \
   --output benchmark-standalone.json
 ```
 
@@ -270,7 +283,7 @@ records produced on the same controlled host/interpreter/dependency/workload
 context:
 
 ```bash
-uv run --group benchmark python -m benchmarks.compare_releases \
+uv run --locked --group benchmark python -m benchmarks.compare_releases \
   --baseline baseline.json --candidate candidate.json --fail-on-trigger
 ```
 

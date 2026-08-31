@@ -10,7 +10,7 @@ from typing import Any, Literal
 
 import numpy as np
 
-from ._default import get_default_lookup
+from ._default import _is_default_lookup_instance, get_default_lookup
 from .core import FlinnEngdahlLookup
 from .exceptions import GeoJSONDependencyError, GeoJSONOptionError, RegionLevelError
 
@@ -51,9 +51,11 @@ def regions_geojson(
     """Return area-equivalent FE geographical or seismic geometry as GeoJSON.
 
     Args:
-        level: Geometry level. ``"geographic"`` produces the 754 active FE
-            geographical regions. ``"seismic"`` produces the 50 parent seismic
-            regions from the same cell grid.
+        level: Geometry level. With the packaged lookup, ``"geographic"``
+            produces the 754 active FE geographical regions and ``"seismic"``
+            produces the 50 parent seismic regions. With an explicit lookup,
+            feature populations follow that engine's active ownership grid and
+            hierarchy.
         properties: Feature properties to include. ``number`` and ``name`` are
             relative to ``level``. Explicit cross-level fields are available
             where their meaning is unambiguous. An empty sequence produces
@@ -62,10 +64,12 @@ def regions_geojson(
             renderers. The supported values use the current level's number,
             name, or ``"<number> <name>"`` combination.
         include_metadata: Include one collection-level ``feregion`` metadata
-            object with scheme and boundary semantics. Disable it for a smaller
-            machine-oriented payload.
-        lookup: Optional lookup engine. Seismic output requires an engine with
-            seismic hierarchy data.
+            object. The packaged default engine identifies the FE-1995 scheme and
+            revision. Other explicit engines leave those provenance fields null
+            while retaining engine-independent coordinate and boundary semantics.
+            Disable metadata for a smaller machine-oriented payload.
+        lookup: Optional lookup engine. Explicit custom engines are supported.
+            Seismic output requires an engine with seismic hierarchy data.
 
     Returns:
         A GeoJSON FeatureCollection. Numeric point lookup remains authoritative
@@ -124,16 +128,23 @@ def regions_geojson(
 
     document: dict[str, Any] = {"type": "FeatureCollection", "features": features}
     if include_metadata:
-        document["feregion"] = {
-            "scheme": "Flinn-Engdahl",
-            "revision": "1995",
-            "level": level,
-            "coordinate_convention": "WGS84 geographic degrees by package convention",
-            "crs_transformation": "none",
-            "boundary_model": "area-equivalent 1-degree cells",
-            "boundary_semantics": "numeric lookup is authoritative on exact cell boundaries",
-        }
+        document["feregion"] = _collection_metadata(engine, level)
     return document
+
+
+def _collection_metadata(engine: FlinnEngdahlLookup, level: RegionLevel) -> dict[str, Any]:
+    """Return truthful collection metadata for the supplied lookup engine."""
+
+    packaged = _is_default_lookup_instance(engine)
+    return {
+        "scheme": "Flinn-Engdahl" if packaged else None,
+        "revision": "1995" if packaged else None,
+        "level": level,
+        "coordinate_convention": "WGS84 geographic degrees by package convention",
+        "crs_transformation": "none",
+        "boundary_model": "area-equivalent 1-degree cells",
+        "boundary_semantics": "numeric lookup is authoritative on exact cell boundaries",
+    }
 
 
 def _cell_number_grid(engine: FlinnEngdahlLookup, level: RegionLevel) -> np.ndarray:
@@ -221,10 +232,9 @@ def _feature_properties(
                 result[field] = current_seismic_name
             elif field in {"geographic_numbers", "geographic_names"}:
                 if geographic_numbers is None:
-                    crosswalk = engine.seismic_by_geographic
-                    if crosswalk is None:
-                        raise AssertionError("seismic data became unavailable")
-                    geographic_numbers = np.flatnonzero(crosswalk == number).astype(int).tolist()
+                    geographic_numbers = (
+                        engine._active_geographic_numbers_for_seismic(number).astype(int).tolist()
+                    )
                 if field == "geographic_numbers":
                     result[field] = geographic_numbers
                 else:

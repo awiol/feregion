@@ -648,3 +648,26 @@ changed rationale as historical fact.
 - **Review trigger:** Benchmark comparison does not reproduce a material gain on
   supported environments, or a later review identifies an unintended public
   compatibility change.
+
+
+## `DEC-037` — Keep explicit-engine GeoJSON and make provenance claims conditional
+
+- **Context:** `regions_geojson(..., lookup=...)` already accepts valid explicit
+  engines, but `0.3.0a1` always emitted packaged FE-1995 scheme/revision metadata.
+  Seismic child properties also enumerated every matching crosswalk slot instead
+  of the engine's active geographical membership.
+- **Decision:** Keep explicit-engine GeoJSON support. Geometry, names, hierarchy
+  membership, and cross-level properties must follow the selected engine. Use an
+  engine-owned active-membership helper for seismic child enumeration. Emit
+  FE-1995 scheme/revision metadata only when the selected engine is the
+  packaged default instance. Otherwise, emit null scheme/revision values while
+  retaining engine-independent coordinate and boundary semantics.
+- **Alternatives considered:** reject every explicit engine that is not the
+  packaged singleton; add provenance fields to the public engine constructor;
+  continue hard-coding packaged metadata.
+- **Compatibility consequence:** Default packaged GeoJSON metadata and geometry
+  remain unchanged. Explicit custom engines no longer receive unsupported
+  FE-1995 provenance claims, and inactive crosswalk slots no longer leak into
+  seismic child properties.
+- **Review trigger:** The engine gains an explicit provenance contract, or GeoJSON
+  metadata needs to distinguish additional named source datasets.

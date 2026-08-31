@@ -314,3 +314,19 @@ def test_ci_declares_scheduled_live_isc_semantic_check() -> None:
     assert "isc-source-check:" in workflow
     assert "python -m tools.fetch_isc_fe_regions" in workflow
     assert "github.event_name == 'schedule'" in workflow
+
+
+def test_canonical_documented_uv_verification_commands_preserve_lock() -> None:
+    """Human-facing normal verification examples must not refresh ``uv.lock``."""
+
+    documents = {
+        "README.md": (PROJECT_ROOT / "README.md")
+        .read_text()
+        .split("## Development and verification", maxsplit=1)[1],
+        "docs/testing.md": (PROJECT_ROOT / "docs/testing.md").read_text(),
+    }
+    for relative, text in documents.items():
+        for line_number, line in enumerate(text.splitlines(), start=1):
+            command = line.strip()
+            if command.startswith(("uv sync", "uv run")):
+                assert "--locked" in command, f"{relative}:{line_number}: {command}"
