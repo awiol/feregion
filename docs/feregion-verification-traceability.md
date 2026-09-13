@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Status | Current alpha traceability |
+| Status | Current beta traceability |
 
 ## Purpose
 

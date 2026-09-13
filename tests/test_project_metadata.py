@@ -37,6 +37,31 @@ def test_runtime_version_matches_project_metadata() -> None:
     assert feregion.__version__ == _pyproject()["project"]["version"]
 
 
+def test_prerelease_maturity_metadata_is_consistent() -> None:
+    """Prerelease version, package classifier, and maintained maturity status must agree."""
+
+    data = _pyproject()
+    version = data["project"]["version"]
+    match = re.fullmatch(r"\d+\.\d+\.\d+(a|b)(\d+)", version)
+    assert match is not None, "update maturity synchronization for a new release stage"
+
+    stage = {"a": "alpha", "b": "beta"}[match.group(1)]
+    classifier = {
+        "alpha": "Development Status :: 3 - Alpha",
+        "beta": "Development Status :: 4 - Beta",
+    }[stage]
+    classifiers = data["project"]["classifiers"]
+    development_classifiers = [
+        item for item in classifiers if item.startswith("Development Status ::")
+    ]
+    assert development_classifiers == [classifier]
+
+    quality = (DOCS / "feregion-quality-assurance.md").read_text(encoding="utf-8")
+    traceability = (DOCS / "feregion-verification-traceability.md").read_text(encoding="utf-8")
+    assert f"| Status | Current {stage} quality contract |" in quality
+    assert f"| Status | Current {stage} traceability |" in traceability
+
+
 def test_compatibility_test_extra_matches_test_dependency_group() -> None:
     """The retained ``test`` extra must not drift from the authoritative uv test group."""
 

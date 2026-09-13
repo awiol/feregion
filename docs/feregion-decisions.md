@@ -640,8 +640,8 @@ changed rationale as historical fact.
   maturity reflects that the new optimized implementation still requires broader
   supported-environment stabilization.
 - **Alternatives considered:** `0.2.0b2` as an internal-only stabilization change;
-  a patch-style version because no public symbol changed; `0.3.0b1` while retaining
-  beta maturity.
+  a patch-style version because no public symbol changed; direct beta entry for
+  the new `0.3` line.
 - **Compatibility consequence:** No intended public API or scientific-result
   incompatibility. Version consumers can identify the performance-focused minor
   line separately from the `0.2` beta baseline.
@@ -715,3 +715,37 @@ changed rationale as historical fact.
   contract.
 - **Review trigger:** The public input type is narrowed deliberately, or NumPy's
   scalar/indexing type behavior changes materially.
+
+## `DEC-040` — Promote the `0.3` target to beta maturity
+
+- **Context:** The `0.3` line began at alpha because the internal batch and
+  seismic-composition optimization materially changed supported performance and
+  memory behavior. Subsequent alpha iterations corrected GeoJSON custom-engine
+  semantics, simplified cross-level GeoJSON properties and CLI selection, and
+  aligned plural conversion results, diagnostics, README examples, and public
+  docstrings with their contracts. A beta-promotion self-review using the current
+  CPS and software-quality guidance found no remaining accepted-scope feature or
+  major behavioral defect that requires alpha-stage design work. Controlled
+  same-process measurements on CPython 3.13 also reproduced the optimization's
+  intended effect against the accepted `0.2` beta baseline while an unchanged
+  geographical matrix path acted as a control.
+- **Decision:** Treat the intended `0.3` target functionality as substantially
+  complete and advance the development line to beta maturity. Beta work is
+  limited to stabilization, verification, and corrections or omissions within
+  the accepted target scope unless a new scope decision selects another target.
+  Keep release validation, hosted CI, release-specific performance comparison,
+  delivery replay, and source-data redistribution disposition as separate
+  evidence or authority dimensions under `DEC-033` and the quality gates.
+- **Rationale/evidence:** The full local runtime suite and branch coverage pass;
+  exhaustive coordinate and hierarchy regressions remain in place; the prior
+  exact-source evidence established source reproduction, ObsPy-oracle agreement,
+  supported-Python compatibility, lower-bound dependencies, Ruff, mypy, build,
+  isolated-wheel operation, and live ISC identity for the preceding alpha state;
+  later changes are bounded corrections. The promotion review separately
+  rechecked current-source behavior and reproduced the performance mechanism.
+- **Compatibility consequence:** No supported runtime contract changes solely
+  because maturity advances. Package metadata now communicates beta rather than
+  alpha status.
+- **Review trigger:** A new discretionary feature is proposed for `0.3`, a major
+  accepted-scope defect is discovered, or evidence shows that intended target
+  functionality is no longer substantially complete.

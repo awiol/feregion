@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.0b1 — 2026-09-13
+
+- Promote the `0.3` target to beta after a CPS- and software-quality-guided self-review found the intended target functionality substantially complete and no remaining alpha-stage design blocker.
+- Reconfirm the performance-focused `0.3` rationale on CPython 3.13 with a controlled same-process comparison against the accepted `0.2` beta baseline: the unchanged geographical matrix path remains approximately flat while seismic batch lookup is about 2.0–3.0x faster and the internal split-vector geographical path about 1.5–1.7x faster at 10k–1M points on the measured host.
+- Add an executable maturity-metadata consistency check so prerelease stage, PyPI development-status classifier, quality-assurance status, and verification-traceability status cannot drift silently.
+- Keep beta maturity separate from release validation: hosted CI for the exact beta candidate, release-specific `QG-PERF`, exact-candidate external-source/oracle reruns, and qualified source-data redistribution disposition remain explicit evidence or authority items.
+
 ## 0.3.0a4 — 2026-08-31
 
 - Make plural region-number conversion APIs honor their published NumPy-array return contract for scalar `ArrayLike` input by returning zero-dimensional arrays instead of NumPy scalar objects.

@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Status | Current alpha quality contract |
+| Status | Current beta quality contract |
 
 ## Purpose
 
@@ -59,12 +59,15 @@ stronger product claim by itself.
 
 Prerelease identifiers describe maturity for the current minor line and remain
 separate from release-validation status. `0.2.0b1` marked the substantially
-complete `0.2` functionality as beta. the first `0.3` prerelease starts a new minor line because
-the batch optimization produces a material backward-compatible performance
-change; that new implementation starts at alpha while stabilization and broader
-validation continue. Alpha or beta maturity does not mean that all release gates
-passed, that scientific validation is complete, or that public distribution is
-approved.
+complete `0.2` functionality as beta. The `0.3` minor line began at alpha because
+the batch optimization introduced a materially different performance
+implementation that required stabilization. The accepted `0.3` functionality is
+now substantially complete: the optimization, GeoJSON contract, CLI usability,
+plural conversion contract, diagnostics, and public documentation have received
+alpha-stage correction and regression coverage. The `0.3` line therefore uses
+beta maturity while broader verification and release-specific evidence continue.
+Alpha or beta maturity does not mean that all release gates passed, that
+scientific validation is complete, or that public distribution is approved.
 
 A beta candidate must not be described as **release-validated**,
 **promotion-gate complete**, or ready for unqualified external publication
