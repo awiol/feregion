@@ -104,6 +104,21 @@ uv run --locked --group benchmark python -m benchmarks.campaign report benchmark
 
 The ASV-discovered package is `benchmarks/asv_suite/`; predecessor pytest-benchmark code stays outside it. Campaigns generate a temporary ASV config in the repository root and pass it with the subcommand-local `--config` option so ASV's config-directory working-directory behavior keeps `.asv/` and benchmark paths rooted in the repository.
 
+Campaign `revisions` are single Git revision identities such as `HEAD`, `v0.3.0b1`,
+or a commit SHA. Do **not** put Git range syntax such as `HEAD^!`, `main..HEAD`, or
+`HEAD~1` in a campaign. `plan` resolves every identity to an immutable commit SHA;
+`run` converts that SHA to ASV's exact-single-commit selector internally. A missing
+revision therefore fails before ASV creates environments or builds packages.
+
+Both the persistent and generated ASV configurations build the `feregion` project
+wheel with `pip wheel --no-deps` and install it with `pip install --no-deps
+--force-reinstall`. NumPy/pandas versions come from the named ASV environment
+profile. This separation is required because ASV 0.6.6's default build may place
+dependency wheels beside the project wheel, making `{wheel_file}` ambiguous. After
+upgrading from an affected pre-a6 candidate, a new a6 commit has a new build-cache
+identity; stale `.asv/` state from failed diagnostics may also be removed locally if
+it is no longer needed as evidence.
+
 The `0.4.0` target uses a thin hybrid architecture:
 
 - `feregion` owns stable benchmark semantics, deterministic workloads,

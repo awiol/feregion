@@ -2,17 +2,31 @@
   "version": 1,
   "project": "feregion",
   "repo": ".",
-  "branches": ["main"],
+  "branches": [
+    "main"
+  ],
   "environment_type": "uv",
-  "pythons": ["3.12"],
+  "pythons": [
+    "3.12"
+  ],
   "matrix": {
     "req": {
-      "numpy": ["1.26.4"],
-      "pandas": ["2.1.4"]
+      "numpy": [
+        "1.26.4"
+      ],
+      "pandas": [
+        "2.1.4"
+      ]
     }
   },
   "benchmark_dir": "benchmarks/asv_suite",
   "env_dir": ".asv/env",
   "results_dir": ".asv/results",
-  "html_dir": ".asv/html"
+  "html_dir": ".asv/html",
+  "build_command": [
+    "python -m pip wheel --no-deps -w {build_cache_dir} {build_dir}"
+  ],
+  "install_command": [
+    "in-dir={env_dir} python -m pip install --no-deps --force-reinstall {wheel_file}"
+  ]
 }

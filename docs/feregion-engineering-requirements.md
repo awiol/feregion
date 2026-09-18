@@ -384,6 +384,18 @@ load-parameter filtering. When ASV is installed in the verification environment,
 its own command parser or an equivalent direct-tool check should be used as an
 additional oracle.
 
+**REQ-PERF-019** — Authoritative campaign revisions must be single revision
+identities, not Git/ASV range expressions. Before ASV execution, each selected
+revision must resolve through Git to one immutable commit SHA; unresolved
+identities must fail preflight, `run` must select exactly that commit, and the
+requested identity plus resolved SHA must remain inspectable evidence. Project
+build/install configuration must also keep dependency ownership explicit: the
+ASV environment matrix owns NumPy/pandas selection, the project build must place
+exactly one installable `feregion` wheel in the ASV build cache, and project
+installation must not re-resolve runtime dependencies. Regression coverage must
+exercise real Git history semantics and the effective persistent and
+campaign-generated ASV build/install commands.
+
 ## Packaging, development environment, and license
 
 **REQ-PKG-001** — The package must require Python 3.11 or newer. Automated

@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.4.0a6 — 2026-09-18
+
+- Resolve every campaign revision identity to an immutable Git commit before ASV execution; `run` now passes `<resolved-commit>^!` so one campaign revision cannot expand into its first-parent history, while `compare` uses the resolved commit identities.
+- Reject Git range/revision-expression syntax such as `HEAD^!`, `main..HEAD`, and `HEAD~1` in campaign configuration and fail missing refs during preflight before ASV creates environments or builds packages.
+- Make the ASV project-build ownership boundary explicit in both persistent and generated configuration: build the `feregion` wheel with `pip wheel --no-deps` and install it with `pip install --no-deps --force-reinstall`, leaving NumPy/pandas selection to the ASV environment matrix and preserving a single-wheel `{wheel_file}` cache.
+- Extend benchmark contract tests with real temporary-Git history checks, immutable resolved-plan evidence, explicit ASV build/install command checks, and regression coverage for the two user-observed ASV integration failures.
+- Update benchmark requirements, design, quality gates, traceability, decisions, testing guidance, and operator documentation around the full revision → build → install → discovery boundary.
+
+## 0.4.0a5 — 2026-09-18
+
+- Local maintainer diagnostic candidate used to reproduce the ASV revision-selection and build-cache failures that are corrected in `0.4.0a6`; no additional functional change is asserted here because the exact a5 handoff was not supplied to this implementation environment.
+
 ## 0.4.0a4 — 2026-09-18
 
 - Fix the campaign-to-ASV subprocess contract after a real `local-smoke` run exposed that the generated command used an unsupported pre-subcommand `-c` form; commands now use ASV's documented subcommand-local `--config` option.

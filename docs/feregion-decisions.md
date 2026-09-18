@@ -955,3 +955,35 @@ changed rationale as historical fact.
 - **Review trigger:** ASV changes its CLI/config-directory semantics, benchmark
   discovery rules, or exposes a stable in-process API that materially simplifies
   the wrapper without coupling project evidence to ASV internals.
+
+## `DEC-049` — Resolve benchmark revisions exactly and isolate project-wheel builds
+
+- **Context:** Real ASV 0.6.6 smoke runs exposed two coupled integration failures.
+  Passing a tag directly to `asv run` caused ASV/Git to walk all first-parent
+  ancestors, eventually reaching pre-package commits. After an exact-commit
+  diagnostic, ASV's default project build placed both `feregion` and a newly
+  resolved NumPy wheel in `{build_cache_dir}`; ASV then rejected `{wheel_file}`
+  because the cache contained multiple wheels. The maintainer diagnostic confirmed
+  that the environment matrix requested NumPy 1.26.4 while the default project
+  build independently fetched NumPy 2.5.3.
+- **Decision:** Treat campaign revisions as single identities. Resolve each through
+  Git to one immutable commit before invoking ASV, retain requested and resolved
+  identities, use `<sha>^!` only as internal `asv run` selector syntax, and reject
+  operator-supplied range expressions. Configure both persistent and generated ASV
+  configs to build the project wheel with `pip wheel --no-deps` and install it with
+  `pip install --no-deps --force-reinstall`, leaving NumPy/pandas ownership to the
+  ASV environment matrix.
+- **Evidence basis:** The maintainer diagnostic on ASV 0.6.6 observed 25 commits from
+  `git rev-list --first-parent v0.4.0a5`, exactly one from `<sha>^!`, and a build
+  cache containing `feregion-0.4.0a5` plus NumPy 2.5.3. Installed ASV source showed
+  the default `pip wheel -w {build_cache_dir} {build_dir}` command and the explicit
+  multiple-wheel rejection. Regression tests reproduce the Git selection mechanism
+  in a real temporary repository.
+- **Compatibility consequence:** Runtime package APIs are unchanged. Campaign files
+  that used range syntax such as `HEAD^!` must use a plain identity such as `HEAD`;
+  exact-selection syntax is now an internal adapter detail. Benchmark environments
+  retain their declared dependency matrix instead of allowing project installation
+  to resolve replacements.
+- **Review trigger:** ASV changes revision-selection semantics, `{wheel_file}` or
+  build-cache behavior, environment-matrix ownership, or provides a safer native
+  exact-revision/project-only-build contract that removes these adapters.

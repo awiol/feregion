@@ -369,3 +369,18 @@ The hooks use the synchronized project environment. Ruff formatting can modify
 Python files; review and re-stage those changes before committing. Behavioral
 tests run through `tox run -e local`, so pre-commit and the compatibility matrix
 share one tox test definition instead of duplicating a direct pytest command.
+
+### ASV campaign integration preflight
+
+Before a timed campaign, run the read-only plan and inspect its `resolved_revisions`:
+
+```bash
+uv run --locked --group benchmark python -m benchmarks.campaign plan benchmarks/campaigns/release-history.toml
+```
+
+Campaign revisions must be single identities such as `HEAD` or `v0.3.0b1`; range
+syntax is rejected. The resolved plan must contain one immutable commit SHA for each
+requested identity. The maintained and generated ASV configuration must use the
+project-only wheel build/install commands with `--no-deps`. The real-ASV smoke for
+a candidate should run one exact revision before a broader historical campaign and
+should retain stderr if discovery/build/install fails.

@@ -12,7 +12,15 @@ import pytest
 
 import benchmarks.campaign as campaign_module
 from benchmarks.asv_suite.contracts import CASES, STANDARD_LOAD_SIZES, workload_fingerprint
-from benchmarks.campaign import PROFILE_CONFIG, Campaign, benchmark_regex, build_asv_config
+from benchmarks.campaign import (
+    ASV_BUILD_COMMAND,
+    ASV_INSTALL_COMMAND,
+    PROFILE_CONFIG,
+    Campaign,
+    benchmark_regex,
+    build_asv_config,
+    resolve_revision,
+)
 from benchmarks.evidence import EvidenceRecord, normalize_asv_result
 from benchmarks.regression import compare_release_evidence
 
@@ -66,9 +74,28 @@ def test_campaign_parses_and_resolves_plan(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     campaign = Campaign.from_toml(path)
-    plan = campaign.plan()
+    repository = tmp_path / "repo"
+    repository.mkdir()
+    subprocess.run(["git", "init", "-q"], cwd=repository, check=True)
+    subprocess.run(
+        ["git", "config", "user.email", "test@example.invalid"],
+        cwd=repository,
+        check=True,
+    )
+    subprocess.run(["git", "config", "user.name", "Test"], cwd=repository, check=True)
+    (repository / "tracked").write_text("x", encoding="utf-8")
+    subprocess.run(["git", "add", "tracked"], cwd=repository, check=True)
+    subprocess.run(["git", "commit", "-qm", "initial"], cwd=repository, check=True)
+    subprocess.run(["git", "tag", "v0.3.0b1"], cwd=repository, check=True)
+    subprocess.run(["git", "tag", "v0.2.0b1"], cwd=repository, check=True)
+    plan = campaign.plan(repository=repository)
     assert plan["repetitions"] == 7
     assert plan["case_versions"] == {"lookup_geographic_numbers": 1}
+    assert [item["requested"] for item in plan["resolved_revisions"]] == [
+        "v0.3.0b1",
+        "v0.2.0b1",
+    ]
+    assert all(len(item["commit"]) == 40 for item in plan["resolved_revisions"])
 
 
 def test_campaign_rejects_unknown_case(tmp_path: Path) -> None:
@@ -121,6 +148,19 @@ def test_asv_config_uses_uv_and_project_owned_benchmark_dir() -> None:
     config = build_asv_config(campaign, repository=Path("."))
     assert config["environment_type"] == "uv"
     assert config["benchmark_dir"] == "benchmarks/asv_suite"
+    assert config["build_command"] == ASV_BUILD_COMMAND
+    assert config["install_command"] == ASV_INSTALL_COMMAND
+    assert "--no-deps" in config["build_command"][0]
+    assert "--no-deps" in config["install_command"][0]
+
+
+def test_persistent_asv_config_matches_project_build_install_contract() -> None:
+    """Direct ASV use must preserve the same project-only wheel ownership boundary."""
+
+    project_root = Path(__file__).resolve().parents[1]
+    config = json.loads((project_root / "asv.conf.json").read_text(encoding="utf-8"))
+    assert config["build_command"] == ASV_BUILD_COMMAND
+    assert config["install_command"] == ASV_INSTALL_COMMAND
 
 
 def test_benchmark_regex_selects_only_requested_load_values() -> None:
@@ -282,6 +322,106 @@ def test_asv_suite_isolated_from_legacy_pytest_benchmark_module() -> None:
     assert suite.is_dir()
     assert (suite / "benchmarks.py").is_file()
     assert not (suite / "test_lookup_benchmark.py").exists()
+
+
+def _init_revision_repo(path: Path) -> tuple[str, str]:
+    path.mkdir()
+    subprocess.run(["git", "init", "-q"], cwd=path, check=True)
+    subprocess.run(["git", "config", "user.email", "test@example.invalid"], cwd=path, check=True)
+    subprocess.run(["git", "config", "user.name", "Test"], cwd=path, check=True)
+    tracked = path / "tracked.txt"
+    tracked.write_text("one\n", encoding="utf-8")
+    subprocess.run(["git", "add", "tracked.txt"], cwd=path, check=True)
+    subprocess.run(["git", "commit", "-qm", "one"], cwd=path, check=True)
+    first = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=path, text=True).strip()
+    tracked.write_text("two\n", encoding="utf-8")
+    subprocess.run(["git", "commit", "-qam", "two"], cwd=path, check=True)
+    subprocess.run(["git", "tag", "v-test"], cwd=path, check=True)
+    second = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=path, text=True).strip()
+    return first, second
+
+
+def test_revision_identity_resolves_to_one_commit_and_exact_asv_selector(tmp_path: Path) -> None:
+    """A release tag must become one immutable commit, never an ASV history walk."""
+
+    repository = tmp_path / "repo"
+    _first, second = _init_revision_repo(repository)
+    resolved = resolve_revision("v-test", repository=repository)
+    assert resolved.commit == second
+    history = subprocess.check_output(
+        ["git", "rev-list", "--first-parent", resolved.asv_run_selector, "--"],
+        cwd=repository,
+        text=True,
+    ).splitlines()
+    assert history == [second]
+    unbounded = subprocess.check_output(
+        ["git", "rev-list", "--first-parent", "v-test", "--"],
+        cwd=repository,
+        text=True,
+    ).splitlines()
+    assert len(unbounded) == 2
+
+
+@pytest.mark.parametrize("revision", ["HEAD^!", "main..HEAD", "HEAD~1", "HEAD^{commit}"])
+def test_campaign_rejects_git_range_or_expression_syntax(revision: str, tmp_path: Path) -> None:
+    """Campaign revisions are identities; ASV/Git execution syntax is internal."""
+
+    repository = tmp_path / "repo"
+    _init_revision_repo(repository)
+    with pytest.raises(ValueError, match="one ref/commit identity"):
+        resolve_revision(revision, repository=repository)
+
+
+def test_missing_campaign_revision_fails_during_preflight(tmp_path: Path) -> None:
+    """A nonexistent ref must fail before ASV environment or build work starts."""
+
+    repository = tmp_path / "repo"
+    _init_revision_repo(repository)
+    with pytest.raises(ValueError, match="cannot resolve campaign revision"):
+        resolve_revision("v-missing", repository=repository)
+
+
+def test_exact_selector_and_build_contract_cross_subprocess_adapter(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Exact revision selection and single-wheel build policy cross the ASV subprocess boundary."""
+
+    repository = tmp_path / "repo"
+    _first, second = _init_revision_repo(repository)
+    (repository / "benchmarks" / "asv_suite").mkdir(parents=True)
+    campaign = Campaign(
+        "slice",
+        "test",
+        ("v-test",),
+        ("lookup_geographic_numbers",),
+        (100,),
+        2,
+        1,
+        "release-history",
+        True,
+    )
+    resolved = (campaign_module.ResolvedRevision("v-test", second),)
+    observed: list[list[str]] = []
+
+    def fake_run(argv: list[str], *, cwd: Path) -> subprocess.CompletedProcess[str]:
+        observed.append(argv)
+        assert argv[1:3] == ["run", f"{second}^!"]
+        config_path = Path(argv[argv.index("--config") + 1])
+        config = json.loads(config_path.read_text(encoding="utf-8"))
+        assert config["branches"] == [second]
+        assert config["build_command"] == ASV_BUILD_COMMAND
+        assert config["install_command"] == ASV_INSTALL_COMMAND
+        return subprocess.CompletedProcess(argv, 0)
+
+    monkeypatch.setattr(campaign_module.subprocess, "run", fake_run)
+    status = campaign_module._run_asv(
+        campaign,
+        ["run", resolved[0].asv_run_selector],
+        repository=repository,
+        resolved_revisions=resolved,
+    )
+    assert status == 0
+    assert observed
 
 
 def test_asv_fixture_normalizes_raw_samples() -> None:

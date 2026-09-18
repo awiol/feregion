@@ -397,6 +397,16 @@ repository-relative benchmark, environment, result, and HTML paths retain their
 intended meaning. The temporary file is removed after the synchronous ASV
 process returns.
 
+Campaign revision values are **revision identities**, not ASV/Git revision-range
+syntax. The operator may name `HEAD`, a tag, branch/ref, or commit identity. The
+campaign preflight resolves each value with Git to one immutable 40-character
+commit SHA and retains both the requested value and resolved SHA in the plan.
+`run` passes `<resolved-sha>^!` to ASV so Git's first-parent traversal selects
+exactly one commit. `compare` receives the two resolved commit identities. Range
+expressions such as `HEAD^!`, `main..HEAD`, and `HEAD~1` are rejected as campaign
+inputs; explicit history/range exploration remains an ASV investigation workflow
+outside authoritative campaign revision identity.
+
 ### 9.5 ASV execution and history substrate
 
 The initial implementation target is ASV `0.6.6`, the latest released version
@@ -420,6 +430,17 @@ the semantic contracts, workloads, historical adapters, and ASV bindings needed
 inside ASV-created environments. The retained predecessor pytest benchmark and
 operator/report tooling remain outside this directory so ASV discovery does not
 import their development-only dependencies or mistake them for runner content.
+
+The ASV environment matrix owns benchmark runtime dependencies such as NumPy and
+pandas. The project-build step is explicitly configured as
+`python -m pip wheel --no-deps -w {build_cache_dir} {build_dir}` so the ASV build
+cache contains one `feregion` wheel rather than project and dependency wheels.
+Project installation uses `pip install --no-deps --force-reinstall {wheel_file}`
+inside the selected ASV environment. This preserves the matrix-selected dependency
+versions and satisfies ASV's `{wheel_file}` contract, which requires an unambiguous
+single wheel. Both the persistent `asv.conf.json` and campaign-generated config
+carry these commands; relying on ASV's 0.6.6 default build is prohibited because
+that default may place dependency wheels in the same cache.
 
 ### 9.6 Workloads, load sizes, and correctness
 
@@ -539,8 +560,10 @@ old results to interpret historical comparisons.
 
 Authoritative campaigns select exact package revisions deliberately. They do not
 infer authority from Git recency or benchmark every reachable commit by default.
-A campaign may name release tags, commit hashes, or an exact generated revision
-list.
+A campaign may name release tags, `HEAD`, branch/ref names, or commit identities;
+preflight resolves each identity to one immutable commit before measurement. Git
+range syntax is reserved for explicit investigation-history workflows and is not a
+valid authoritative campaign revision identity.
 
 Two modes are supported conceptually:
 
