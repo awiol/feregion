@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "project": "feregion",
+  "repo": ".",
+  "branches": ["main"],
+  "environment_type": "uv",
+  "pythons": ["3.12"],
+  "matrix": {
+    "req": {
+      "numpy": ["1.26.4"],
+      "pandas": ["2.1.4"]
+    }
+  },
+  "benchmark_dir": "benchmarks/asv_suite",
+  "env_dir": ".asv/env",
+  "results_dir": ".asv/results",
+  "html_dir": ".asv/html"
+}

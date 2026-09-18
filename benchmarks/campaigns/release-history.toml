@@ -1,0 +1,22 @@
+[campaign]
+id = "release-history"
+purpose = "Controlled cross-release history on the fixed release-history environment."
+revisions = ["v0.3.0b1"]
+cases = [
+  "lookup_geographic_number",
+  "lookup_geographic_region",
+  "geographic_number_to_name",
+  "lookup_geographic_numbers",
+  "lookup_seismic_number",
+  "lookup_seismic_region",
+  "lookup_seismic_numbers",
+  "geographic_numbers_to_seismic_numbers",
+  "geographic_numbers_to_names",
+  "pandas_lookup_numbers",
+  "pandas_lookup_numbers_and_names",
+]
+load_sizes = [1, 100, 1000, 10000, 100000, 1000000]
+repetitions = 5
+rounds = 3
+environment_profile = "release-history"
+record_samples = true

@@ -195,23 +195,28 @@ could not run must remain an explicit verification limitation.
 
 ## Performance evidence
 
-Before timing the geographical coordinate candidate, benchmark code compares
-its output with the source-table scanner. Direct batch comparisons use identical
-deterministic coordinates for candidate and baseline. Seismic benchmark paths
-also verify coordinate-to-seismic results against geographical lookup followed
-by the crosswalk before timing; the hierarchy-only crosswalk is measured
-separately.
+### Current `0.3` implementation
 
-Reports retain workload, environment, repetitions, median duration, throughput,
-speedup, CPU model when discoverable, machine architecture, and logical CPU
-count. Generated benchmark JSON and human-readable reports are delivery artifacts
-and should not be committed to the source repository. CPU power/frequency policy
-is not measured by the harness and must be controlled externally for a release
-ratio used as a gate.
+`0.3.0b1` uses the standalone benchmark runner, `pytest-benchmark`, the Tox
+supported-Python benchmark matrix, and the custom release comparator. These are
+the executable benchmark path for the current beta line. The accepted `0.4`
+benchmark target does not make them invalid before migration.
 
+Before timing the geographical coordinate candidate, current benchmark code
+compares its output with the source-table scanner. Direct batch comparisons use
+identical deterministic coordinates for candidate and baseline. Seismic paths
+verify coordinate-to-seismic results against geographical lookup followed by the
+crosswalk before timing; the hierarchy-only crosswalk is measured separately.
 
-Run the supported-Python benchmark matrix after generating the local lock and
-fetching the verified FE source tables:
+Current reports retain workload, environment, repetitions, median duration,
+throughput, speedup, CPU model when discoverable, machine architecture, and
+logical CPU count. Generated benchmark JSON and reports are delivery artifacts
+and are not committed to source. CPU power/frequency policy is not measured by
+the current harness and must be controlled externally for a release ratio used as
+a gate.
+
+Run the current supported-Python benchmark matrix after generating the local lock
+and fetching verified FE source tables:
 
 ```bash
 uv lock
@@ -220,25 +225,108 @@ uv run --locked --group matrix --group benchmark tox run \
   -e benchmark-py311,benchmark-py312,benchmark-py313,benchmark-py314,benchmark-report
 ```
 
-The four benchmark environments use tox-uv's lock runner. Raw reports and the
-combined Markdown report are written under `.tox/benchmark-results/`. The
-comparison report requires all four supported Python versions and summarizes
-eight representative throughput metrics with equal weight in the aggregate
-review aid. Run the matrix on one machine when the result will be used to compare
-interpreter versions.
-
-A release regression comparison is a different gate. Produce baseline and
-candidate standalone JSON on the same controlled environment, then run:
+The current release comparator remains the `0.3` gate path:
 
 ```bash
 uv run --locked --group benchmark python -m benchmarks.compare_releases \
   --baseline baseline.json --candidate candidate.json --fail-on-trigger
 ```
 
-The command rejects recorded environment/workload drift and returns status 3 when
-the >25 percent slowdown trigger is crossed at two adjacent batch sizes of at
-least 10,000 points. Without a comparable accepted baseline, record `QG-PERF` as
-incomplete.
+It rejects recorded environment/workload drift and returns status 3 when the
+>25 percent slowdown trigger is crossed at two adjacent batch sizes of at least
+10,000 points. Without a comparable accepted baseline, `QG-PERF` is incomplete.
+
+### Accepted `0.4` ASV-driven target
+
+The `0.4.0` target uses ASV for historical revision checkout, isolated benchmark
+environments, package build/install, timing, raw-sample retention, result history,
+comparison/exploration support, and static public reporting. Project code owns
+benchmark-case semantics, deterministic workloads, correctness oracles,
+historical-version adapters, campaign configuration, benchmark case/version
+identity, evidence normalization, and the release gate.
+
+The initial implementation is reviewed against ASV 0.6.6. The repository may
+use a compatible reviewed 0.6.x dependency range, but authoritative results must
+record exact ASV and asv-runner versions. ASV 0.6.6 documents an optional `uv`
+environment backend; the vertical slice must verify the chosen backend on this
+repository before the backend is treated as established project behavior.
+
+A benchmark case is valid only when its untimed setup verifies the installed
+revision against the declared oracle or invariant. The timed callable excludes
+oracle work. Each case has a project `case_id` and semantic `case_version`; ASV
+benchmark version identity or compatible aliases are mapped deliberately to that
+contract so source refactoring alone does not decide comparability. An unsupported
+historical capability becomes an explicit not-applicable state with a reason.
+Keep capability absence separate from environment/build unavailability,
+correctness failure, execution failure, and valid measurement; benchmark code
+must not emulate the feature and report the emulation as historical package
+performance.
+
+The ASV process boundary uses subcommand-local `--config` and a temporary config in the repository root because ASV changes its working directory to the config directory. ASV discovery is limited to `benchmarks/asv_suite/`; retained predecessor pytest-benchmark modules are outside that package. Repository tests cover argv order, config location/lifetime, suite isolation, and exact partial-load filtering.
+
+The target campaign layer uses a small TOML configuration and a thin CLI with
+planning, running, comparing, and report-building responsibilities. Planning
+resolves exact package revisions, benchmark parameters, load sizes, environment
+profile, and timing controls before execution. Running delegates measurement to
+ASV. Comparison consumes normalized ASV-derived evidence. Reporting rebuilds the
+static history from retained results. External publication is a separate
+authorized workflow and verifies publication state after the action.
+
+Authoritative campaigns retain raw samples. The evidence adapter preserves
+traceability from normalized release/comparison records back to retained ASV
+results and samples. ASV's incidental result-file layout is not the project
+release-gate schema.
+
+### Initial environment profiles
+
+```text
+release-history:
+  CPython 3.12 + NumPy 1.26.4
+  pandas cases additionally use pandas 2.1.4
+
+python-supported:
+  CPython 3.11
+  CPython 3.12
+  CPython 3.13
+  CPython 3.14
+
+numpy-sensitivity:
+  CPython 3.12 + NumPy 1.26.4
+  CPython 3.12 + NumPy 2.0.2
+  CPython 3.12 + NumPy 2.2.6
+  CPython 3.12 + NumPy 2.5.2
+
+pandas-sensitivity:
+  CPython 3.12 + NumPy 1.26.4 + pandas 2.1.4
+  CPython 3.12 + NumPy 1.26.4 + pandas 2.2.3
+  CPython 3.12 + NumPy 1.26.4 + pandas 2.3.3
+  CPython 3.12 + NumPy 1.26.4 + pandas 3.0.5
+```
+
+These profiles answer different questions and are not combined into a full
+Cartesian product. Timed measurement is serial by default.
+
+### `0.4` migration acceptance
+
+The first implementation slice must cover `lookup_numbers` at `1`, `100`,
+`1_000`, `10_000`, `100_000`, and `1_000_000`; `0.3.0b1` plus at least one older
+revision that materially exercises the compatibility-adapter boundary; at least
+one dependency-sensitivity profile; raw-sample retention; normalized project
+evidence; the existing release-regression decision; and a static ASV site build
+from retained results.
+
+Run the predecessor and ASV slice under one controlled environment and compare:
+
+- semantic outputs and applicability decisions;
+- benchmark/load-size identity;
+- environment, workload, and tool metadata;
+- representative timing behavior without requiring identical samples; and
+- release-gate outcome for controlled synthetic and real comparison records.
+
+After the vertical slice passes, migrate remaining cases incrementally. Remove
+predecessor timing/reporting paths only when their required evidence is covered.
+`pytest` continues to test benchmark semantics, adapters, campaign resolution,
+evidence normalization, and gate behavior; it is not the target timing engine.
 
 ## Clean repository handoff
 
@@ -248,12 +336,15 @@ Create a source handoff from the current tracked working tree with:
 uv run --locked python -m tools.export_repository
 ```
 
-The default output is `../feregion-handoff.zip`. Tracked working-tree edits are
+The default output is
+`dist/feregion-v<version>-<YYYY-MM-DD>-handoff.zip`, using the package version
+from `pyproject.toml` and the current UTC date. Tracked working-tree edits are
 included even when they are not committed. `uv.lock`, ignored paths, and all
 untracked paths are excluded. The command warns about non-ignored untracked
 paths because a new source file must be staged or committed before the default
-exporter can distinguish it from local configuration or run output. Use strict
-mode before an important handoff:
+exporter can distinguish it from local configuration or run output. Pass
+`--output PATH` to override the destination. Use strict mode before an important
+handoff:
 
 ```bash
 uv run --locked python -m tools.export_repository --fail-on-untracked

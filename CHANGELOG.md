@@ -1,5 +1,33 @@
 # Changelog
 
+## 0.4.0a4 — 2026-09-18
+
+- Fix the campaign-to-ASV subprocess contract after a real `local-smoke` run exposed that the generated command used an unsupported pre-subcommand `-c` form; commands now use ASV's documented subcommand-local `--config` option.
+- Generate temporary campaign ASV configuration in the repository root because ASV changes its working directory to the configuration-file directory; this keeps relative benchmark, environment, result, and HTML paths anchored to the repository and removes the temporary file after execution.
+- Isolate ASV discovery under `benchmarks/asv_suite/` so the ASV runner imports only benchmark-runner-safe modules and does not import the retained predecessor `pytest-benchmark` module or unrelated benchmark tooling.
+- Make partial load-size selection exact so selecting `100` no longer also matches `1_000`, `10_000`, `100_000`, or `1_000_000` through decimal-prefix regex matches.
+- Add subprocess-boundary regression coverage for ASV argument order, generated-config location/lifetime, dedicated-suite isolation, exact parameter filtering, and ASV's own parser when the benchmark dependency is installed.
+- Update the benchmark requirements, design, quality gate, decision ledger, traceability, and operator documentation to record the external-tool boundary and the remaining requirement for a real ASV smoke/vertical-slice run.
+
+## 0.4.0a3 — 2026-09-18
+
+- Resolve the remaining Ruff findings in the ASV benchmark bindings and regression comparison by marking intentional mutable ASV class attributes as `ClassVar` and using `itertools.pairwise()` for adjacent load comparisons.
+- Change the default clean-handoff destination to `dist/` and include the package version and UTC date in the archive name: `feregion-v<version>-<YYYY-MM-DD>-handoff.zip`; derive the canonical archive prefix and internal `feregion/` root from project metadata rather than the local checkout-directory name, while retaining explicit `--output` support.
+- Add handoff-export regression coverage and update repository requirements, design, decision, traceability, and maintainer documentation for the new archive location and identity.
+- Correct benchmark documentation that still described the implemented `0.4` ASV system as only a future `0.3`-baseline plan.
+
+## 0.4.0a2 — 2026-09-18
+
+- Apply the maintainer-provided Ruff formatting pass and safe autofixes across the `0.4.0a1` source candidate; no intentional public runtime behavior change is recorded for this maintenance candidate.
+
+## 0.4.0a1 — 2026-09-17
+
+- Introduce the benchmark-focused `0.4` line with ASV 0.6.x as the generic revision/environment/timing/history/static-report substrate while keeping benchmark semantics and release decisions project-owned.
+- Add stable benchmark case/version contracts, deterministic workloads, historical public-interface adapters, ASV benchmark bindings, named sparse Python/NumPy/pandas environment profiles, TOML campaigns, and a thin `plan`/`run`/`compare`/`report` operator CLI.
+- Add a normalized project benchmark-evidence schema and retain the existing greater-than-25-percent slowdown-at-two-adjacent-loads release-review rule as a project-owned decision rather than an ASV regression heuristic.
+- Keep predecessor benchmark tooling temporarily as migration evidence until the required ASV vertical-slice parity and static-site checks can be executed; ASV execution remains unverified in this delivery environment because external package resolution is unavailable.
+- Update benchmark requirements, design, decisions, quality gates, verification traceability, testing guidance, and operator documentation to the implemented `0.4.0a1` architecture.
+
 ## 0.3.0b1 — 2026-09-13
 
 - Promote the `0.3` target to beta after a CPS- and software-quality-guided self-review found the intended target functionality substantially complete and no remaining alpha-stage design blocker.

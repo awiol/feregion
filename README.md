@@ -359,6 +359,14 @@ sizes of at least 10,000 points. If no comparable accepted baseline exists, the
 release-specific performance gate remains incomplete rather than being reported
 as passed.
 
+The `0.4` line implements the ASV-driven benchmark system. Benchmark semantics,
+historical adapters, campaign intent, normalized evidence, and release-gate
+logic remain project-owned while revision/environment/build/timing/sample/
+history/static-site mechanics are delegated to ASV. The predecessor commands
+above remain temporary migration evidence until the required ASV vertical-slice
+parity and static-site checks are observed. See `docs/feregion-design.md`,
+`docs/feregion-engineering-requirements.md`, and `benchmarks/README.md`.
+
 ## Clean repository handoff
 
 To hand the current repository source to another reviewer or agent without local
@@ -370,9 +378,12 @@ uv run --locked python -m tools.export_repository
 
 The exporter packages only Git-tracked paths, but reads their current
 working-tree bytes, so tracked Ruff/pre-commit edits do not need a special
-filesystem cleanup first. It warns about non-ignored untracked files; stage or
-commit genuine new source before handoff, or use `--fail-on-untracked` to require
-a clean tracked-source boundary.
+filesystem cleanup first. By default it writes
+`dist/feregion-v<version>-<YYYY-MM-DD>-handoff.zip`, using the package version
+from `pyproject.toml` and the current UTC date. It warns about non-ignored
+untracked files; stage or commit genuine new source before handoff, or use
+`--fail-on-untracked` to require a clean tracked-source boundary. Use `--output`
+when a workflow requires another destination.
 
 ## Project documents
 
@@ -394,3 +405,7 @@ The `feregion` project is distributed under LGPL-3.0-only. That project license
 does not by itself establish the license of upstream FE source data. See
 `THIRD_PARTY_NOTICES.md` and `src/feregion/data/metadata.json` for the recorded
 provenance and limitation.
+
+## Performance benchmarking
+
+The `0.4` line adds an ASV-driven benchmark system with project-owned benchmark semantics, historical adapters, sparse Python/NumPy/pandas profiles, TOML campaigns, normalized evidence, and the existing release-regression decision. See `benchmarks/README.md`.

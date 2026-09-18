@@ -21,8 +21,10 @@ import stat
 import subprocess
 import sys
 import tempfile
+import tomllib
 import zipfile
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path, PurePosixPath
 
 _ARCHIVE_TIMESTAMP = (1980, 1, 1, 0, 0, 0)
@@ -191,7 +193,8 @@ def export_repository(
 
     output = output.expanduser().resolve()
     output.parent.mkdir(parents=True, exist_ok=True)
-    archive_root = PurePosixPath(root.name)
+    project_name, _ = _project_identity(root)
+    archive_root = PurePosixPath(project_name)
 
     fd, temporary_name = tempfile.mkstemp(
         prefix=f".{output.name}.", suffix=".tmp", dir=output.parent
@@ -224,11 +227,47 @@ def export_repository(
     )
 
 
+def _project_identity(root: Path) -> tuple[str, str]:
+    """Return the canonical project name and version from repository metadata.
+
+    Args:
+        root: Resolved repository root containing ``pyproject.toml``.
+
+    Returns:
+        Pair of non-empty ``project.name`` and ``project.version`` values.
+
+    Raises:
+        RepositoryExportError: If the project metadata cannot be read or does
+            not contain usable identity values.
+    """
+
+    metadata_path = root / "pyproject.toml"
+    try:
+        metadata = tomllib.loads(metadata_path.read_text(encoding="utf-8"))
+        name = metadata["project"]["name"]
+        version = metadata["project"]["version"]
+    except (OSError, KeyError, tomllib.TOMLDecodeError) as exc:
+        raise RepositoryExportError(
+            f"cannot determine project identity from {metadata_path}"
+        ) from exc
+    if not isinstance(name, str) or not name.strip() or "/" in name or "\\" in name:
+        raise RepositoryExportError(
+            f"project.name in {metadata_path} must be a non-empty path-safe string"
+        )
+    if not isinstance(version, str) or not version.strip():
+        raise RepositoryExportError(
+            f"project.version in {metadata_path} must be a non-empty string"
+        )
+    return name.strip(), version.strip()
+
+
 def _default_output(start: Path) -> Path:
-    """Return a stable handoff filename outside the discovered repository."""
+    """Return the versioned, UTC-dated handoff path under ``dist/``."""
 
     root = repository_root(start)
-    return root.parent / f"{root.name}-handoff.zip"
+    project_name, version = _project_identity(root)
+    date = datetime.now(UTC).date().isoformat()
+    return root / "dist" / f"{project_name}-v{version}-{date}-handoff.zip"
 
 
 def main(argv: list[str] | None = None) -> int:

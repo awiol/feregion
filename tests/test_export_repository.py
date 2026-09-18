@@ -17,7 +17,7 @@ from pathlib import Path
 
 import pytest
 
-from tools.export_repository import RepositoryExportError, export_repository
+from tools.export_repository import RepositoryExportError, export_repository, main
 
 
 def _git(repo: Path, *arguments: str) -> None:
@@ -37,7 +37,11 @@ def _repository(tmp_path: Path) -> Path:
     (repo / "script.py").write_text("print('ok')\n", encoding="utf-8")
     os.chmod(repo / "script.py", 0o755)
     (repo / "uv.lock").write_text("local lock\n", encoding="utf-8")
-    _git(repo, "add", ".gitignore", "README.md", "script.py", "uv.lock")
+    (repo / "pyproject.toml").write_text(
+        '[project]\nname = "feregion"\nversion = "0.4.0a2"\n',
+        encoding="utf-8",
+    )
+    _git(repo, "add", ".gitignore", "README.md", "script.py", "uv.lock", "pyproject.toml")
 
     (repo / ".venv").mkdir()
     (repo / ".venv" / "state.txt").write_text("private\n", encoding="utf-8")
@@ -93,3 +97,42 @@ def test_strict_export_rejects_nonignored_untracked_source(tmp_path: Path) -> No
 
     with pytest.raises(RepositoryExportError, match="non-ignored untracked files"):
         export_repository(repo, tmp_path / "handoff.zip", fail_on_untracked=True)
+
+
+def test_default_cli_output_uses_dist_version_and_utc_date(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Default CLI exports go to dist with package version and UTC date."""
+
+    repo = _repository(tmp_path)
+
+    assert main(["--repository", str(repo)]) == 0
+
+    stdout = capsys.readouterr().out
+    archive_line = next(line for line in stdout.splitlines() if line.startswith("archive: "))
+    output = Path(archive_line.removeprefix("archive: "))
+    assert output.parent == repo / "dist"
+    assert output.name.startswith("feregion-v0.4.0a2-")
+    assert output.name.endswith("-handoff.zip")
+    date_part = output.name.removeprefix("feregion-v0.4.0a2-").removesuffix("-handoff.zip")
+    assert len(date_part) == 10
+    assert date_part[4] == "-"
+    assert date_part[7] == "-"
+    assert output.is_file()
+
+
+def test_export_identity_is_independent_of_checkout_directory(tmp_path: Path) -> None:
+    """Project metadata, not checkout-directory name, controls handoff identity."""
+
+    repo = _repository(tmp_path)
+    renamed = tmp_path / "renamed-checkout"
+    repo.rename(renamed)
+    output = tmp_path / "renamed.zip"
+
+    export_repository(renamed, output)
+
+    with zipfile.ZipFile(output) as archive:
+        names = archive.namelist()
+        assert names
+        assert all(name.startswith("feregion/") for name in names)
+        assert not any(name.startswith("renamed-checkout/") for name in names)

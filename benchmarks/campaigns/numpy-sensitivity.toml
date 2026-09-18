@@ -1,0 +1,10 @@
+[campaign]
+id = "numpy-sensitivity"
+purpose = "Measure selected NumPy-version sensitivity for one package revision."
+revisions = ["v0.3.0b1"]
+cases = ["lookup_geographic_numbers", "lookup_seismic_numbers"]
+load_sizes = [10000, 100000, 1000000]
+repetitions = 5
+rounds = 3
+environment_profile = "numpy-sensitivity"
+record_samples = true

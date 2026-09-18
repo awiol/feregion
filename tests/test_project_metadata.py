@@ -303,9 +303,9 @@ def test_ci_uses_locked_normal_environments_and_bounds_runs() -> None:
     assert "uv run --locked ruff check ." in workflow
     assert "concurrency:" in workflow
     assert "cancel-in-progress: true" in workflow
-    assert workflow.count("timeout-minutes:") == 5
+    assert workflow.count("timeout-minutes:") == 6
     assert "branches: [main]" in workflow
-    assert workflow.count("persist-credentials: false") == 5
+    assert workflow.count("persist-credentials: false") == 6
     assert "run: uv build" in workflow
     assert "uv build --locked" not in workflow
 

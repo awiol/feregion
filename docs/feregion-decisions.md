@@ -749,3 +749,209 @@ changed rationale as historical fact.
 - **Review trigger:** A new discretionary feature is proposed for `0.3`, a major
   accepted-scope defect is discovered, or evidence shows that intended target
   functionality is no longer substantially complete.
+
+## `DEC-041` — Dedicate the `0.4.0` target to benchmark-system work
+
+- **Context:** The current `0.3` line is already in beta. `DEC-040` limits beta work
+  to stabilization, verification, and accepted-scope corrections unless a new
+  target is selected. The planned ASV migration, historical comparison system,
+  campaign interface, dependency-sensitivity profiles, normalized evidence, and
+  public benchmark history are discretionary new repository capabilities rather
+  than `0.3` stabilization.
+- **Decision:** Select `0.4.0` as the next target release core and dedicate its
+  intended feature scope to benchmark-system work. The target includes the hybrid
+  ASV architecture, project-owned benchmark contracts/adapters, campaign control,
+  normalized performance evidence, dependency profiles, and public benchmark
+  reporting. Do not add unrelated runtime features to the `0.4` target without a
+  new scope decision. Performance defects discovered by the new system are
+  evidence for separate correction/optimization decisions; discovery alone does
+  not add an optimization to the benchmark target.
+- **Alternatives considered:** reopen `0.3` beta for the benchmark feature; defer
+  benchmarking until an unspecified later target; combine benchmarking with
+  unrelated runtime/API work in `0.4`.
+- **Compatibility consequence:** The current `0.3` beta line remains available for
+  stabilization. Benchmark repository commands/dependencies may change in `0.4`,
+  but no runtime API change follows from target selection.
+- **Review trigger:** A material dependency requires non-benchmark runtime scope,
+  the benchmark target becomes too small to justify a minor release, or the
+  project decision owner explicitly redefines the `0.4` target.
+
+## `DEC-042` — Use ASV for benchmark infrastructure and keep benchmark meaning project-owned
+
+- **Context:** The repository already contains a standalone timer, a
+  `pytest-benchmark` suite, Tox benchmark environments, custom cross-Python
+  aggregation, and a custom release comparator. Expanding those components to
+  manage campaigns, dependency matrices, historical revision execution, result
+  history, and a public site would duplicate infrastructure that ASV provides and
+  would be disproportionate for this package.
+- **Decision:** Use a thin hybrid architecture for the `0.4` target. ASV owns
+  generic revision/environment/build/timing/sample/history/site mechanics.
+  `feregion` owns benchmark semantics, deterministic workloads, correctness
+  oracles, historical-interface adapters, campaign intent, normalized evidence,
+  and the project-specific release-regression decision. Do not build a second
+  authoritative generic timing engine, environment manager, result database, or
+  benchmark website.
+- **Alternatives considered:** fully custom campaign infrastructure; pure ASV with
+  no project-owned evidence/adapter layer; permanent dual ASV/custom execution.
+- **Evidence basis:** ASV 0.6.6 official documentation describes project-lifetime
+  benchmarking, isolated environments including `uv`, dependency matrices,
+  parameterized timing, raw-sample retention, persistent results, comparison
+  support, and static/GitHub Pages publication. This establishes documented tool
+  capability, not successful `feregion` integration.
+- **Compatibility consequence:** Runtime package behavior is unchanged. Repository
+  benchmark dependencies, commands, result layout, and publication workflow will
+  change when `0.4` implements the design.
+- **Review trigger:** The vertical slice exposes a material ASV capability gap,
+  ASV maintenance becomes disproportionate, or a simpler supported tool provides
+  the same required evidence with less project-owned infrastructure.
+
+## `DEC-043` — Make campaigns thin operator intent and normalize evidence outside ASV internals
+
+- **Context:** Operators need small and large campaigns, selectable repetitions
+  and load sizes, explicit historical revisions, sparse dependency profiles, and
+  reproducible execution intent. Direct long ASV command lines are hard to review,
+  while a custom executor would duplicate ASV. Project release logic also needs a
+  stable evidence contract that is not tied to incidental ASV JSON layout.
+- **Decision:** Use a small TOML campaign format and thin repository CLI for
+  planning, running, comparing, and report building. Resolve campaigns into exact
+  revisions, cases, parameters, timing controls, and environment profiles before
+  execution. Delegate generic execution to ASV. Convert retained ASV results into
+  a normalized project evidence record for release/comparison logic, preserving
+  traceability to raw samples. Isolate any version-specific ASV result parsing
+  behind that adapter and test it with fixtures.
+- **Alternatives considered:** direct ASV CLI only; custom campaign executor with
+  ASV used only for plots; project release logic reading ASV files directly
+  throughout the codebase.
+- **Compatibility consequence:** Campaign configuration becomes a maintained
+  repository contract. ASV storage format changes are contained at one adapter
+  boundary rather than propagating into release-gate logic. External site
+  publication remains a separate authorized and verified workflow.
+- **Review trigger:** Campaign files provide no material operator/reproducibility
+  value, ASV exposes a supported stable API that makes the adapter unnecessary,
+  or the campaign schema needs an incompatible change.
+
+## `DEC-044` — Use sparse dependency profiles and serial timed measurement
+
+- **Context:** Full Python × NumPy × pandas Cartesian benchmarking would add cost
+  and confounding without answering a defined project decision. Existing
+  benchmarks are short enough that parallel timed execution is unnecessary and
+  host contention would reduce interpretability.
+- **Decision:** Keep separate `release-history`, `python-supported`,
+  `numpy-sensitivity`, and `pandas-sensitivity` profiles. Use CPython 3.12 +
+  NumPy 1.26.4 as the fixed release-history baseline, adding pandas 2.1.4 for
+  pandas cases while those versions remain build-compatible with the selected
+  historical revisions. Preserve the previously selected sensitivity versions:
+  CPython 3.11–3.14; CPython 3.12 with NumPy 1.26.4, 2.0.2, 2.2.6, and 2.5.2; and
+  CPython 3.12 with NumPy 1.26.4 plus pandas 2.1.4, 2.2.3, 2.3.3, and 3.0.5.
+  Timed measurement is serial by default.
+- **Alternatives considered:** full dependency Cartesian product; latest-only
+  dependency benchmarking; parallel timed execution by default.
+- **Compatibility consequence:** Evidence represents selected dependency
+  milestones rather than every supported version. The selected versions are
+  methodology points and need not be the newest patch releases.
+- **Review trigger:** Supported dependency ranges move beyond the selected
+  milestones, evidence identifies a missing performance discontinuity, campaign
+  duration becomes materially burdensome, or controlled evidence supports a safe
+  parallel measurement design.
+
+## `DEC-045` — Migrate by a verified vertical slice and retire duplicate benchmark paths
+
+- **Context:** Replacing every benchmark mechanism at once would make semantic
+  drift difficult to distinguish from measurement-tool differences. Keeping the
+  predecessor and ASV systems indefinitely would preserve the maintenance problem
+  that motivates this target.
+- **Decision:** First migrate `lookup_numbers` across the six standard load sizes.
+  Exercise the current `0.3` beta baseline and at least one older revision that materially tests the
+  compatibility-adapter boundary, one dependency-sensitivity profile, raw-sample
+  retention, normalized project evidence, the existing release-regression rule,
+  and ASV static-site generation. Compare semantic outputs, applicability,
+  relevant metadata identity, and release-gate outcome with the predecessor
+  system under a controlled environment. Expand only after this slice passes.
+  Remove the standalone timer, `pytest-benchmark` timing suite, Tox benchmark
+  matrix, and custom cross-Python reducer when their required evidence is covered.
+  Retain pytest for benchmark-contract/adaptor/campaign/evidence/gate tests.
+- **Alternatives considered:** flag-day replacement; permanent dual execution;
+  migrate public reporting first while retaining the custom timing engine.
+- **Compatibility consequence:** Temporary duplicate benchmark paths are accepted
+  only as migration evidence. Existing benchmark commands are developer tooling,
+  not a promised runtime compatibility surface.
+- **Review trigger:** The vertical slice cannot preserve required semantics or
+  comparability, unresolved measurement differences remain, or removing a
+  predecessor path would eliminate required evidence that the ASV path does not
+  provide.
+
+
+## `DEC-046` — Version benchmark semantics explicitly
+
+- **Context:** ASV assigns benchmark-version identity and normally derives it from
+  benchmark source. The `0.4` design also adds compatibility adapters, which can
+  change benchmark source without changing the operation being measured. If
+  source identity alone controls comparability, harmless adapter/refactor changes
+  can fragment history; if an arbitrary manual token never changes, incompatible
+  measurements can be merged.
+- **Decision:** Give every project benchmark case a stable `case_id` and semantic
+  `case_version`. Change the case version when the timed operation, workload
+  semantics, or result interpretation changes incompatibly. Map ASV benchmark
+  version identity or compatible version aliases explicitly to this contract and
+  verify that mapping in the vertical slice. Do not let ASV's default source hash
+  alone decide project-level comparability.
+- **Alternatives considered:** accept ASV source hashes as the complete semantic
+  contract; use a permanent manual ASV version token unrelated to benchmark
+  meaning; ignore benchmark versioning and compare results only by display name.
+- **Compatibility consequence:** Historical results can remain comparable across
+  verified non-semantic benchmark refactors while semantic changes create an
+  explicit comparison boundary. The project takes responsibility for reviewing
+  case-version changes.
+- **Review trigger:** ASV supplies a stronger stable semantic-version mechanism,
+  the mapping causes stale/incompatible evidence to survive, or benchmark case
+  evolution shows that one version dimension is insufficient.
+
+## `DEC-047` — Make clean handoff filenames self-identifying
+
+- **Context:** The repository exporter previously defaulted to `../feregion-handoff.zip`.
+  That location mixed the handoff with files outside the repository and the filename
+  did not identify the package version or delivery date, so a copied archive could not
+  be routed reliably without opening it. `dist/` is already the repository's ignored
+  build/delivery-output boundary.
+- **Decision:** Write the default clean handoff to
+  `dist/feregion-v<version>-<YYYY-MM-DD>-handoff.zip`, using `project.name` and
+  `project.version` from `pyproject.toml` plus the current UTC date. Preserve the stable `feregion/` internal
+  root and continue to support an explicit `--output` override.
+- **Alternatives considered:** keep the parent-directory unversioned filename; include
+  only the version; derive the version by importing the package; force callers to pass
+  every output path explicitly.
+- **Compatibility consequence:** Maintainer scripts that rely on the previous default
+  path must use the new `dist/` path or pass `--output`. The archive content contract
+  and explicit-output behavior remain unchanged.
+- **Review trigger:** Repository packaging policy changes, the project stops using
+  `pyproject.toml` as package-version authority, or another handoff identity scheme
+  becomes authoritative.
+
+## `DEC-048` — Treat ASV invocation and discovery as explicit external-tool boundaries
+
+- **Context:** The first real `local-smoke` campaign failed before benchmark
+  discovery because the campaign wrapper invoked ASV as `asv -c CONFIG run ...`,
+  while ASV 0.6.6 exposes `--config` on each subcommand. Review then identified
+  two adjacent risks: ASV changes its working directory to the supplied config
+  directory, so a config created in `/tmp` would redirect repository-relative
+  paths; and ASV discovers Python files throughout `benchmark_dir`, so using the
+  whole `benchmarks/` tree would import the retained pytest benchmark module and
+  unrelated tooling.
+- **Decision:** Invoke ASV with subcommand-local `--config`; create generated
+  campaign configuration in the repository root for the duration of the
+  synchronous command; and isolate ASV-discovered code in
+  `benchmarks/asv_suite/`. Treat exact load filtering as part of the same adapter
+  boundary and match parameter values exactly rather than by decimal prefix.
+- **Evidence basis:** ASV 0.6.6 command documentation places `--config` on the
+  `run`, `compare`, `publish`, and related subcommands. ASV `main` changes the
+  process working directory to the configuration-file directory, and ASV's
+  benchmark documentation states that Python files in the benchmark package are
+  discovered regardless of filename. The user-reported smoke failure directly
+  reproduces the invalid original invocation.
+- **Compatibility consequence:** Runtime package behavior is unchanged. Internal
+  benchmark module paths move under `benchmarks/asv_suite/`; these are
+  repository-development interfaces, not public runtime API. Generated ASV
+  results remain under the existing `.asv/` paths.
+- **Review trigger:** ASV changes its CLI/config-directory semantics, benchmark
+  discovery rules, or exposes a stable in-process API that materially simplifies
+  the wrapper without coupling project evidence to ASV internals.

@@ -2,9 +2,30 @@
 
 | Field | Value |
 |---|---|
-| Status | Implemented alpha engineering contract |
+| Status | Current alpha engineering contract |
+| Planned target | `0.4.0` benchmark-system additions accepted; not implemented |
 
 This document uses the normative profile defined by `feregion-requirements.md`.
+
+## Governing guidance for the 0.4 benchmark target
+
+The user-approved release-core decision dedicates `0.4.0` to benchmark-system
+work. The current `0.3` beta line remains the implementation baseline until an
+authorized `0.4` candidate is produced. The following method sources govern the
+benchmark-target design and its review. They guide engineering work; they do not
+create runtime package requirements unless a requirement below adopts them.
+
+| Source | Exact version / date | Role in this target |
+|---|---|---|
+| User-approved project decision | 2026-09-17 | Select `0.4.0` as the benchmark-focused next minor target and keep the current `0.3` beta line for stabilization. |
+| *Working with complex problems and systems* | `0.5.0-alpha.1`, 2026-09-07 | Scope control, architecture selection, evidence roles, bounded investigation, and stop conditions. |
+| *Software Quality Guidelines — Integrated Operating Guide* | `0.4.0-alpha.4`, 2026-09-12 | Performance decision contracts, test oracles, compatibility, documentation consistency, review, and release evidence. |
+| *Versioned Source-Bundle Delivery Guidelines* | `0.4.0-alpha.1`, 2026-09-11 | Target/candidate separation, post-beta scope control, cohesion, patch-baseline identity, one-off handoff, and verification claims. |
+| *Controlled Technical Language and Terminology Control for Software and Science* | `0.3.0-alpha.1`, 2026-08-21 | Normative vocabulary, information-role separation, requirement wording, and semantic preservation. |
+
+ASV `0.6.6` official documentation is specialist tool evidence for the selected
+benchmark infrastructure. It is not a project-governance source and does not
+override the requirements or decisions in this repository.
 
 ## Runtime data and dependency behavior
 
@@ -192,45 +213,176 @@ longitude index so equal neighboring FE region numbers cannot mask an indexing
 defect. The corpus must cover `float16`, `float32`, and `float64`, plus
 `longdouble` when it provides greater precision than `float64`.
 
-**REQ-PERF-001** — The repository must contain automated benchmarks for the
+**REQ-PERF-001** — The repository must contain automated benchmark cases for the
 implemented in-process lookup interfaces: scalar geographical and seismic number
 lookup, scalar region lookup, scalar number-to-name conversion, geographical and
 seismic batch number lookup, geographical-to-seismic batch conversion, batch
-number-to-name conversion, and the optional pandas adapter with and without names. CLI and GeoJSON operations are excluded from the routine lookup
-benchmark suite.
+number-to-name conversion, and the optional pandas adapter with and without
+names. CLI and GeoJSON operations are excluded from the routine lookup benchmark
+suite because their dominant costs belong to other subsystems.
 
-**REQ-PERF-002** — A performance claim must record workload, environment,
-baseline, candidate, repeated measurements, and correctness checks. For batch
-performance, the same coordinate workload must be measured directly with the
-candidate and source-table scanner baseline. The report must include median
-timing, throughput, and candidate speedup in one comparison table.
+**REQ-PERF-002** — A performance claim must record the benchmark-case identity,
+workload definition, load size, package revision, environment, machine identity,
+benchmark-tool versions, resolved campaign configuration, repeated measurements,
+correctness checks, and the aggregate/statistic used by the claim. Authoritative
+release, dependency-sensitivity, and public-history claims must retain raw timing
+samples. For batch comparison with the source-table scanner, the candidate and
+scanner must use the same deterministic coordinate workload. Observed
+measurements must remain separate from project-specific regression decisions.
 
 **REQ-PERF-003** — Benchmark tooling must remain repository-side development
 tooling rather than public runtime API. The project must provide a compatible
-`benchmark` optional dependency and a `uv` benchmark dependency group. The
-source distribution and source bundle must include the benchmark harnesses.
+`benchmark` optional dependency and an authoritative `uv` benchmark dependency
+group. The source distribution and source bundle must include benchmark cases,
+campaign definitions, compatibility adapters, ASV configuration, and project
+benchmark-analysis tooling. Generated ASV result history, raw run output, and
+published HTML must remain outside the normal source tree.
 
 **REQ-PERF-004** — Scalar lookup performance must be compared with the ObsPy
-reference implementation when ObsPy is available and with the source-table scanner
-otherwise. Scalar performance is a review signal, not a throughput SLA. A
-material scalar regression must not justify changes that complicate the batch
+reference implementation when ObsPy is available and with the source-table
+scanner otherwise. Scalar performance is a review signal, not a throughput SLA.
+A material scalar regression must not justify changes that complicate the batch
 hot path without corresponding evidence.
 
-**REQ-PERF-005** — The repository must provide a cross-Python benchmark matrix for
-CPython 3.11, 3.12, 3.13, and 3.14. The matrix must use the repository lock so
-dependency resolution does not drift independently between interpreter runs,
-must retain exact interpreter and direct benchmark-library versions in each raw
-result, and must produce one compact report comparing between four and eight
-representative throughput metrics across the supported Python versions.
+**REQ-PERF-005** — The benchmark system must provide named environment profiles
+rather than an uncontrolled dependency Cartesian product. The initial profiles
+must include:
+
+- `release-history`: CPython 3.12 with NumPy 1.26.4; pandas-dependent cases add
+  pandas 2.1.4. This fixed profile is the default cross-release comparison
+  environment while those versions remain build-compatible with the selected
+  historical revisions;
+- `python-supported`: CPython 3.11, 3.12, 3.13, and 3.14 with one reviewed
+  benchmark dependency baseline;
+- `numpy-sensitivity`: CPython 3.12 with NumPy 1.26.4, 2.0.2, 2.2.6, and 2.5.2;
+- `pandas-sensitivity`: CPython 3.12 with NumPy 1.26.4 and pandas 2.1.4, 2.2.3,
+  2.3.3, and 3.0.5.
+
+A profile revision must be reviewed as a benchmark-methodology change. Exact
+resolved dependency versions must be retained with each result. Cross-environment
+ratios are diagnostic unless the comparison contract explicitly makes them an
+acceptance criterion.
 
 **REQ-PERF-006** — A release-to-release performance regression gate must compare
-a named accepted baseline benchmark record with the candidate record from the
-same recorded host/interpreter/dependency/workload context. The gate must use
-median batch throughput and must trigger review when slowdown exceeds 25 percent
-at two adjacent recorded batch sizes of at least 10,000 points. If a comparable
-baseline record is unavailable, the release-specific performance gate is
-incomplete rather than passed. Baseline/candidate raw records and the comparison
-result must be retained as delivery evidence.
+a named accepted baseline result with the candidate result from the same recorded
+machine, interpreter, dependency, benchmark-case, workload, load-size, and timing
+contract. The gate must use median batch throughput and must trigger review when
+slowdown exceeds 25 percent at two adjacent recorded batch sizes of at least
+10,000 points. If comparable baseline evidence is unavailable, the release-
+specific performance gate is incomplete rather than passed. Baseline/candidate
+measurement evidence and the comparison result must be retained as delivery
+evidence.
+
+**REQ-PERF-007** — For the `0.4.0` benchmark target, Airspeed Velocity (ASV) must
+be the generic infrastructure for revision selection, isolated benchmark
+environments, project build/install, benchmark timing, raw-sample collection,
+result history, historical comparison/exploration, and static public benchmark
+reporting. The project must not maintain a second authoritative generic timing
+engine, environment manager, result-history database, or benchmark website
+generator unless a documented ASV capability gap requires one.
+
+**REQ-PERF-008** — Benchmark meaning must remain project-owned and independent of
+ASV storage internals. Each benchmark case must have a stable `case_id` and
+project-owned semantic `case_version`, a deterministic workload definition, an
+independent correctness oracle or invariant, a declared operation count when
+throughput is reported, and a compatibility-adapter boundary when historical
+package interfaces differ. The ASV benchmark-version identity or compatible
+version aliases must be mapped explicitly to the project case version; ASV's
+default source-code hash alone must not decide project comparability. A case
+version must change when the timed operation, workload semantics, or result
+interpretation changes incompatibly. ASV benchmark functions must remain thin
+bindings to this project-owned contract.
+
+**REQ-PERF-009** — Historical comparison must use explicit package revisions or
+release identities selected by the campaign. Compatibility adapters must map a
+stable benchmark case onto the supported public interface of each selected
+historical package revision without requiring that revision to contain the modern
+benchmark harness. If a revision cannot implement a benchmark case without
+changing its semantics, the result must be recorded as not applicable with an
+explicit reason. Capability absence must remain distinguishable from environment
+or build unavailability, correctness failure, benchmark execution failure, and a
+valid measured result. The campaign must not silently substitute another
+operation or classify infrastructure failure as capability absence.
+
+**REQ-PERF-010** — The repository must provide human-editable benchmark campaign
+configuration and a thin operator CLI. A resolved campaign must identify its
+purpose, selected package revisions, benchmark cases, load sizes, repetition and
+round controls, environment profile, raw-sample policy, machine/comparability
+policy, and requested report-generation steps. The resolved campaign plan must
+be inspectable before execution and retained with authoritative result evidence.
+External publication is a separate authorized workflow and is not implied by a
+campaign report request.
+
+**REQ-PERF-011** — The campaign CLI must translate operator intent into ASV
+configuration and commands. It must not independently implement benchmark timing,
+environment creation, package builds, result persistence, or HTML generation.
+The initial command responsibilities must cover planning, running, comparing, and
+building reports for a campaign. Final command spellings may change during
+implementation when the responsibilities and compatibility contract remain
+explicit. External publication must remain a separate action whose resulting
+state is verified independently.
+
+**REQ-PERF-012** — Correctness must be checked before a timing result is accepted.
+An untimed benchmark setup step must construct the deterministic workload and
+verify the selected package adapter against the declared oracle or invariant. The
+timed callable must exclude oracle work. A correctness failure must prevent the
+affected timing result from being treated as valid performance evidence.
+
+**REQ-PERF-013** — Authoritative release, dependency-sensitivity, and public-
+history campaigns must retain raw ASV measurement samples in addition to summary
+statistics. The project evidence adapter must preserve enough result and
+benchmark metadata to identify which samples support each reported aggregate. A
+summary-only exploratory run must not be substituted for an authoritative run.
+
+**REQ-PERF-014** — Benchmark measurement on one machine must be serial by
+default. The campaign layer must not add parallel timed benchmark execution
+unless controlled evidence shows that concurrency is needed and does not
+invalidate the comparison contract. Parallel preparation that does not overlap
+timed benchmark execution may be introduced separately when it has a clear
+maintenance benefit.
+
+**REQ-PERF-015** — The project must be able to build a static public benchmark
+history from retained ASV results and must define a publication route suitable
+for GitHub Pages or an equivalent static host. Generated HTML and raw result
+history must remain outside the normal source branch. A successful benchmark run
+must not be reported as successful publication; the publication workflow must
+verify the resulting published branch or artifact state separately.
+
+**REQ-PERF-016** — Project-specific release and comparison logic must consume a
+normalized `feregion` benchmark-evidence record rather than depend directly on
+incidental ASV JSON layout. The normalized record must preserve benchmark
+`case_id` and `case_version`, package revision, parameters/load size, explicit
+result state, applicability/correctness state, machine, environment, exact
+ASV/asv-runner identity when available, sample/statistic linkage, and resolved
+campaign identity. The ASV integration must use documented
+interfaces where practical; any unavoidable parsing of version-specific ASV
+result files must be isolated behind the evidence adapter and covered by fixtures
+for the supported ASV version.
+
+**REQ-PERF-017** — Migration to the `0.4` benchmark system must use a verified
+vertical slice before predecessor timing/reporting paths are retired. The first
+slice must cover `lookup_numbers` at load sizes 1, 100, 1,000, 10,000, 100,000,
+and 1,000,000; the current `0.3` beta baseline plus at least one older revision that materially
+exercises the historical-adapter boundary; at least one dependency-sensitivity
+profile; raw-sample retention; normalized project evidence; the existing
+release-regression decision; and a static ASV site build. The predecessor and
+ASV paths must be compared for semantic outputs, applicability decisions,
+benchmark/load identity, relevant metadata, and release-gate outcome.
+`pytest-benchmark`, the standalone timer, the Tox benchmark matrix, and custom
+cross-Python reporting must be removed when their required evidence has been
+replaced. Permanent dual benchmark authority is not permitted.
+
+**REQ-PERF-018** — The ASV process boundary must be verified against the supported
+ASV command/configuration contract. Campaign execution must pass configuration
+through the documented subcommand option, and generated configuration must be
+located so ASV's configuration-directory working-directory behavior preserves
+the intended repository-relative benchmark, environment, result, and HTML paths.
+ASV discovery must use a dedicated benchmark package that excludes predecessor
+pytest benchmark modules and unrelated repository tooling. Regression coverage
+must exercise command construction, configuration lifetime/location, and exact
+load-parameter filtering. When ASV is installed in the verification environment,
+its own command parser or an equivalent direct-tool check should be used as an
+additional oracle.
 
 ## Packaging, development environment, and license
 

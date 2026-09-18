@@ -801,3 +801,9 @@ cython_debug/
 
 # Retrieved upstream source caches
 .source-data/
+
+# ASV local benchmark environments, retained result history, and generated site
+.asv/
+
+# Temporary ASV campaign configuration; removed after normal execution.
+/.asv-campaign-*.json

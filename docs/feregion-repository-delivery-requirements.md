@@ -72,8 +72,12 @@ clean handoff ZIP from Git-tracked working-tree files. The exporter must preserv
 current tracked file bytes and executable state, exclude `uv.lock` even when it
 is tracked, exclude ignored and untracked local state by default, warn when
 non-ignored untracked files are omitted, and provide a strict mode that fails on
-such untracked files. The archive must be deterministic for an unchanged working
-tree and must use the stable `feregion/` internal root.
+such untracked files. By default, the exporter must write the archive under the
+repository `dist/` directory with package version and UTC date in the outer
+filename (`feregion-v<version>-<YYYY-MM-DD>-handoff.zip`). An explicit output
+path may override that default. The archive must be deterministic for unchanged
+working-tree bytes and a fixed output identity, and must use the stable
+`feregion/` internal root.
 
 ## Iterative delivery contract
 

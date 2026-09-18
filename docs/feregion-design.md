@@ -3,7 +3,8 @@
 | Field | Value |
 |---|---|
 | Behavioral contract series | `0.2` |
-| Status | Implemented alpha design |
+| Status | Current alpha design |
+| Implemented target | `0.4` benchmark-system source implemented; external ASV execution evidence pending |
 
 ## 1. Design result
 
@@ -248,19 +249,376 @@ encoding of FE ownership for every coordinate on an integer boundary line.
 Numeric lookup remains authoritative for an exact boundary coordinate. Retired
 geographical IDs 172, 299, and 550 receive no fabricated geometry.
 
-## 9. Performance design
+## 9. Performance and benchmark-system design
 
-Routine benchmarks cover in-process scalar, batch, name-conversion, and pandas
-interfaces. CLI and GeoJSON timing are excluded because their dominant costs
-belong to different subsystems.
+### 9.1 Current implementation and 0.4 target boundary
 
-A batch performance claim must compare the dense-table candidate and the
-source-table scanner on identical deterministic coordinates. Reports record the
-environment, workload, repetitions, median duration, throughput, correctness
-check, and speedup.
+The `0.3` beta source is the migration baseline. It uses the
+standalone timer, `pytest-benchmark`, Tox benchmark-Python environments, a
+custom cross-Python reducer, and the custom release comparator documented in
+`benchmarks/README.md`. Those tools remain temporarily executable in `0.4 alpha implementation` as migration evidence until `REQ-PERF-017` is verified.
 
-Scalar performance is a review signal. The batch interface remains the
-performance-oriented API.
+The implemented target core is `0.4.0`, dedicated to benchmark-system work. `0.4 alpha implementation` introduces the source implementation. The `0.4` target does not authorize unrelated runtime lookup features or
+performance optimizations. Measurements may identify such work, but adoption of
+that work requires its own compatibility/scope decision. Implementation status and verification status remain separate; external ASV execution and site-build evidence are still pending in this environment.
+
+Routine benchmark semantics continue to cover in-process scalar, batch,
+name-conversion, hierarchy, and pandas interfaces. CLI and GeoJSON timing remain
+excluded because their dominant costs belong to process/I/O and geometry
+subsystems rather than the core lookup path.
+
+The `0.4` benchmark system has two jobs:
+
+1. produce controlled evidence for package-performance decisions; and
+2. maintain a public historical view across selected package revisions and
+   Python/NumPy/pandas environments.
+
+The selected target architecture is a **thin hybrid**. `feregion` owns benchmark
+meaning, workload generation, historical-interface compatibility, correctness
+checks, campaign intent, normalized evidence, and project-specific release
+decisions. ASV owns generic benchmark mechanics: revision checkout, isolated
+environments, package build and installation, timing, raw-sample retention,
+result history, historical exploration, and static website generation.
+
+The target must not reproduce ASV's generic infrastructure in a parallel custom
+runner. A custom component is justified only when it expresses `feregion`-
+specific semantics or closes a documented ASV capability gap.
+
+### 9.2 Project-owned benchmark contract
+
+The benchmark contract defines stable case identities and their semantics. Each
+case declares:
+
+- stable `case_id`;
+- project-owned semantic `case_version`;
+- the operation being measured;
+- required package capability;
+- workload generator and parameters;
+- load-size parameter where applicable;
+- operation count used for throughput;
+- correctness oracle or invariant;
+- whether a historical adapter is required;
+- result applicability rules; and
+- benchmark-specific setup that must remain outside the timed operation.
+
+`case_version` changes when the timed operation, workload semantics, or result
+interpretation changes so that prior measurements are no longer comparable. A
+refactor or an added historical adapter does not by itself require a case-version
+change when contract tests show that the measured semantics are unchanged.
+
+ASV also versions benchmark definitions and normally derives its benchmark
+version from benchmark source. The integration therefore maps ASV benchmark
+version identity or explicit compatible-version aliases to the project case
+contract. Default ASV source hashing alone is not the authority for whether two
+`feregion` measurements are semantically comparable. The vertical slice verifies
+this mapping because ASV/asv-runner version-identity behavior is tooling behavior,
+not a package contract.
+
+This contract must not depend on ASV result-file internals. Benchmark bindings may
+use ASV's function/class conventions, but ASV does not define the semantic
+meaning of a case.
+
+For geographical lookup, the pinned source-table scanner remains the independent
+same-workload semantic baseline. For scalar lookup, ObsPy remains an additional
+comparison when installed. For seismic coordinate lookup, correctness is checked
+against geographical lookup followed by the packaged crosswalk. Internal
+optimization diagnostics must identify themselves as internal and must not become
+public API contracts merely because they are benchmarked.
+
+### 9.3 Historical compatibility adapters
+
+A compatibility adapter maps one benchmark case onto a selected historical
+`feregion` revision. The adapter targets supported public behavior of that
+revision rather than private implementation details unless the case is explicitly
+an internal diagnostic.
+
+The evidence model distinguishes at least:
+
+- **measured**: the revision supports the case, passes correctness, and produced
+  valid measurement evidence;
+- **not applicable**: the historical revision lacks the required capability;
+- **environment unavailable**: the requested interpreter/dependency environment
+  cannot be created for that revision;
+- **build failed**: the selected revision cannot be built or installed in the
+  resolved environment;
+- **correctness failed**: the adapter ran but did not satisfy the declared oracle
+  or invariant; and
+- **execution failed**: benchmark execution failed after a valid build for a
+  reason other than a declared not-applicable capability.
+
+An adapter must not emulate a missing feature in benchmark code and then report
+that emulation as historical package performance. Infrastructure/build failure
+must not be relabeled as capability absence. Modern benchmark code may run
+against older installed revisions; old revisions do not need to contain the
+current benchmark harness.
+
+### 9.4 Campaign control
+
+A campaign is the operator-facing unit of work. A small human-editable TOML file
+selects benchmark intent without embedding timing or environment implementation.
+The campaign schema contains, at minimum:
+
+```text
+campaign identity and purpose
+revision/release selectors
+benchmark-case selectors
+load sizes
+repetitions
+optional ASV round controls
+environment profile
+raw-sample retention policy
+machine/comparability policy
+report-generation requests
+```
+
+The target repository CLI has four responsibilities:
+
+```text
+plan      resolve exact revisions, cases, parameters, and environments
+run       execute the resolved selection through ASV
+compare   apply project-specific comparisons to retained ASV evidence
+report    build the static benchmark report from retained results
+```
+
+These are responsibility names, not a promise that the final CLI subcommands use
+these exact spellings. `plan` is read-only and exposes the exact execution set
+before measurement begins. The campaign layer may produce a bounded ASV
+configuration from maintained project profiles, but it must not become a second
+benchmark runner. External GitHub Pages or other hosting publication is separate
+from `report`; publication requires separate authorization and post-action state
+verification.
+
+The ASV subprocess boundary is treated as an external tool contract. The
+configuration option is passed on the selected ASV subcommand, for example
+`asv run ... --config PATH`. ASV changes its working directory to the directory
+that contains an explicitly supplied configuration file. Generated campaign
+configuration therefore lives temporarily in the repository root so the
+repository-relative benchmark, environment, result, and HTML paths retain their
+intended meaning. The temporary file is removed after the synchronous ASV
+process returns.
+
+### 9.5 ASV execution and history substrate
+
+The initial implementation target is ASV `0.6.6`, the latest released version
+verified during this design review. The repository dependency may use a reviewed
+`0.6.x` compatibility range, but authoritative campaign evidence records the
+exact ASV and asv-runner versions that executed the run. A future ASV minor line
+requires compatibility review before it becomes an authoritative benchmark
+backend.
+
+ASV 0.6.6 provides or documents the required generic capabilities: project-
+lifetime revision benchmarking, isolated environments including a `uv` backend,
+dependency matrices, parameterized benchmarks, timing controls, optional raw-
+sample retention, machine/result history, comparison/regression exploration, and
+static publication including `gh-pages`. The implementation must verify the
+selected ASV configuration and backend on the actual `feregion` repository rather
+than treating documentation availability as product verification.
+
+ASV discovers Python files throughout its configured benchmark package. The ASV
+runner package is therefore isolated at `benchmarks/asv_suite/` and contains only
+the semantic contracts, workloads, historical adapters, and ASV bindings needed
+inside ASV-created environments. The retained predecessor pytest benchmark and
+operator/report tooling remain outside this directory so ASV discovery does not
+import their development-only dependencies or mistake them for runner content.
+
+### 9.6 Workloads, load sizes, and correctness
+
+Workloads are deterministic. The coordinate generator has a stable algorithm or
+version identifier and seed. A campaign record retains canonical workload
+parameters and, when practical, a fingerprint of the materialized input or its
+canonical generator specification.
+
+The standard batch-load series is:
+
+```text
+1, 100, 1_000, 10_000, 100_000, 1_000_000
+```
+
+A campaign may select a subset. A release-gate campaign retains enough adjacent
+sizes at or above 10,000 to evaluate the existing regression rule. The standard
+release profile should include at least `10_000`, `100_000`, and `1_000_000` so a
+single missing point does not automatically eliminate every adjacent comparison.
+
+Correctness verification occurs before accepted timing. ASV `setup` or an
+equivalent untimed phase builds the workload and calls the selected adapter once
+against the case oracle or invariant. The timed function contains only the
+operation whose performance is being measured. A failed correctness check
+invalidates the timing result.
+
+### 9.7 Measurement and comparability controls
+
+The campaign layer exposes operator **repetitions** as the project term for ASV's
+timing repeat control. ASV rounds, calibration, and warmup remain separate timing
+concepts and are exposed only when the campaign contract needs them.
+
+Authoritative release, dependency-sensitivity, and public-history campaigns use
+raw-sample retention. Summary-only and quick runs are exploratory evidence and
+are labelled accordingly.
+
+Timed measurement is serial by default. `feregion` does not add concurrent timed
+benchmark execution because the suite is small and interpretable timing has more
+value than measurement throughput. Environment preparation or report generation
+may be optimized later if it does not overlap timed processes.
+
+Machine identity and environment metadata are retained for every authoritative
+result. Release-gate ratios require the same recorded machine, interpreter,
+direct benchmark dependencies, workload contract, benchmark case/parameters, and
+timing contract. CPU frequency/power policy remains an external operator control
+unless future tooling measures it reliably enough to become part of the contract.
+
+### 9.8 Environment profiles
+
+The target deliberately avoids a full Cartesian product of every Python, NumPy,
+and pandas version. Named profiles answer different questions.
+
+#### `release-history`
+
+Purpose: compare `feregion` revisions while holding the main interpreter and
+third-party dependency versions fixed.
+
+```text
+CPython 3.12 + NumPy 1.26.4
+pandas cases additionally use pandas 2.1.4
+```
+
+This profile is the default for package-history and release-gate measurements
+while the selected historical revisions can build and satisfy their case
+contracts in it. If an older revision cannot build in this environment, record
+that state explicitly; do not silently change dependencies and compare the new
+measurement as though it belonged to the same release-history profile.
+
+#### `python-supported`
+
+Purpose: detect interpreter-sensitive performance over the supported Python
+range.
+
+```text
+CPython 3.11
+CPython 3.12
+CPython 3.13
+CPython 3.14
+```
+
+This profile uses one reviewed benchmark dependency baseline and records exact
+resolved NumPy/pandas versions. It is performance evidence, not a substitute for
+compatibility testing.
+
+#### `numpy-sensitivity`
+
+Purpose: identify material performance changes associated with selected NumPy
+minor/major transitions without confounding them with Python-version changes.
+
+```text
+CPython 3.12 + NumPy 1.26.4
+CPython 3.12 + NumPy 2.0.2
+CPython 3.12 + NumPy 2.2.6
+CPython 3.12 + NumPy 2.5.2
+```
+
+Pandas-dependent cases are excluded unless the selected campaign explicitly
+provides a compatible pandas environment.
+
+#### `pandas-sensitivity`
+
+Purpose: detect material changes in the optional pandas adapter while holding the
+primary numerical dependency stable.
+
+```text
+CPython 3.12 + NumPy 1.26.4 + pandas 2.1.4
+CPython 3.12 + NumPy 1.26.4 + pandas 2.2.3
+CPython 3.12 + NumPy 1.26.4 + pandas 2.3.3
+CPython 3.12 + NumPy 1.26.4 + pandas 3.0.5
+```
+
+These versions preserve the previously accepted benchmark matrix. They are
+methodology points, not a claim that they are always the latest patch releases. A
+profile change requires a recorded methodology decision and must preserve enough
+old results to interpret historical comparisons.
+
+### 9.9 Historical revision selection
+
+Authoritative campaigns select exact package revisions deliberately. They do not
+infer authority from Git recency or benchmark every reachable commit by default.
+A campaign may name release tags, commit hashes, or an exact generated revision
+list.
+
+Two modes are supported conceptually:
+
+- **release history**: a bounded maintained set of package releases representing
+  meaningful implementation generations; and
+- **investigation history**: an explicit Git range or ASV history search used to
+  locate when a measured change appeared.
+
+Release-history membership is project configuration. Investigation-history output
+is exploratory unless promoted into retained evidence under an authoritative
+campaign contract.
+
+### 9.10 Result and evidence model
+
+ASV result files are measurement evidence, but ASV's incidental file layout is
+not the stable `feregion` release-gate schema. A small evidence adapter emits a
+normalized project record containing at least:
+
+```text
+benchmark semantic identity
+package revision/version
+benchmark parameters and load size
+applicability/correctness state
+machine identity
+environment and direct dependency identity
+ASV/asv-runner identity
+sample/statistic linkage
+median duration and derived throughput where defined
+resolved campaign identity
+```
+
+The normalized record preserves traceability back to the retained ASV result and
+samples. It does not discard failed, skipped, or not-applicable states to make a
+comparison table rectangular. Parsing of any version-specific ASV result format
+is isolated behind this adapter and covered by fixtures.
+
+The release-regression rule remains project-owned: review is triggered when
+candidate median batch throughput is more than 25 percent slower than the
+accepted baseline at two adjacent recorded load sizes of at least 10,000 points.
+ASV's generic comparison/regression facilities may aid exploration but do not
+replace this project gate. A missing comparable baseline means the performance
+gate is incomplete, not passed.
+
+### 9.11 Public benchmark history
+
+ASV generates the target public benchmark site from retained result history. The
+initial publication route is a static site suitable for GitHub Pages. Source
+history, raw benchmark history, and generated HTML are separate artifact roles.
+The source branch does not contain generated HTML or raw ASV result history.
+
+Raw ASV history is retained in a durable location that can rebuild the static
+site without rerunning measurements. A dedicated results/history branch or an
+equivalent external store is permitted. Publication is a separate state change:
+a successful benchmark run does not prove that the public site was rebuilt or
+published. The publication workflow verifies the resulting branch or public
+artifact before reporting success.
+
+### 9.12 Migration from the 0.3 benchmark implementation
+
+Migration uses a vertical slice before broad conversion:
+
+1. implement `lookup_numbers` at 1, 100, 1,000, 10,000, 100,000, and 1,000,000;
+2. run the slice against the current `0.3` beta baseline and at least one older revision whose public
+   interface materially exercises the compatibility-adapter boundary;
+3. run at least one selected dependency-sensitivity profile;
+4. retain raw ASV samples and normalize them into the project evidence schema;
+5. apply the release-regression rule to comparable ASV-derived records;
+6. build the ASV static site from retained results; and
+7. compare semantic outputs, applicability, metadata identity, and release-gate
+   outcome with the predecessor harness under one controlled environment.
+
+Only after the slice passes should remaining benchmark cases and profiles migrate.
+The predecessor path may then be removed case by case. `pytest` remains the
+verification framework for benchmark-contract code, campaign resolution,
+adapters, evidence normalization, and regression-gate logic; it is not the target
+timing engine.
+
+### 9.13 Existing optimization decisions
 
 **Resolved internal optimization `PERF-INV-001`:** controlled measurements on the
 accepted beta baseline show material stacking, hierarchy-revalidation, and
@@ -272,22 +630,11 @@ source-dtype boundary semantics remain identical. Coordinate-to-seismic lookup
 may apply the hierarchy crosswalk directly only to geographical numbers produced
 by that same engine. A public split-array API remains deferred.
 
-Cross-Python benchmarking is a separate matrix from compatibility testing. Four
-lock-backed tox-uv environments run the same standalone benchmark harness on
-Python 3.11 through 3.14 and write raw JSON below `.tox/benchmark-results/`. A
-report reducer selects eight public-path throughput metrics: three scalar
-operations, two batch-number workloads, one batch name-conversion workload, and
-two pandas copy workloads. The report records exact Python, NumPy, pandas, and
-package versions and normalizes throughput to Python 3.11. Using one lock and one
-machine reduces dependency and hardware confounding; recorded versions keep any
-remaining environment-marker differences visible.
-
-The longitude/quadrant kernel now uses mask-only antimeridian handling as part
-of the extended-precision correctness repair. This removes the prior full-size
+The longitude/quadrant kernel uses mask-only antimeridian handling as part of the
+extended-precision correctness repair. This removes the prior full-size
 normalized-longitude temporary without changing the public batch shape contract.
-Further public split-array API changes remain deferred until an external
-consumer need or new benchmark evidence justifies the additional compatibility
-surface.
+Further public split-array API changes remain deferred until an external consumer
+need or new benchmark evidence justifies the additional compatibility surface.
 
 A Rust backend remains deferred. Current NumPy throughput does not establish a
 need for another runtime backend.
@@ -386,7 +733,11 @@ tracked local formatting/checking edits without collecting editor settings,
 virtual environments, caches, benchmark runs, or other untracked state.
 `uv.lock` is excluded explicitly. Non-ignored untracked paths are reported so a
 new source file must be staged/committed (or otherwise deliberately handled)
-before it can be mistaken for project source.
+before it can be mistaken for project source. The default archive is written to
+`dist/feregion-v<version>-<YYYY-MM-DD>-handoff.zip`, where the canonical project
+name and version come from `pyproject.toml` and the date is the current UTC date. An explicit
+`--output` path remains available for workflows that need another destination.
+The archive's internal repository root remains the stable `feregion/` path.
 
 ## 12. Compatibility and residual limits
 

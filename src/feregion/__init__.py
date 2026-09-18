@@ -9,7 +9,7 @@ from ._default import get_default_lookup
 from .core import FlinnEngdahlLookup, ScalarCoordinate
 from .types import GeographicRegion, Region, SeismicRegion
 
-__version__ = "0.3.0b1"
+__version__ = "0.4.0a5"
 
 
 def lookup_geographic_number(longitude: ScalarCoordinate, latitude: ScalarCoordinate) -> int:
