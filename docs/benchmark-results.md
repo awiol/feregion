@@ -39,6 +39,15 @@ second over these three loads on the measured host. This is evidence for the
 `feregion` vectorized batch path on this host; it is not a direct comparison with
 ObsPy.
 
+## Throughput as a retained metric
+
+The predecessor harness reports `median_operations_per_second`, and this remains the
+project performance quantity for batch/release decisions. The a10 normalized ASV
+evidence also derives and retains `operations_per_second` from the declared operation
+count and measured duration. A timing of `t` seconds for `n` points corresponds to
+`n / t` operations per second. This preserves the earlier iterations-per-unit-time
+view instead of replacing it with elapsed time alone.
+
 ## Python-version sensitivity
 
 For `0.4.0a7`, NumPy 2.3.5, pandas 2.3.3, and the geographic/seismic batch cases
@@ -108,6 +117,20 @@ they were one uniform score.
 The last two transitions are important context for the ASV regression page:
 small step-detection signals can occur even when the broad same-environment
 release comparison is approximately flat.
+
+### Was the early throughput decrease a one-time event?
+
+The retained snapshot supports a narrower conclusion: the slowdown from
+`0.1.2a10` to `0.2.0b1` was **not a persistent monotonic degradation**. The next
+measured transition recovered performance, the `0.3.0b1`→`0.4.0a5` transition
+improved further, and the measured a5→a6→a7 transitions were approximately flat.
+
+That sequence does **not** establish that the original decrease was a one-time
+causal event. Coverage differs between transitions, the evidence is single-host,
+and no controlled causal experiment isolates the responsible change. The stronger
+`release_workflow refresh --history ... --append-samples` run in progress during
+a10 development should be treated as new evidence and incorporated before beta if
+it materially changes these observations.
 
 ## ASV regression signals versus the project gate
 

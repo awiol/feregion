@@ -195,12 +195,13 @@ could not run must remain an explicit verification limitation.
 
 ## Performance evidence
 
-### Current `0.3` implementation
+### Authoritative predecessor harness during the `0.4` ASV migration
 
-`0.3.0b1` uses the standalone benchmark runner, `pytest-benchmark`, the Tox
-supported-Python benchmark matrix, and the custom release comparator. These are
-the executable benchmark path for the current beta line. The accepted `0.4`
-benchmark target does not make them invalid before migration.
+The standalone benchmark runner, `pytest-benchmark`, the Tox supported-Python
+benchmark matrix, and the custom release comparator remain the authoritative
+performance-evidence path during the `0.4` alpha ASV migration. The ASV candidate
+is supplementary until `REQ-PERF-017` parity is closed by reviewed real-run evidence.
+See `docs/benchmark-migration-parity.md` for the maintained case/metric ledger.
 
 Before timing the geographical coordinate candidate, current benchmark code
 compares its output with the source-table scanner. Direct batch comparisons use
@@ -260,7 +261,9 @@ historical capability becomes an explicit not-applicable state with a reason.
 Keep capability absence separate from environment/build unavailability,
 correctness failure, execution failure, and valid measurement; benchmark code
 must not emulate the feature and report the emulation as historical package
-performance.
+performance. A revision-level ASV command failure without phase-specific
+evidence must remain a generic execution failure; tests must not relabel it as a build
+failure merely because no benchmark JSON was produced.
 
 The ASV process boundary uses subcommand-local `--config` and a temporary config in the repository root because ASV changes its working directory to the config directory. ASV discovery is limited to `benchmarks/asv_suite/`; retained predecessor pytest-benchmark modules are outside that package. Repository tests cover argv order, config location/lifetime, suite isolation, and exact partial-load filtering.
 
@@ -325,8 +328,10 @@ Run the predecessor and ASV slice under one controlled environment and compare:
 
 After the vertical slice passes, migrate remaining cases incrementally. Remove
 predecessor timing/reporting paths only when their required evidence is covered.
-`pytest` continues to test benchmark semantics, adapters, campaign resolution,
-evidence normalization, and gate behavior; it is not the target timing engine.
+`pytest` continues to serve two distinct roles during migration: `pytest-benchmark` is
+part of the authoritative predecessor timing path, while ordinary pytest tests benchmark
+semantics, adapters, campaign resolution, evidence normalization, and gate behavior.
+Do not collapse those roles when ASV is eventually reconsidered for promotion.
 
 ## Clean repository handoff
 
@@ -399,10 +404,12 @@ uv run --locked --group benchmark python -m benchmarks.campaign plan benchmarks/
 uv run --locked --group benchmark python -m benchmarks.campaign run benchmarks/campaigns/smoke.toml
 ```
 
-For routine release preparation, the synchronized workflow plans and runs the
-release comparison, full `HEAD` suite, sparse dependency matrix, and supported
-Python matrix, applies the project release check, and rebuilds the complete ASV
-site:
+For routine ASV migration evidence, the synchronized workflow plans and runs the
+release comparison, full `HEAD` suite, sparse dependency matrix, supported-Python
+matrix, direct ObsPy/source reference comparison, and diagnostic parity campaign.
+It applies the project ASV release check and rebuilds the complete ASV site. This
+does not replace the authoritative predecessor release evidence before migration
+closure:
 
 ```bash
 uv run --locked --group benchmark python -m benchmarks.release_workflow refresh
@@ -419,10 +426,22 @@ uv run --locked --group benchmark \
 
 Canonical campaigns overlap at selected cells, so append mode can produce unequal
 sample counts. Raw samples and exact environment/revision identities remain the
-evidence; do not imply uniform precision across cells. `campaign check` consumes
-retained ASV result JSON and does not rerun measurements. Its evidence adapter
-interprets ASV v2 `samples` as a parameter-aligned list even when earlier
-parameter entries are null, and rejects unsupported deeper nesting descriptively.
+evidence; do not imply uniform precision across cells. `campaign check` consumes retained ASV result JSON and does not rerun measurements.
+The a10 evidence adapter first selects the requested parameter, then flattens only
+that parameter's nested repeat/round sample groups. It preserves the stored ASV
+benchmark-version identity, correctness state, operation count, and derived
+operations-per-second.
+
+Run the restored direct-reference and diagnostic ASV campaigns independently when
+reviewing migration parity:
+
+```bash
+uv run --locked --group benchmark python -m benchmarks.campaign run benchmarks/campaigns/reference-comparison.toml
+uv run --locked --group benchmark python -m benchmarks.campaign run benchmarks/campaigns/diagnostics.toml
+```
+
+The direct-reference campaign requires the verified pinned FE source cache and an
+ObsPy benchmark environment. Source/oracle work occurs in untimed setup.
 
 The local ASV plugin gives every benchmark a human-readable display/source
 description and adds an additive `feregion summary` page to the generated site.

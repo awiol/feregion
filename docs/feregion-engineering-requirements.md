@@ -3,15 +3,16 @@
 | Field | Value |
 |---|---|
 | Status | Current alpha engineering contract |
-| Planned target | `0.4.0` benchmark-system additions accepted; not implemented |
+| Current target | `0.4.0` benchmark-system alpha implementation; ASV migration not yet accepted |
 
 This document uses the normative profile defined by `feregion-requirements.md`.
 
 ## Governing guidance for the 0.4 benchmark target
 
 The user-approved release-core decision dedicates `0.4.0` to benchmark-system
-work. The current `0.3` beta line remains the implementation baseline until an
-authorized `0.4` candidate is produced. The following method sources govern the
+work. The `0.4` alpha source now implements the ASV migration candidate, but the
+predecessor benchmark harness remains the current performance-evidence authority until
+the migration-parity requirement below is satisfied. The following method sources govern the
 benchmark-target design and its review. They guide engineering work; they do not
 create runtime package requirements unless a requirement below adopts them.
 
@@ -276,13 +277,14 @@ specific performance gate is incomplete rather than passed. Baseline/candidate
 measurement evidence and the comparison result must be retained as delivery
 evidence.
 
-**REQ-PERF-007** — For the `0.4.0` benchmark target, Airspeed Velocity (ASV) must
-be the generic infrastructure for revision selection, isolated benchmark
-environments, project build/install, benchmark timing, raw-sample collection,
-result history, historical comparison/exploration, and static public benchmark
-reporting. The project must not maintain a second authoritative generic timing
-engine, environment manager, result-history database, or benchmark website
-generator unless a documented ASV capability gap requires one.
+**REQ-PERF-007** — ASV is the target generic infrastructure for the completed
+`0.4` benchmark migration: revision selection, isolated benchmark environments,
+project build/install, timing, raw-sample collection, result history, historical
+comparison/exploration, and static reporting. Until the migration-parity requirement below closes semantic
+and case-parity evidence, the predecessor standalone timer, `pytest-benchmark`, Tox
+benchmark matrix, and release comparator remain the authoritative performance path;
+ASV results are supplementary migration evidence. This transitional dual execution
+must not be represented as permanent dual benchmark authority.
 
 **REQ-PERF-008** — Benchmark meaning must remain project-owned and independent of
 ASV storage internals. Each benchmark case must have a stable `case_id` and
@@ -372,8 +374,10 @@ release-regression decision; and a static ASV site build. The predecessor and
 ASV paths must be compared for semantic outputs, applicability decisions,
 benchmark/load identity, relevant metadata, and release-gate outcome.
 `pytest-benchmark`, the standalone timer, the Tox benchmark matrix, and custom
-cross-Python reporting must be removed when their required evidence has been
-replaced. Permanent dual benchmark authority is not permitted.
+cross-Python reporting must remain runnable and authoritative until their required
+case, throughput, comparator, and release-decision evidence has been replaced and
+reviewed. Only then may they be retired. Permanent dual benchmark authority after
+migration acceptance is not permitted.
 
 **REQ-PERF-018** — The ASV process boundary must be verified against the supported
 ASV command/configuration contract. Campaign execution must pass configuration
@@ -457,11 +461,20 @@ must not convert a single-host measurement into a universal performance claim or
 a direct ObsPy speed claim without like-for-like comparative evidence.
 
 **REQ-PERF-026** — The ASV evidence adapter must interpret v2 `samples` as a
-parameter-list aligned with the benchmark result list even when an earlier
-parameter entry is `null`. It must select only the requested parameter's samples,
-must not flatten samples belonging to other parameter values, and must reject an
-unrecognized per-parameter nested layout with a descriptive error rather than a
-low-level numeric conversion failure.
+parameter-list aligned with the benchmark result list even when an earlier parameter
+entry is `null`. It must select the requested parameter before flattening nested
+repeat/round sample groups and must never mix samples from another parameter value.
+Unsupported nonnumeric sample leaves must fail with a descriptive adapter error.
+
+**REQ-PERF-027** — Benchmark migration parity must be explicit. The maintained
+predecessor roles include direct ObsPy scalar comparison, direct pinned-source
+comparison, public scalar/batch/name/seismic/pandas cases, pandas in-place timing,
+internal split/caller-stacking diagnostics, supported-Python comparison, and
+operations-per-second reporting. ASV may replace a role only after an equivalent or
+explicitly superseding semantic case is implemented and verified. Normalized ASV
+evidence must retain declared operation count and derived operations per second for
+throughput-capable cases; elapsed duration alone must not replace the project
+throughput metric.
 
 ## Packaging, development environment, and license
 

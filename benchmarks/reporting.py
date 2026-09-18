@@ -105,6 +105,16 @@ def build_publisher_payload(
             "is separate: review is triggered only by >25% slowdown at two adjacent maintained "
             "load sizes of at least 10,000 under one comparable machine/environment basis."
         ),
+        "migration_authority_note": (
+            "During the 0.4 alpha migration, predecessor standalone/pytest-benchmark/Tox/"
+            "release-comparator evidence remains authoritative until REQ-PERF-017 parity "
+            "is reviewed. This ASV report is supplementary migration evidence."
+        ),
+        "throughput_note": (
+            "Normalized feregion evidence retains declared operations and operations-per-second. "
+            "The project release threshold is evaluated in throughput space even though native "
+            "ASV graphs normally display elapsed time."
+        ),
     }
 
 

@@ -1,0 +1,16 @@
+[campaign]
+id = "reference-comparison"
+purpose = "Current-revision feregion versus direct ObsPy scalar and pinned source-table comparator measurements."
+revisions = ["HEAD"]
+cases = [
+  "lookup_geographic_number",
+  "obspy_geographic_number",
+  "source_reference_geographic_number",
+  "lookup_geographic_numbers",
+  "source_reference_geographic_numbers",
+]
+load_sizes = [100, 1000, 10000, 100000]
+repetitions = 7
+rounds = 5
+environment_profile = "reference-comparison"
+record_samples = true

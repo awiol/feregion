@@ -1,7 +1,7 @@
 [campaign]
 id = "release-history"
 purpose = "Backward-compatible historical benchmark across representative package generations on one fixed environment."
-revisions = ["v0.1.2a10", "v0.2.0b1", "v0.3.0b1", "v0.4.0a6", "v0.4.0a7", "HEAD"]
+revisions = ["v0.1.2a10", "v0.2.0b1", "v0.3.0b1", "v0.4.0a6", "v0.4.0a7", "v0.4.0a9", "HEAD"]
 cases = [
   "lookup_geographic_number",
   "lookup_geographic_region",
@@ -12,6 +12,7 @@ cases = [
   "lookup_seismic_numbers",
   "geographic_numbers_to_seismic_numbers",
   "geographic_numbers_to_names",
+  "seismic_numbers_to_names",
   "pandas_lookup_numbers",
   "pandas_lookup_numbers_and_names",
 ]

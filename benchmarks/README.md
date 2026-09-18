@@ -86,79 +86,93 @@ timing contract. It triggers review if candidate median batch throughput is more
 than 25 percent slower at two adjacent recorded sizes of at least 10,000 points.
 The harness cannot establish CPU power/frequency policy; control that externally.
 
-## `0.4` ASV-driven benchmark system
+## `0.4` ASV migration candidate
 
-The commands above are predecessor migration evidence retained temporarily under
-`REQ-PERF-017`. The authoritative `0.4` architecture is ASV-driven: `feregion`
-owns semantic benchmark cases, workloads, compatibility adapters, campaign intent,
-normalized evidence, and the release decision; ASV owns environment/build/timing,
-raw samples, history, comparison display, and static report generation.
+The predecessor commands above remain the **authoritative performance-evidence
+path during the `0.4` alpha migration**. ASV is a supplementary migration
+candidate until the semantic/case/metric parity and real-run evidence required by
+`REQ-PERF-017` are reviewed. See `docs/benchmark-migration-parity.md` for the
+explicit parity ledger.
 
-The detailed human runbook is `docs/benchmark-operations.md`. Read it before an
-authoritative campaign; it explains why each step exists, what evidence it creates,
-what can be safely regenerated, and how publication differs from measurement.
+The ASV path is still valuable and should be run during migration. `feregion` owns
+case semantics, source-oracle correctness, historical adapters, normalized evidence,
+throughput interpretation, and release decisions; ASV owns revision/environment
+mechanics, package build/install, timing, raw samples, retained history, and the
+technical static site.
 
-### Maintained load grid
+Authoritative ASV setup now requires the pinned FE source tables because correctness
+is checked against the independent source scanner before timing:
 
-Batch cases support the 1-2-5 grid from 1 through 50,000,000 points:
-
-```text
-1, 2, 5, 10, 20, 50, 100, 200, 500,
-1_000, 2_000, 5_000, 10_000, 20_000, 50_000,
-100_000, 200_000, 500_000,
-1_000_000, 2_000_000, 5_000_000,
-10_000_000, 20_000_000, 50_000_000
+```bash
+uv run python -m tools.fetch_obspy_fe_data
+uv sync --locked --group benchmark
+uv run --locked --group benchmark asv check --config asv.conf.json
 ```
 
-The largest cases are intentionally high-memory. A campaign may select a subset;
-resource exhaustion is not a valid timing result.
+### Maintained load grid and throughput
+
+Public batch cases support the 1-2-5 grid from 1 through 50,000,000 points. Some
+reference/diagnostic cases intentionally use smaller bounded grids. Every normalized
+throughput-capable record retains the operation count and
+`operations_per_second = operations / statistic_seconds`; elapsed duration alone is
+not the project release metric.
 
 ### Canonical campaigns
 
 `benchmarks/campaigns/` contains maintained operator campaigns:
 
 - `smoke.toml` — fast current-candidate integration check;
-- `release-compare.toml` — previous accepted benchmark candidate versus `HEAD`;
-- `release-history.toml` — backward-compatible representative release history;
-- `head-full.toml` — all cases over the complete maintained load grid;
+- `release-compare.toml` — previous benchmark candidate versus `HEAD`;
+- `release-history.toml` — representative backward-compatible history;
+- `head-full.toml` — public-semantic current suite over the full 1-2-5 grid;
 - `python-supported.toml` — supported CPython sensitivity;
 - `numpy-sensitivity.toml` — selected NumPy sensitivity;
-- `pandas-sensitivity.toml` — selected pandas sensitivity; and
-- `dependency-matrix.toml` — sparse union of NumPy and pandas sensitivity points.
+- `pandas-sensitivity.toml` — pandas copy/in-place sensitivity;
+- `dependency-matrix.toml` — bounded sparse NumPy/pandas union;
+- `reference-comparison.toml` — feregion, direct ObsPy, and pinned-source
+  comparator measurements; and
+- `diagnostics.toml` — private split-vector, caller-stacking, and pandas in-place
+  diagnostics retained for migration parity.
 
 Plan before measuring:
 
 ```bash
-uv run --locked --group benchmark python -m benchmarks.campaign plan benchmarks/campaigns/smoke.toml
+uv run --locked --group benchmark python -m benchmarks.campaign plan \
+  benchmarks/campaigns/smoke.toml
 ```
 
 Run the real smoke path:
 
 ```bash
-uv run --locked --group benchmark python -m benchmarks.campaign run benchmarks/campaigns/smoke.toml
+uv run --locked --group benchmark python -m benchmarks.campaign run \
+  benchmarks/campaigns/smoke.toml
 ```
 
-For routine release comparison:
+For routine ASV release comparison:
 
 ```bash
-uv run --locked --group benchmark python -m benchmarks.campaign run benchmarks/campaigns/release-compare.toml
-uv run --locked --group benchmark python -m benchmarks.campaign compare benchmarks/campaigns/release-compare.toml
-uv run --locked --group benchmark python -m benchmarks.campaign check benchmarks/campaigns/release-compare.toml
+uv run --locked --group benchmark python -m benchmarks.campaign run \
+  benchmarks/campaigns/release-compare.toml
+uv run --locked --group benchmark python -m benchmarks.campaign compare \
+  benchmarks/campaigns/release-compare.toml
+uv run --locked --group benchmark python -m benchmarks.campaign check \
+  benchmarks/campaigns/release-compare.toml
 ```
 
-`compare` is ASV's generic comparison view. `check` is the project acceptance
-rule: it consumes retained ASV results, writes normalized evidence under
-`dist/benchmarks/`, and applies the >25% slowdown rule at two adjacent maintained
-1-2-5 sizes of at least 10,000 points. Exit status `0` means complete/no trigger,
-`1` means triggered, and `2` means incomplete or ambiguous evidence.
+`check` consumes retained ASV results and setup-state sidecars. It accepts only
+stored benchmark versions mapped to the project case version and only
+correctness-passed timing for the release decision. The project rule is a >25%
+**throughput** slowdown at two adjacent maintained sizes of at least 10,000 points;
+this is not equivalent to a 25% duration increase.
 
-Populate the routine current-release evidence and rebuild the complete retained-result report with one command:
+Populate the maintained ASV migration evidence and rebuild the report with:
 
 ```bash
 uv run --locked --group benchmark python -m benchmarks.release_workflow refresh
 ```
 
-For a review/promotion run that also refreshes historical evidence and appends substantially more samples to compatible retained results:
+For a review run that also refreshes historical evidence and appends more compatible
+samples:
 
 ```bash
 uv run --locked --group benchmark \
@@ -166,30 +180,42 @@ uv run --locked --group benchmark \
   --history --repetitions 15 --rounds 7 --append-samples
 ```
 
-The refresh covers the full `HEAD` suite, routine release comparison, supported-Python matrix, and sparse dependency matrix. The dependency matrix includes both pandas benchmark paths. Canonical campaigns overlap at some cells, so append mode can produce unequal sample counts across the result database; retained raw samples remain the evidence.
+The refresh includes the reference-comparison and diagnostic campaigns in addition
+to current/full/dependency/Python coverage. This does not change the transitional
+authority rule: compare the ASV output with predecessor evidence before accepting
+migration closure.
 
-Rebuild and preview from retained measurements without timing work:
+Rebuild and preview without timing work:
 
 ```bash
 uv run --locked --group benchmark python -m benchmarks.release_workflow report
 uv run --locked --group benchmark python -m benchmarks.release_workflow preview
 ```
 
-ASV loads the local `feregion` output publisher. The generated site keeps native ASV Grid/List/Graph/Regressions views and adds a project summary with human-readable benchmark metadata and curated load-scaling links. The runbook documents GitHub Pages staging and explicit push. External publication is never implied by measurement or report generation.
+### Evidence and failure states
+
+ASV benchmark setup writes retained sidecars under `.asv/feregion-state/`. The
+normalized evidence adapter uses them to distinguish correctness failure,
+environment/oracle unavailability, explicit not-applicable capability, execution
+failure, and measured results. Campaign execution also records revision-level run
+status under `.asv/feregion-runs/` for failures that occur before ASV can write a
+benchmark result file.
+
+Stored ASV benchmark `version` is an input to comparability. An unknown semantic
+version is normalized as incompatible instead of being assigned the current project
+`case_version`.
 
 ### Revision and build contracts
 
 Campaign `revisions` are single identities such as `HEAD`, a tag, or a commit SHA.
-Do not place Git range syntax such as `HEAD^!`, `main..HEAD`, or `HEAD~1` in a
+Do not put Git range syntax such as `HEAD^!`, `main..HEAD`, or `HEAD~1` in a
 campaign. `plan` resolves each identity to one immutable SHA and `run` converts it
 to ASV's exact-single-commit selector internally.
 
 Both persistent and generated ASV configs build only the `feregion` wheel with
 `pip wheel --no-deps` and install it with `pip install --no-deps --force-reinstall`.
-NumPy and pandas versions belong to the selected ASV environment profile. This
-keeps the project build cache unambiguous and prevents installation from replacing
-the benchmark matrix dependencies.
+Dependency versions belong to the selected ASV environment profile.
 
-Generated `.asv/` state is benchmark evidence/derived output and remains outside
-the source tree. Preserve authoritative `.asv/results` in an approved durable
-location; `.asv/html` can be rebuilt from those results.
+Generated `.asv/` state is benchmark evidence/derived output and remains outside the
+source tree. Preserve `.asv/results`, `.asv/feregion-state`, and relevant
+`.asv/feregion-runs` together when retaining authoritative migration evidence.

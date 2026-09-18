@@ -253,10 +253,12 @@ geographical IDs 172, 299, and 550 receive no fabricated geometry.
 
 ### 9.1 Current implementation and 0.4 target boundary
 
-The `0.3` beta source is the migration baseline. It uses the
-standalone timer, `pytest-benchmark`, Tox benchmark-Python environments, a
-custom cross-Python reducer, and the custom release comparator documented in
-`benchmarks/README.md`. Those tools remain temporarily executable in `0.4 alpha implementation` as migration evidence until `REQ-PERF-017` is verified.
+The `0.3` beta source is the migration baseline. It uses the standalone timer,
+`pytest-benchmark`, Tox benchmark-Python environments, a custom cross-Python
+reducer, and the custom release comparator documented in `benchmarks/README.md`.
+During the remaining `0.4` alpha migration these predecessor paths remain the
+**authoritative performance-evidence path**. ASV is supplementary until reviewed
+semantic/case/metric parity and the real vertical slice satisfy `REQ-PERF-017`.
 
 The implemented target core is `0.4.0`, dedicated to benchmark-system work. `0.4 alpha implementation` introduces the source implementation. The `0.4` target does not authorize unrelated runtime lookup features or
 performance optimizations. Measurements may identify such work, but adoption of
@@ -273,16 +275,17 @@ The `0.4` benchmark system has two jobs:
 2. maintain a public historical view across selected package revisions and
    Python/NumPy/pandas environments.
 
-The selected target architecture is a **thin hybrid**. `feregion` owns benchmark
-meaning, workload generation, historical-interface compatibility, correctness
-checks, campaign intent, normalized evidence, and project-specific release
-decisions. ASV owns generic benchmark mechanics: revision checkout, isolated
-environments, package build and installation, timing, raw-sample retention,
-result history, historical exploration, and static website generation.
+The selected end-state architecture remains a **thin hybrid**. `feregion` owns
+benchmark meaning, workload generation, historical-interface compatibility,
+correctness checks, campaign intent, normalized evidence, throughput interpretation,
+and project-specific release decisions. ASV owns generic benchmark mechanics:
+revision checkout, isolated environments, package build/install, timing, raw-sample
+retention, result history, historical exploration, and static website generation.
 
-The target must not reproduce ASV's generic infrastructure in a parallel custom
-runner. A custom component is justified only when it expresses `feregion`-
-specific semantics or closes a documented ASV capability gap.
+The predecessor harness is not a new parallel design; it is the accepted migration
+baseline retained under `REQ-PERF-017`. It must not be removed until ASV replacement
+evidence is reviewed. After migration acceptance, permanent dual generic benchmark
+authority is not intended.
 
 ### 9.2 Project-owned benchmark contract
 
@@ -318,12 +321,14 @@ This contract must not depend on ASV result-file internals. Benchmark bindings m
 use ASV's function/class conventions, but ASV does not define the semantic
 meaning of a case.
 
-For geographical lookup, the pinned source-table scanner remains the independent
-same-workload semantic baseline. For scalar lookup, ObsPy remains an additional
-comparison when installed. For seismic coordinate lookup, correctness is checked
-against geographical lookup followed by the packaged crosswalk. Internal
-optimization diagnostics must identify themselves as internal and must not become
-public API contracts merely because they are benchmarked.
+For geographical lookup, the hash-verified pinned source-table scanner is the
+independent same-workload semantic baseline. ASV setup checks a bounded deterministic
+sample before timing; shape/range checks alone are insufficient. For scalar lookup,
+ObsPy remains an additional direct comparison when installed. For seismic coordinate
+lookup, correctness is checked against source geographical lookup followed by the
+project crosswalk. Source/oracle work is untimed. Internal optimization diagnostics
+identify themselves as internal and do not become public API contracts merely because
+they are benchmarked.
 
 ### 9.3 Historical compatibility adapters
 
@@ -616,14 +621,22 @@ resolved campaign identity
 ```
 
 The normalized record preserves traceability back to the retained ASV result and
-samples. It does not discard failed, skipped, or not-applicable states to make a
-comparison table rectangular. Parsing of any version-specific ASV result format
-is isolated behind this adapter and covered by fixtures.
+samples. It also preserves the stored ASV benchmark-version identity, mapped project
+case version, declared operation count, derived operations per second, and explicit
+correctness state. Unknown benchmark versions are incompatible, not silently assigned
+the current case version. ASV setup sidecars under `.asv/feregion-state/` distinguish
+correctness failure, oracle/environment unavailability, not-applicable capability,
+and execution failure; revision-run records under `.asv/feregion-runs/` retain failures
+that can occur before benchmark JSON exists. A revision-level nonzero ASV run without
+phase-specific evidence is classified conservatively as execution failure rather than
+inferred to be a build failure. Parsing of ASV-specific formats remains isolated behind
+the adapter.
 
 The release-regression rule remains project-owned: review is triggered when
-candidate median batch throughput is more than 25 percent slower than the
-accepted baseline at two adjacent maintained 1-2-5 load sizes of at least 10,000
-points. `campaign check` reconstructs normalized evidence from retained ASV v2
+candidate median batch throughput is more than 25 percent slower than the accepted
+baseline at two adjacent maintained 1-2-5 load sizes of at least 10,000 points.
+For equal operation counts this is computed in throughput space
+(`1 - candidate_rate / baseline_rate`), not as a 25 percent elapsed-time increase. `campaign check` reconstructs normalized evidence from retained ASV v2
 result JSON without rerunning measurements, writes the normalized evidence to
 `dist/benchmarks/`, and applies this rule. It requires exactly two revisions, the
 fixed release-history profile, and one unambiguous common machine/environment
@@ -651,7 +664,7 @@ reporting success.
 
 Predefined campaigns are maintained operator interfaces: `smoke`, `head-full`,
 `release-compare`, `release-history`, `python-supported`, `numpy-sensitivity`,
-`pandas-sensitivity`, and `dependency-matrix`. `release-compare` names the accepted
+`pandas-sensitivity`, `dependency-matrix`, `reference-comparison`, and `diagnostics`. `release-compare` names the accepted
 prior benchmark candidate explicitly and is advanced as part of the next candidate
 source so reruns do not depend on Git recency or memory.
 
@@ -675,7 +688,46 @@ verification framework for benchmark-contract code, campaign resolution,
 adapters, evidence normalization, and regression-gate logic; it is not the target
 timing engine.
 
-### 9.13 Existing optimization decisions
+### 9.13 ASV information and project summary page
+
+The native ASV site remains the detailed benchmark explorer. Benchmark bindings
+provide `pretty_name` and `pretty_source` metadata so ASV can show a human label
+and the timed-operation contract without changing benchmark semantics or case
+version identity.
+
+A repository-local ASV plugin defines `FeregionSummary(OutputPublisher)`. During
+`asv publish`, the publisher writes a small `feregion.json` summary and installs
+project-owned JavaScript/CSS into the freshly generated site. ASV 0.6.6 copies a
+fixed packaged HTML frontend and calls publisher subclasses, but the fixed HTML
+does not automatically create navigation and DOM insertion points for arbitrary
+custom pages. The publisher therefore applies one idempotent, marker-checked
+addition to that copied HTML. It does not edit ASV's installed files and does not
+replace ASV graph/regression code.
+
+The summary page exposes coverage counts, measured tags/revisions, relevant
+environment dimensions, ASV regression-signal count, project-gate interpretation,
+and curated links that open parameterized benchmarks with `size` on the x-axis.
+The native Grid, List, Graph, and Regressions pages remain accessible.
+
+### 9.14 Release benchmark refresh
+
+`benchmarks.release_workflow` is a thin orchestration layer over maintained
+campaigns and ASV commands. It does not time code itself. The normal `refresh`
+path covers the current-candidate integration smoke, routine release comparison,
+full `HEAD` suite, sparse dependency matrix, and supported-Python profile; history
+is opt-in because it is more expensive. It then runs the project release check
+and rebuilds the complete ASV report from all retained results.
+
+Campaign `run` accepts optional repetition/round overrides and `--append-samples`.
+Append mode uses ASV's own retained-result sample combination behavior; the
+project evidence adapter reads the resulting v2 parameter-list without combining
+samples from different load values.
+
+Publication state remains separate. `report` rebuilds local derived HTML,
+`preview` serves it locally, and `publish` stages the GitHub Pages branch without
+pushing unless the operator explicitly supplies `--push`.
+
+### 9.15 Existing optimization decisions
 
 **Resolved internal optimization `PERF-INV-001`:** controlled measurements on the
 accepted beta baseline show material stacking, hierarchy-revalidation, and
@@ -808,42 +860,3 @@ records must state whether dependency locking, the supported-Python matrix,
 lower-bound dependency checks, the direct ObsPy oracle, Ruff, mypy public typing, and clean
 installation were actually observed. Workflow configuration alone is not a
 verification result.
-
-### 9.8 ASV information and project summary page
-
-The native ASV site remains the detailed benchmark explorer. Benchmark bindings
-provide `pretty_name` and `pretty_source` metadata so ASV can show a human label
-and the timed-operation contract without changing benchmark semantics or case
-version identity.
-
-A repository-local ASV plugin defines `FeregionSummary(OutputPublisher)`. During
-`asv publish`, the publisher writes a small `feregion.json` summary and installs
-project-owned JavaScript/CSS into the freshly generated site. ASV 0.6.6 copies a
-fixed packaged HTML frontend and calls publisher subclasses, but the fixed HTML
-does not automatically create navigation and DOM insertion points for arbitrary
-custom pages. The publisher therefore applies one idempotent, marker-checked
-addition to that copied HTML. It does not edit ASV's installed files and does not
-replace ASV graph/regression code.
-
-The summary page exposes coverage counts, measured tags/revisions, relevant
-environment dimensions, ASV regression-signal count, project-gate interpretation,
-and curated links that open parameterized benchmarks with `size` on the x-axis.
-The native Grid, List, Graph, and Regressions pages remain accessible.
-
-### 9.9 Release benchmark refresh
-
-`benchmarks.release_workflow` is a thin orchestration layer over maintained
-campaigns and ASV commands. It does not time code itself. The normal `refresh`
-path covers the current-candidate integration smoke, routine release comparison,
-full `HEAD` suite, sparse dependency matrix, and supported-Python profile; history
-is opt-in because it is more expensive. It then runs the project release check
-and rebuilds the complete ASV report from all retained results.
-
-Campaign `run` accepts optional repetition/round overrides and `--append-samples`.
-Append mode uses ASV's own retained-result sample combination behavior; the
-project evidence adapter reads the resulting v2 parameter-list without combining
-samples from different load values.
-
-Publication state remains separate. `report` rebuilds local derived HTML,
-`preview` serves it locally, and `publish` stages the GitHub Pages branch without
-pushing unless the operator explicitly supplies `--push`.

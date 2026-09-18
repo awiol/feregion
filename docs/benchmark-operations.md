@@ -2,6 +2,26 @@
 
 This guide explains how to operate the `feregion` ASV benchmark system and why each step exists. The benchmark harness is development tooling, not runtime API.
 
+
+## Migration authority in 0.4 alpha
+
+ASV is **not yet the primary release-performance authority**. The predecessor
+standalone timer, `pytest-benchmark` suite, Tox Python matrix, and release comparator
+remain authoritative until `REQ-PERF-017` parity evidence is reviewed. Run ASV in
+parallel to close migration evidence. See `benchmark-migration-parity.md`.
+
+Authoritative ASV setup additionally requires the hash-verified pinned FE source
+tables because benchmark correctness is checked against the independent source
+scanner before timing:
+
+```bash
+uv run python -m tools.fetch_obspy_fe_data
+```
+
+Normalized ASV evidence retains both elapsed seconds and derived
+`operations_per_second` for throughput-capable cases. Release decisions use throughput
+slowdown, not duration increase.
+
 ## 1. Mental model
 
 The benchmark system has two owners:
@@ -153,7 +173,9 @@ The default refresh covers:
 2. previous-candidate versus `HEAD` release comparison;
 3. the full `HEAD` benchmark suite and load grid;
 4. the sparse dependency matrix, including both pandas paths; and
-5. the supported-Python matrix.
+5. the supported-Python matrix;
+6. the direct ObsPy/pinned-source reference-comparison campaign; and
+7. migration diagnostics for pandas in-place, split-vector, and caller-stacking paths.
 
 Add backward-compatible history when the release or review needs historical evidence:
 
@@ -220,6 +242,31 @@ uv run --locked --group benchmark python -m benchmarks.campaign run benchmarks/c
 
 The dependency matrix is a sparse union of the maintained NumPy and pandas sweeps. It is not a NumPy×pandas Cartesian product.
 
+## 10a. Restore comparator and diagnostic parity
+
+Run the current-revision direct comparator campaign when ObsPy-versus-feregion or
+source-scanner evidence matters:
+
+```bash
+uv run --locked --group benchmark \
+  python -m benchmarks.campaign run benchmarks/campaigns/reference-comparison.toml
+```
+
+This profile installs ObsPy 1.4.2 and measures feregion scalar lookup, direct ObsPy
+scalar lookup, direct pinned-source scalar lookup, feregion batch lookup, and the
+pinned-source batch-equivalent scan on common deterministic workloads. It supplements,
+but does not yet replace, the predecessor direct-comparison harness.
+
+Run migration diagnostics with:
+
+```bash
+uv run --locked --group benchmark \
+  python -m benchmarks.campaign run benchmarks/campaigns/diagnostics.toml
+```
+
+These cases retain private split-vector, caller-stacking, and pandas in-place evidence.
+They are diagnostic contracts, not public runtime API.
+
 ## 11. Rebuild and understand the report without rerunning measurements
 
 Retained `.asv/results` are the measurement history. `.asv/html` is derived output. Rebuild the complete site from all retained measurements with:
@@ -256,7 +303,10 @@ uv run --locked --group benchmark \
 
 Inspect the project summary, benchmark descriptions, scaling views, revision/tag history, environment selectors, missing/skipped values, and native Regressions page before publication.
 
-Do not delete `.asv/results` merely because a report was built. Preserve authoritative result history in an approved durable evidence location so later candidates can be compared and reports can be regenerated without repeating old measurements.
+Do not delete `.asv/results` merely because a report was built. During migration,
+preserve `.asv/results`, `.asv/feregion-state`, and `.asv/feregion-runs` together in
+an approved durable evidence location. The sidecars retain correctness/failure-state
+meaning that raw ASV timing JSON does not encode by itself.
 
 ## 12. Publish to GitHub Pages
 
@@ -312,7 +362,9 @@ Do not use the published branch as a substitute for preserving `.asv/results`: t
 
 `docs/benchmark-roadmap.md` records planned or investigatory harness/reporting work that is not part of the implemented contract.
 
-These documents are supporting evidence/guidance. Retained ASV result files remain the measurement authority.
+These documents are supporting evidence/guidance. Retained ASV result files are the raw
+measurement evidence for the ASV migration path; predecessor standalone/pytest/Tox/release
+evidence remains the current release-performance authority until `REQ-PERF-017` closes.
 
 ## 14. Per-iteration checklist
 

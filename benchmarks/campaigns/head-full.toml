@@ -1,6 +1,6 @@
 [campaign]
 id = "head-full"
-purpose = "Full benchmark suite on HEAD across the complete maintained 1-2-5 load grid; intentionally expensive and high-memory."
+purpose = "Full public-semantic feregion suite on HEAD across the maintained 1-2-5 load grid; comparator/private diagnostics are separate."
 revisions = ["HEAD"]
 cases = [
   "lookup_geographic_number",
@@ -12,6 +12,7 @@ cases = [
   "lookup_seismic_numbers",
   "geographic_numbers_to_seismic_numbers",
   "geographic_numbers_to_names",
+  "seismic_numbers_to_names",
   "pandas_lookup_numbers",
   "pandas_lookup_numbers_and_names",
 ]

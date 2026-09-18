@@ -1,0 +1,17 @@
+[campaign]
+id = "diagnostics"
+purpose = "Retain predecessor optimization and in-place pandas diagnostics while ASV migration remains incomplete."
+revisions = ["HEAD"]
+cases = [
+  "internal_split_geographic_numbers",
+  "internal_split_seismic_numbers",
+  "stack_plus_geographic_numbers",
+  "pandas_lookup_inplace_numbers",
+  "pandas_lookup_inplace_numbers_and_names",
+  "pandas_lookup_inplace_seismic_numbers",
+]
+load_sizes = [1, 100, 1000, 10000, 100000, 1000000]
+repetitions = 5
+rounds = 3
+environment_profile = "release-history"
+record_samples = true

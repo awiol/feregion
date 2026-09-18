@@ -20,6 +20,8 @@ _REFRESH_CAMPAIGNS = (
     "head-full.toml",
     "dependency-matrix.toml",
     "python-supported.toml",
+    "reference-comparison.toml",
+    "diagnostics.toml",
 )
 
 

@@ -51,6 +51,7 @@ def test_initial_environment_profiles_are_sparse_and_named() -> None:
         "numpy-sensitivity",
         "pandas-sensitivity",
         "dependency-matrix",
+        "reference-comparison",
     }
     assert PROFILE_CONFIG["release-history"]["pythons"] == ["3.12"]
     assert PROFILE_CONFIG["numpy-sensitivity"]["matrix"]["req"]["numpy"] == [
@@ -472,17 +473,23 @@ def test_asv_null_and_nan_results_remain_distinct_states() -> None:
 
 
 def _record(load: int, seconds: float, revision: str) -> EvidenceRecord:
+    operations = load
     return EvidenceRecord(
-        "lookup_geographic_numbers",
-        1,
-        revision,
-        load,
-        "measured",
-        (seconds,),
-        seconds,
-        "host",
-        "env",
-        "release",
+        case_id="lookup_geographic_numbers",
+        case_version=1,
+        revision=revision,
+        load_size=load,
+        result_state="measured",
+        correctness_state="passed",
+        samples=(seconds,),
+        statistic_seconds=seconds,
+        operation_count_unit="points",
+        operations=operations,
+        operations_per_second=operations / seconds,
+        stored_benchmark_version=CASES["lookup_geographic_numbers"].semantic_version_hash,
+        machine="host",
+        environment="env",
+        campaign_id="release",
     )
 
 
@@ -495,8 +502,8 @@ def test_release_gate_triggers_only_on_two_adjacent_slow_loads() -> None:
         _record(50_000, 5.0, "base"),
     ]
     candidate = [
-        _record(10_000, 1.3, "cand"),
-        _record(20_000, 2.6, "cand"),
+        _record(10_000, 1.4, "cand"),
+        _record(20_000, 2.8, "cand"),
         _record(50_000, 5.5, "cand"),
     ]
     decision = compare_release_evidence(baseline, candidate)
@@ -572,15 +579,18 @@ def test_predefined_campaigns_cover_operator_workflows() -> None:
         "pandas-sensitivity.toml",
         "python-supported.toml",
         "dependency-matrix.toml",
+        "reference-comparison.toml",
+        "diagnostics.toml",
     }
     available = {path.name for path in campaigns.glob("*.toml")}
     assert expected <= available
     parsed = {name: Campaign.from_toml(campaigns / name) for name in expected}
     head_full = parsed["head-full.toml"]
     assert head_full.load_sizes == STANDARD_LOAD_SIZES
-    assert set(head_full.cases) == set(CASES)
+    expected_head_cases = {case_id for case_id, case in CASES.items() if not case.diagnostic}
+    assert set(head_full.cases) == expected_head_cases
     release_compare = parsed["release-compare.toml"]
-    assert release_compare.revisions == ("v0.4.0a7", "HEAD")
+    assert release_compare.revisions == ("v0.4.0a9", "HEAD")
     assert max(release_compare.load_sizes) == 1_000_000
     dependency_matrix = parsed["dependency-matrix.toml"]
     assert {"pandas_lookup_numbers", "pandas_lookup_numbers_and_names"} <= set(
@@ -606,12 +616,30 @@ def _write_asv_result(
             "benchmarks.TimeGeographicLookupNumbers.time_lookup_geographic_numbers": [
                 values,
                 [[str(load) for load in loads]],
-                "case-version",
+                CASES["lookup_geographic_numbers"].semantic_version_hash,
                 samples,
             ]
         },
     }
     path.write_text(json.dumps(payload), encoding="utf-8")
+    state_root = path.parent.parent.parent / "feregion-state" / commit / payload["env_name"]
+    for load in loads:
+        marker = state_root / "lookup_geographic_numbers" / f"{load}.json"
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.write_text(
+            json.dumps(
+                {
+                    "schema_version": 1,
+                    "case_id": "lookup_geographic_numbers",
+                    "load_size": load,
+                    "state": "correctness_passed",
+                    "reason": None,
+                    "commit": commit,
+                    "environment": payload["env_name"],
+                }
+            ),
+            encoding="utf-8",
+        )
 
 
 def test_collect_asv_evidence_reads_retained_results_without_rerunning(tmp_path: Path) -> None:
@@ -672,8 +700,8 @@ def test_check_release_campaign_consumes_retained_results_and_writes_evidence(
     _write_asv_result(
         results / "host" / "cand.json",
         commit=cand,
-        values=[1.30, 2.60, 5.10],
-        samples=[[1.30], [2.60], [5.10]],
+        values=[1.40, 2.80, 5.10],
+        samples=[[1.40], [2.80], [5.10]],
         loads=loads,
     )
     campaign = Campaign(
@@ -699,7 +727,7 @@ def test_check_release_campaign_consumes_retained_results_and_writes_evidence(
     assert decision.complete is True
     assert decision.triggered is True
     payload = json.loads(evidence_path.read_text(encoding="utf-8"))
-    assert payload["schema_version"] == 1
+    assert payload["schema_version"] == 2
     assert len(payload["records"]) == 6
 
 
@@ -750,7 +778,8 @@ def test_benchmark_supporting_documents_cover_evidence_choice_and_roadmap() -> N
     assert "NumPy-version sensitivity" in results
     assert "pandas-version sensitivity" in results
     assert "Performance across feregion releases" in results
-    assert "does **not** establish a current numeric speedup over ObsPy" in choice
+    assert "direct ObsPy" in choice
+    assert "predecessor" in choice
     assert "planned or investigatory work" in roadmap
 
 
@@ -888,6 +917,8 @@ def test_release_workflow_refresh_uses_maintained_population_set(
     )
     assert any("dependency-matrix.toml" in item for item in rendered)
     assert any("python-supported.toml" in item for item in rendered)
+    assert any("reference-comparison.toml" in item for item in rendered)
+    assert any("diagnostics.toml" in item for item in rendered)
     assert any("release-history.toml" in item for item in rendered)
     assert not any("numpy-sensitivity.toml" in item for item in rendered)
     assert not any("pandas-sensitivity.toml" in item for item in rendered)
@@ -940,3 +971,218 @@ def test_release_workflow_publication_requires_explicit_push(
     assert "--no-push" in commands[-1]
     assert release_workflow.stage_publication(push=True) == 0
     assert "--no-push" not in commands[-1]
+
+
+def test_semantic_oracle_rejects_wrong_in_range_geographic_numbers() -> None:
+    """A valid-shape/range but wrong identity must fail untimed benchmark correctness."""
+
+    import numpy as np
+
+    from benchmarks.asv_suite.workloads import assert_geographic_numbers_match_source
+
+    class Reference:
+        def number(self, longitude: float, latitude: float) -> int:
+            return 2
+
+    coordinate_values = np.asarray([[12.0, 34.0], [-45.0, 20.0]])
+    wrong = np.ones(2, dtype=np.uint16)
+    with pytest.raises(AssertionError):
+        assert_geographic_numbers_match_source(
+            wrong,
+            coordinate_values,
+            reference=Reference(),
+        )
+
+
+def test_nested_asv_sample_groups_flatten_only_after_parameter_selection() -> None:
+    """Round/repeat sample groups may nest without mixing neighboring load parameters."""
+
+    record = normalize_asv_result(
+        case_id="lookup_geographic_numbers",
+        case_version=1,
+        revision="abc",
+        campaign_id="slice",
+        result={
+            "result": [0.2, 0.4],
+            "samples": [[[0.19], [0.21]], [[0.39], [0.41]]],
+        },
+        parameter_index=1,
+        load_size=20_000,
+    )
+    assert record.samples == (0.39, 0.41)
+
+
+def test_stored_asv_version_must_map_to_project_case_version(tmp_path: Path) -> None:
+    """Unknown stored benchmark semantics must not collapse to the current case version."""
+
+    from benchmarks.evidence import collect_asv_evidence
+
+    commit = "c" * 40
+    results = tmp_path / ".asv" / "results"
+    path = results / "host" / "bad-version.json"
+    _write_asv_result(
+        path,
+        commit=commit,
+        values=[0.1],
+        samples=[[0.1]],
+        loads=[10_000],
+    )
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    row = payload["results"][
+        "benchmarks.TimeGeographicLookupNumbers.time_lookup_geographic_numbers"
+    ]
+    row[2] = "unknown-semantic-version"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    records = collect_asv_evidence(
+        results,
+        campaign_id="release",
+        revisions=(campaign_module.ResolvedRevision("HEAD", commit),),
+        cases=("lookup_geographic_numbers",),
+        load_sizes=(10_000,),
+    )
+    assert len(records) == 1
+    assert records[0].result_state == "incompatible"
+    assert records[0].case_version is None
+    assert records[0].stored_benchmark_version == "unknown-semantic-version"
+
+
+def test_setup_state_markers_preserve_failure_taxonomy(tmp_path: Path) -> None:
+    """Correctness and environment/oracle failures must remain distinct in evidence."""
+
+    from benchmarks.evidence import collect_asv_evidence
+
+    commit = "d" * 40
+    results = tmp_path / ".asv" / "results"
+    path = results / "host" / "states.json"
+    loads = [10_000, 20_000, 50_000]
+    _write_asv_result(
+        path,
+        commit=commit,
+        values=[None, None, None],
+        samples=[None, None, None],
+        loads=loads,
+    )
+    env = "uv-py3.12-numpy1.26.4-pandas2.1.4"
+    root = tmp_path / ".asv" / "feregion-state" / commit / env / "lookup_geographic_numbers"
+    for load, state in (
+        (10_000, "correctness_failed"),
+        (20_000, "build_unavailable"),
+        (50_000, "execution_failed"),
+    ):
+        (root / f"{load}.json").write_text(
+            json.dumps({"state": state, "reason": state}), encoding="utf-8"
+        )
+    records = collect_asv_evidence(
+        results,
+        campaign_id="release",
+        revisions=(campaign_module.ResolvedRevision("HEAD", commit),),
+        cases=("lookup_geographic_numbers",),
+        load_sizes=loads,
+    )
+    assert [record.result_state for record in records] == [
+        "correctness_failed",
+        "build_unavailable",
+        "execution_failed",
+    ]
+    assert records[0].correctness_state == "failed"
+    assert records[1].correctness_state == "unknown"
+    assert records[2].correctness_state == "unknown"
+
+
+def test_throughput_gate_uses_rate_not_duration_increase() -> None:
+    """A 26% duration increase is only ~20.6% throughput loss and must not trigger."""
+
+    baseline = [_record(10_000, 1.0, "base"), _record(20_000, 2.0, "base")]
+    candidate = [_record(10_000, 1.26, "cand"), _record(20_000, 2.52, "cand")]
+    decision = compare_release_evidence(baseline, candidate)
+    assert decision.complete is True
+    assert decision.triggered is False
+
+    slower = [_record(10_000, 1.34, "cand"), _record(20_000, 2.68, "cand")]
+    triggered = compare_release_evidence(baseline, slower)
+    assert triggered.triggered is True
+    assert triggered.comparisons[0].slowdown_fraction > 0.25
+
+
+def test_source_oracle_uses_packaged_hierarchy_asset_names() -> None:
+    """The ASV semantic oracle must load the actual packaged seismic assets."""
+
+    from benchmarks.asv_suite.source_oracle import geographic_to_seismic, seismic_names
+
+    crosswalk = geographic_to_seismic()
+    names = seismic_names()
+    assert crosswalk.shape == (758,)
+    assert int(crosswalk[0]) == 0
+    assert names.shape == (51,)
+    assert str(names[0]) == ""
+
+
+def test_source_oracle_pin_matches_repository_source_definition() -> None:
+    """Duplicated ASV pin metadata must not drift from the authoritative fetch helper."""
+
+    from benchmarks.asv_suite import source_oracle
+    from tools import obspy_fe_source
+
+    assert source_oracle.OBSPY_REVISION == obspy_fe_source.OBSPY_REVISION
+    assert source_oracle.SOURCE_SHA256 == obspy_fe_source.SOURCE_SHA256
+
+
+def test_publisher_payload_marks_asv_as_supplementary_during_migration(tmp_path: Path) -> None:
+    """The ASV summary must not imply benchmark authority before parity closure."""
+
+    class Graphs:
+        def get_params(self):
+            return {}
+
+    class Repo:
+        def get_tags(self):
+            return {}
+
+    payload = build_publisher_payload(
+        html_dir=tmp_path,
+        benchmarks={},
+        graphs=Graphs(),
+        revisions={},
+        repo=Repo(),
+    )
+    assert "supplementary" in payload["migration_authority_note"]
+    assert "operations-per-second" in payload["throughput_note"]
+
+
+def test_failed_revision_run_normalizes_conservatively_as_execution_failed(tmp_path: Path) -> None:
+    """A run-level failure without phase evidence must not be mislabeled as a build failure."""
+
+    from benchmarks.evidence import collect_asv_evidence
+
+    commit = "e" * 40
+    results = tmp_path / ".asv" / "results"
+    results.mkdir(parents=True)
+    run_record = tmp_path / ".asv" / "feregion-runs" / "release" / f"{commit}.json"
+    run_record.parent.mkdir(parents=True)
+    run_record.write_text(
+        json.dumps({"schema_version": 1, "returncode": 1, "commit": commit}),
+        encoding="utf-8",
+    )
+    records = collect_asv_evidence(
+        results,
+        campaign_id="release",
+        revisions=(campaign_module.ResolvedRevision("HEAD", commit),),
+        cases=("lookup_geographic_numbers",),
+        load_sizes=(10_000,),
+    )
+    assert len(records) == 1
+    assert records[0].result_state == "execution_failed"
+    assert records[0].load_size == 10_000
+    assert "does not identify a narrower build/setup phase" in (records[0].reason or "")
+
+
+def test_migration_parity_document_preserves_predecessor_authority_and_throughput() -> None:
+    """Migration docs must keep old harness authority and operations-per-second visible."""
+
+    project_root = Path(__file__).resolve().parents[1]
+    text = (project_root / "docs" / "benchmark-migration-parity.md").read_text(encoding="utf-8")
+    assert "remain the current authoritative benchmark path" in text
+    assert "Direct ObsPy scalar baseline" in text
+    assert "median_operations_per_second" in text or "operations_per_second" in text
+    assert "pytest-benchmark" in text
+    assert "Tox" in text

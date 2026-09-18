@@ -307,14 +307,17 @@ uv run --locked pre-commit run --all-files
 
 ## Benchmarks
 
-The `0.4` line uses an ASV-driven benchmark system with project-owned benchmark
+The `0.4` line contains an ASV migration candidate with project-owned benchmark
 semantics, historical adapters, maintained campaigns, a 1-2-5 load grid through
-50 million points, normalized evidence, a project-specific release-regression
-decision, and an additive feregion summary page in the ASV site. The quick
+50 million points, normalized throughput evidence, a project-specific release gate,
+and an additive feregion summary page. During the remaining alpha migration, the
+predecessor standalone/pytest-benchmark/Tox/release-comparator paths remain the
+performance-evidence authority until `REQ-PERF-017` parity is reviewed. The quick
 reference is `benchmarks/README.md`; the full human operator runbook and GitHub
 Pages publication procedure are in `docs/benchmark-operations.md`. Observed
 Python/NumPy/pandas/release evidence is summarized in `docs/benchmark-results.md`;
-`docs/obspy-or-feregion.md` gives bounded user-selection guidance; planned harness
+`docs/obspy-or-feregion.md` gives bounded user-selection guidance;
+`docs/benchmark-migration-parity.md` records predecessor/ASV parity; planned harness
 work is recorded in `docs/benchmark-roadmap.md`.
 
 Install the locked benchmark environment and validate the ASV suite:
@@ -353,9 +356,13 @@ expensive. Use it only when the decision justifies the cost. The maintained
 release-history, Python, NumPy, pandas, and dependency-matrix campaigns provide
 other bounded operator workflows.
 
-The predecessor `pytest-benchmark`, standalone timer, tox Python benchmark
-matrix, and raw-release comparator remain temporary migration evidence under
-`REQ-PERF-017`; they are not the target long-term benchmark authority.
+The predecessor `pytest-benchmark`, standalone timer, Tox Python benchmark
+matrix, and raw-release comparator remain runnable and authoritative during the
+migration. `docs/benchmark-migration-parity.md` records which predecessor cases and
+metrics are implemented in ASV and which real parity evidence remains before ASV may
+be promoted to the primary benchmark source. The a10 ASV candidate restores direct
+ObsPy/source comparators, seismic names, pandas in-place, split-vector/caller-stacking
+diagnostics, and derived operations-per-second evidence.
 
 `PERF-INV-001` is resolved for package-internal use. Controlled baseline/candidate
 measurements show material stacking, seismic revalidation, and peak-memory cost.

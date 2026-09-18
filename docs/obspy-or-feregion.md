@@ -39,16 +39,22 @@ coordinates per second on the measured Ryzen 5 3600 host, depending on case and
 load. See `benchmark-results.md` for the exact conditions and limitations.
 
 That evidence answers **how the current feregion batch implementation scales**.
-It does **not** establish a current numeric speedup over ObsPy because the
-populated ASV history does not contain a like-for-like ObsPy timing series. The
-repository retains an optional predecessor scalar comparator that can time
-ObsPy when it is installed, but a direct ObsPy-versus-feregion ASV campaign is a
-planned benchmark-harness enhancement.
+The repository also retains a direct ObsPy comparator in the authoritative
+predecessor standalone/pytest-benchmark harness. `0.4.0a10` restores an ASV-native
+`reference-comparison` campaign that measures feregion, direct ObsPy, and the pinned
+source scanner on common deterministic workloads. The a10 ASV comparator is migration
+source until its real-run parity evidence is reviewed.
 
-Do not choose feregion solely because of an unsupported claim that it is faster
-than ObsPy. Choose it for its dedicated interfaces and measured batch behavior;
-run or add a direct comparator when relative ObsPy performance is material to a
-decision.
+This document still does not quote a current numeric feregion-versus-ObsPy speedup,
+because the supplied populated ASV snapshot did not contain that direct comparison
+and no raw predecessor comparison result was supplied with the a9 review. When the
+relative performance matters, run the predecessor direct comparator now and retain
+its raw result; run the ASV reference-comparison alongside it to close migration
+parity.
+
+Do not choose feregion solely because of an unsupported speed claim. Choose it for
+its dedicated interfaces and measured batch behavior; use direct comparator evidence
+for the target machine/workload when relative ObsPy performance is decision-relevant.
 
 ## Decision examples
 
@@ -77,6 +83,8 @@ specialized bulk FE transformation if that separation is justified by evidence.
   `src/feregion/data/metadata.json` and `THIRD_PARTY_NOTICES.md`.
 - Current project benchmark observations are recorded in
   `docs/benchmark-results.md`.
+- Benchmark migration/comparator parity is recorded in
+  `docs/benchmark-migration-parity.md`.
 
 External references:
 

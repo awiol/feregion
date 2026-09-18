@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import inspect
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
@@ -70,9 +71,58 @@ class PackageAdapter:
             self._function("geographic_numbers_to_names", "numbers_to_names")(numbers)
         )
 
-    def pandas_lookup(self, frame: object, *, include_names: bool) -> object:
+    def seismic_numbers_to_names(self, numbers: np.ndarray[Any, Any]) -> np.ndarray[Any, Any]:
+        return np.asarray(self._function("seismic_numbers_to_names")(numbers))
+
+    def pandas_lookup(
+        self,
+        frame: object,
+        *,
+        include_names: bool,
+        inplace: bool = False,
+        level: str = "geographic",
+    ) -> object:
         try:
             from feregion.pandas import lookup_dataframe
         except (ImportError, ModuleNotFoundError) as exc:
             raise CapabilityUnavailable("installed revision lacks pandas lookup adapter") from exc
-        return lookup_dataframe(frame, include_names=include_names)
+
+        parameters = inspect.signature(lookup_dataframe).parameters
+        if inplace and "inplace" not in parameters:
+            raise CapabilityUnavailable("installed revision lacks pandas in-place lookup")
+        if level != "geographic" and "level" not in parameters:
+            raise CapabilityUnavailable("installed revision lacks pandas seismic-level lookup")
+        kwargs: dict[str, object] = {"include_names": include_names}
+        if "inplace" in parameters:
+            kwargs["inplace"] = inplace
+        if "level" in parameters:
+            kwargs["level"] = level
+        return lookup_dataframe(frame, **kwargs)
+
+    def _engine(self) -> object:
+        getter = getattr(self.module, "get_default_lookup", None)
+        if not callable(getter):
+            raise CapabilityUnavailable("installed revision lacks default lookup engine access")
+        return getter()
+
+    def split_geographic_numbers(
+        self,
+        longitude: np.ndarray[Any, Any],
+        latitude: np.ndarray[Any, Any],
+    ) -> np.ndarray[Any, Any]:
+        engine = self._engine()
+        function = getattr(engine, "_lookup_geographic_numbers_from_vectors", None)
+        if not callable(function):
+            raise CapabilityUnavailable("installed revision lacks split geographic lookup")
+        return np.asarray(function(longitude, latitude))
+
+    def split_seismic_numbers(
+        self,
+        longitude: np.ndarray[Any, Any],
+        latitude: np.ndarray[Any, Any],
+    ) -> np.ndarray[Any, Any]:
+        engine = self._engine()
+        function = getattr(engine, "_lookup_seismic_numbers_from_vectors", None)
+        if not callable(function):
+            raise CapabilityUnavailable("installed revision lacks split seismic lookup")
+        return np.asarray(function(longitude, latitude))

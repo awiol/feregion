@@ -33,6 +33,15 @@ STANDARD_LOAD_SIZES: Final[tuple[int, ...]] = (
     20_000_000,
     50_000_000,
 )
+REFERENCE_LOAD_SIZES: Final[tuple[int, ...]] = (100, 1_000, 10_000, 100_000)
+DIAGNOSTIC_LOAD_SIZES: Final[tuple[int, ...]] = (
+    1,
+    100,
+    1_000,
+    10_000,
+    100_000,
+    1_000_000,
+)
 WORKLOAD_SEED: Final[int] = 20260917
 WORKLOAD_VERSION: Final[str] = "coordinates-v1"
 
@@ -46,7 +55,12 @@ class BenchmarkCase:
     operation_count: str
     requires_pandas: bool = False
     requires_seismic: bool = False
+    requires_obspy: bool = False
+    requires_source_oracle: bool = True
     load_parameterized: bool = False
+    supported_load_sizes: tuple[int, ...] | None = None
+    diagnostic: bool = False
+    compatible_version_hashes: tuple[str, ...] = ()
 
     @property
     def semantic_version_hash(self) -> str:
@@ -54,6 +68,13 @@ class BenchmarkCase:
 
         payload = f"{self.case_id}:{self.case_version}:{WORKLOAD_VERSION}".encode()
         return hashlib.sha256(payload).hexdigest()
+
+    def accepts_asv_version(self, version: str | None) -> bool:
+        """Return whether one stored ASV benchmark version maps to this case version."""
+
+        if version is None:
+            return False
+        return version == self.semantic_version_hash or version in self.compatible_version_hashes
 
 
 CASES: Final[dict[str, BenchmarkCase]] = {
@@ -81,6 +102,13 @@ CASES: Final[dict[str, BenchmarkCase]] = {
         ),
         BenchmarkCase("geographic_numbers_to_names", 1, "points", load_parameterized=True),
         BenchmarkCase(
+            "seismic_numbers_to_names",
+            1,
+            "points",
+            requires_seismic=True,
+            load_parameterized=True,
+        ),
+        BenchmarkCase(
             "pandas_lookup_numbers",
             1,
             "rows",
@@ -93,6 +121,80 @@ CASES: Final[dict[str, BenchmarkCase]] = {
             "rows",
             requires_pandas=True,
             load_parameterized=True,
+        ),
+        BenchmarkCase(
+            "pandas_lookup_inplace_numbers",
+            1,
+            "rows",
+            requires_pandas=True,
+            load_parameterized=True,
+            supported_load_sizes=DIAGNOSTIC_LOAD_SIZES,
+            diagnostic=True,
+        ),
+        BenchmarkCase(
+            "pandas_lookup_inplace_numbers_and_names",
+            1,
+            "rows",
+            requires_pandas=True,
+            load_parameterized=True,
+            supported_load_sizes=DIAGNOSTIC_LOAD_SIZES,
+            diagnostic=True,
+        ),
+        BenchmarkCase(
+            "pandas_lookup_inplace_seismic_numbers",
+            1,
+            "rows",
+            requires_pandas=True,
+            requires_seismic=True,
+            load_parameterized=True,
+            supported_load_sizes=DIAGNOSTIC_LOAD_SIZES,
+            diagnostic=True,
+        ),
+        BenchmarkCase(
+            "internal_split_geographic_numbers",
+            1,
+            "points",
+            load_parameterized=True,
+            supported_load_sizes=DIAGNOSTIC_LOAD_SIZES,
+            diagnostic=True,
+        ),
+        BenchmarkCase(
+            "internal_split_seismic_numbers",
+            1,
+            "points",
+            requires_seismic=True,
+            load_parameterized=True,
+            supported_load_sizes=DIAGNOSTIC_LOAD_SIZES,
+            diagnostic=True,
+        ),
+        BenchmarkCase(
+            "stack_plus_geographic_numbers",
+            1,
+            "points",
+            load_parameterized=True,
+            supported_load_sizes=DIAGNOSTIC_LOAD_SIZES,
+            diagnostic=True,
+        ),
+        BenchmarkCase(
+            "obspy_geographic_number",
+            1,
+            "calls",
+            requires_obspy=True,
+            diagnostic=True,
+        ),
+        BenchmarkCase(
+            "source_reference_geographic_number",
+            1,
+            "calls",
+            diagnostic=True,
+        ),
+        BenchmarkCase(
+            "source_reference_geographic_numbers",
+            1,
+            "points",
+            load_parameterized=True,
+            supported_load_sizes=REFERENCE_LOAD_SIZES,
+            diagnostic=True,
         ),
     )
 }

@@ -51,6 +51,10 @@ $(document).ready(function() {
                 '</div>' +
                 '<div class="alert alert-info"><strong>Regression interpretation.</strong> ' +
                 escapeHtml(data.asv_regression_note) + '</div>' +
+                '<div class="alert alert-warning"><strong>Migration authority.</strong> ' +
+                escapeHtml(data.migration_authority_note) + '</div>' +
+                '<div class="alert alert-info"><strong>Throughput.</strong> ' +
+                escapeHtml(data.throughput_note) + '</div>' +
                 '<h2>Environment coverage</h2><ul>' + env.join('') + '</ul>' +
                 '<h2>Recent measured revisions</h2>' +
                 '<table class="table table-condensed table-striped"><thead><tr><th>tag / identity</th>' +

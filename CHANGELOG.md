@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.0a10 — 2026-09-18
+
+- Address isolated benchmark review findings FREG-001 through FREG-005: replace shape/range-only ASV acceptance with bounded pinned-source semantic checks, preserve stored ASV benchmark-version identity, correct the release gate to compare throughput slowdown, retain explicit setup/run failure-state evidence, and synchronize maintained implementation-state documentation.
+- Restore ASV migration coverage for predecessor benchmark roles, including direct ObsPy and pinned-source comparators, seismic-name conversion, pandas in-place paths, private split-vector and caller-stacking diagnostics; add maintained reference-comparison and diagnostic campaigns.
+- Retain operations-per-second as a first-class normalized evidence field and release-comparison metric instead of treating elapsed duration as the project performance decision quantity.
+- Reclassify ASV as a secondary migration candidate for the remainder of the 0.4 alpha: the standalone timer, pytest-benchmark suite, Tox Python benchmark matrix, and predecessor release comparator remain the current benchmark authority until semantic/case parity and real vertical-slice evidence satisfy REQ-PERF-017.
+- Record that the retained historical snapshot shows the early 0.1.2a10→0.2.0b1 slowdown was followed by recovery/improvement rather than persistent monotonic degradation, while explicitly declining to infer that it was a one-time causal event from the available single-host evidence.
+
 ## 0.4.0a9 — 2026-09-18
 
 - Fix seven Ruff E501 findings in ASV benchmark metadata, reporting HTML insertion, and benchmark contract-test documentation without changing benchmark semantics or reporting behavior.

@@ -11,6 +11,7 @@ import tempfile
 import tomllib
 from collections.abc import Sequence
 from dataclasses import asdict, dataclass, replace
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -56,6 +57,16 @@ PROFILE_CONFIG: dict[str, dict[str, Any]] = {
             {"python": "3.12", "req": {"numpy": "1.26.4", "pandas": "2.3.3"}},
             {"python": "3.12", "req": {"numpy": "1.26.4", "pandas": "3.0.5"}},
         ],
+    },
+    "reference-comparison": {
+        "pythons": ["3.12"],
+        "matrix": {
+            "req": {
+                "numpy": ["1.26.4"],
+                "pandas": ["2.1.4"],
+                "obspy": ["1.4.2"],
+            }
+        },
     },
 }
 
@@ -292,6 +303,38 @@ def _run_asv(
         config_path.unlink(missing_ok=True)
 
 
+def _write_run_record(
+    campaign: Campaign,
+    revision: ResolvedRevision,
+    *,
+    repository: Path,
+    returncode: int,
+) -> Path:
+    """Retain one revision-run outcome for failures that precede benchmark JSON."""
+
+    path = (
+        repository.resolve()
+        / ".asv"
+        / "feregion-runs"
+        / campaign.campaign_id
+        / f"{revision.commit}.json"
+    )
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "schema_version": 1,
+        "campaign_id": campaign.campaign_id,
+        "requested_revision": revision.requested,
+        "commit": revision.commit,
+        "returncode": returncode,
+        "recorded_at_utc": datetime.now(UTC).isoformat(),
+        "cases": list(campaign.cases),
+        "load_sizes": list(campaign.load_sizes),
+        "environment_profile": campaign.environment_profile,
+    }
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return path
+
+
 def check_release_campaign(
     campaign: Campaign,
     *,
@@ -407,6 +450,12 @@ def main(argv: Sequence[str] | None = None) -> int:
                 command,
                 repository=repository,
                 resolved_revisions=resolved_revisions,
+            )
+            _write_run_record(
+                campaign,
+                revision,
+                repository=repository,
+                returncode=status,
             )
             if status != 0:
                 return status

@@ -2,55 +2,70 @@
 
 ## Status
 
-This document records **planned or investigatory work**, not implemented
-requirements for the `0.4.0` line. The implemented contract remains in the
-requirements/design documents and the operator procedure remains
-`benchmark-operations.md`.
+This document records **planned or investigatory work**, not implemented requirements.
+The `0.4.0a10` source repairs the reviewed ASV evidence semantics and restores much of
+predecessor case/metric parity, but ASV remains a secondary migration candidate until
+`REQ-PERF-017` is closed. The predecessor benchmark harness remains authoritative in
+that interval.
+
+## Migration closure
+
+1. Run a real a10 ASV smoke/history/reference/diagnostic vertical slice with the pinned
+   source oracle present and demonstrate that deliberately wrong but in-range output is
+   rejected before timing.
+2. Reconcile predecessor and ASV case/metric parity using
+   `benchmark-migration-parity.md`, including operations-per-second, direct ObsPy/source
+   comparators, pandas in-place, and internal diagnostics.
+3. Exercise and retain each failure state: not applicable, environment/build
+   unavailable, correctness failed, execution failed, incompatible benchmark version,
+   and measured/correctness-passed.
+4. Verify the corrected throughput gate against the predecessor release comparator on
+   the same retained baseline/candidate evidence.
+5. Only after reviewed parity closure, decide whether ASV becomes the primary benchmark
+   authority and which predecessor paths may be retired. Do not remove them merely
+   because equivalent source code exists.
 
 ## Reporting and interpretation
 
-1. Evaluate richer native graph interaction without taking ownership of a full
-   plotting engine: hover text that includes series/environment identity,
-   tag/revision, benchmark parameter/load, value, and relative reference value;
-   legend-hover highlighting; and non-color visual cues for dense comparisons.
-2. Evaluate whether these improvements can remain a bounded post-publish overlay
-   against a pinned ASV 0.6.x frontend. If the necessary changes require a large
-   or fragile fork of ASV JavaScript, prefer a small project-owned summary layer
-   over a frontend fork.
-3. Add explicit report-freshness detection so an operator cannot silently view
-   HTML older than retained measurement evidence.
-4. Add coverage/completeness summaries that distinguish measured,
-   not-applicable, build unavailable, execution failed, and missing values.
+6. Evaluate richer native graph interaction without taking ownership of a full plotting
+   engine: hover text with series/environment identity, tag/revision, load, value,
+   operations-per-second, and relative reference value; legend-hover highlighting; and
+   non-color cues for dense comparisons.
+7. Add report-freshness detection so an operator cannot silently view HTML older than
+   retained measurement evidence.
+8. Add coverage/completeness summaries that distinguish all project evidence states and
+   stored benchmark-version incompatibility.
+9. Evaluate a compact throughput/scaling summary on the feregion OutputPublisher page,
+   while leaving ASV's native graph/regression implementation intact.
 
 ## Evidence and provenance
 
-5. Add a durable campaign-run record containing the campaign definition,
-   resolved commits, machine/environment selection, ASV/asv-runner versions,
-   start/end timestamps, and references to result files updated by that run.
-6. Improve multi-machine evidence handling without combining measurements from
-   incomparable hosts into one release decision.
-7. Retain report-regeneration metadata so a published report can identify the
-   exact retained evidence state from which it was produced.
+10. Extend campaign-run records with ASV/asv-runner version, start/end timestamps, and
+    references/hashes for result files updated by the run.
+11. Improve multi-machine evidence handling without combining incomparable hosts into a
+    release decision.
+12. Retain report-regeneration metadata so a published report identifies the exact
+    retained result/state/run evidence from which it was produced.
+13. Define durable storage/export for `.asv/results`, `.asv/feregion-state`, and
+    `.asv/feregion-runs` as one preservation set.
 
-## Benchmark coverage
+## Benchmark coverage and investigation
 
-8. Add an ASV-native direct ObsPy comparison for the scalar geographical lookup
-   case, with an explicit semantic contract and dependency profile, so user
-   guidance can include current like-for-like relative timing instead of relying
-   only on feregion batch measurements.
-9. Investigate the pandas 3.0.5 divergence observed between numbers-only and
-   numbers-plus-names adapter paths. Profile the relevant pandas construction,
-   assignment, and string/name handling before proposing package changes.
-10. Add bounded memory/resource evidence for the 10M, 20M, and 50M loads so
-    missing high-load results can be classified as resource limits rather than
-    left as unexplained absence.
-11. Evaluate confidence intervals or another reviewable uncertainty summary for
-    repeated release/dependency comparisons after the retained sample history is
-    sufficiently dense.
+14. Complete real direct ObsPy/source comparison measurements under the new
+    `reference-comparison` campaign and reconcile them with the predecessor comparator.
+15. Investigate the pandas 3.0.5 divergence between numbers-only and
+    numbers-plus-names paths. Profile construction, assignment, and string/name handling
+    before proposing runtime changes.
+16. Add bounded memory/resource evidence for the 10M, 20M, and 50M loads so missing
+    high-load results can be classified rather than left unexplained.
+17. Add confidence intervals or another reviewable uncertainty summary after retained
+    sample history is sufficiently dense.
+18. Evaluate whether the scalar direct-ObsPy comparison should also retain the
+    predecessor 10,000-call loop form as a distinct ASV case, rather than relying only on
+    per-call timing plus the still-authoritative predecessor loop benchmark.
 
 ## Maintenance trigger
 
-Review this roadmap after external review of the final `0.4` alpha and again
-before a later benchmark-focused minor release. Moving an item into
-implementation requires an explicit requirement/design decision rather than
+Review this roadmap after the a10 closure review and before beta promotion. Moving an
+item into implementation requires an explicit requirement/design decision rather than
 editing this roadmap alone.

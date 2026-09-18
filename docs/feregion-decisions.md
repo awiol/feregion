@@ -1041,12 +1041,14 @@ changed rationale as historical fact.
 
 ## `DEC-053` — Extend ASV reporting instead of replacing it
 
+**Status:** Superseded for benchmark-authority wording by `DEC-056`; the reporting extension remains implemented.
+
 - **Context:** A fully populated ASV 0.6.6 report proved materially more useful
   than the earlier sparse report: parameterized `size` can be selected as the
   graph x-axis, historical/dependency environments are retained, and the native
   regressions page is valuable. The remaining usability gap is orientation and
   interpretation rather than missing benchmark infrastructure.
-- **Decision:** Keep ASV as the authoritative generic benchmark execution,
+- **Decision at issuance (superseded by `DEC-056` for authority):** Keep ASV as the generic benchmark execution,
   history, graph, and regression substrate. Add human-readable benchmark
   `pretty_name`/`pretty_source` metadata and one local `OutputPublisher` summary
   page. Because ASV 0.6.6 records custom publisher metadata but its stock HTML
@@ -1063,6 +1065,8 @@ changed rationale as historical fact.
 
 ## `DEC-054` — Provide one repeatable release benchmark refresh workflow
 
+**Status:** Workflow retained; benchmark-authority wording is superseded by `DEC-056`.
+
 - **Context:** The maintained campaign files are reproducible individually, but
   every new candidate still required a maintainer to remember which campaigns
   collectively populate the useful report, how to add more samples, and when to
@@ -1075,7 +1079,7 @@ changed rationale as historical fact.
   GitHub Pages staging/push remain explicit separate commands; push requires an
   explicit `--push`.
 - **Consequence:** A maintainer can repopulate evidence and regenerate the report
-  with one command while retained ASV data remains the measurement authority.
+  with one command while retained ASV data provides the ASV migration measurement record.
   The workflow intentionally avoids separately rerunning NumPy/pandas sensitivity
   campaign files because their maintained environment points and both pandas
   benchmark paths are already covered by the sparse `dependency-matrix` campaign.
@@ -1104,3 +1108,68 @@ changed rationale as historical fact.
   ObsPy performance.
 - **Review trigger:** Material new evidence is acquired, benchmark methodology or
   comparison basis changes, or a direct ObsPy ASV comparator becomes available.
+
+## `DEC-056` — Keep the predecessor benchmark harness authoritative until ASV migration parity closes
+
+- **Context:** The isolated `0.4.0a9` review found material correctness,
+  comparability, gate, and failure-state defects in the ASV evidence path. A
+  parity audit also found predecessor benchmark roles that had not been migrated,
+  including direct ObsPy/source comparators, pandas in-place timings, private
+  split/stack diagnostics, and explicit operations-per-second reporting.
+- **Decision:** During the remaining `0.4` alpha migration, the standalone
+  benchmark runner, `pytest-benchmark` suite, supported-Python Tox matrix, and
+  predecessor release comparator remain the authoritative performance-evidence
+  path. ASV is a supplementary migration candidate. Do not remove or demote the
+  predecessor paths until `REQ-PERF-017` is closed by reviewed real-run parity
+  evidence covering cases, metrics, correctness, comparability, failure states,
+  and release decisions.
+- **Consequence:** The repository temporarily carries both benchmark paths on
+  purpose. ASV can accumulate migration evidence and reporting history without
+  silently reducing the accepted benchmark surface.
+- **Supersedes:** The authority wording in `DEC-053` and `DEC-054`; their ASV
+  reporting and workflow mechanisms remain implemented, but they do not establish
+  ASV as the primary benchmark authority during migration.
+- **Review trigger:** Reviewed parity evidence closes `REQ-PERF-017`, or the
+  project explicitly abandons the ASV migration.
+
+## `DEC-057` — Bind ASV timing evidence to semantic oracle, stored version, explicit state, and throughput
+
+- **Context:** `FREG-001` through `FREG-004` show that timing alone is insufficient:
+  a valid-shaped wrong result could pass setup, stored ASV semantic version was
+  discarded, failure states collapsed, and the release threshold was evaluated
+  in elapsed-time rather than throughput space.
+- **Decision:** An ASV timing record can support the project release gate only when
+  untimed semantic checking passed for that case/load, the retained ASV benchmark
+  version maps explicitly to the project case version, the result state is
+  measured, and the environment/machine comparison basis is compatible. Use the
+  hash-verified pinned ObsPy FE source scanner as the independent geographical
+  oracle; derive seismic identity from that geographical oracle plus the packaged
+  hierarchy crosswalk. Retain setup/run state sidecars where ASV v2 result JSON
+  does not encode the required distinction. Normalize declared operations and
+  operations-per-second, and evaluate the accepted >25% slowdown threshold in
+  throughput space.
+- **Consequence:** Pre-a10 ASV measurements without the new correctness-state
+  evidence remain useful exploratory timing/history data but do not become
+  authoritative release-gate evidence by reinterpretation.
+- **Review trigger:** The semantic oracle changes, ASV gains an equivalent native
+  correctness/state contract, result schema changes, or the project changes its
+  accepted release-performance rule.
+
+## `DEC-058` — Restore benchmark case and metric parity before completing the ASV migration
+
+- **Context:** The initial ASV migration focused on public lookup cases and lost
+  several predecessor diagnostic/comparator roles. That made the new harness
+  easier to operate but less informative than the benchmark system it was meant
+  to replace.
+- **Decision:** Maintain `docs/benchmark-migration-parity.md` as the migration
+  ledger. Restore direct ObsPy and pinned-source comparators, seismic name timing,
+  pandas in-place paths, internal split-vector and caller-stacking diagnostics,
+  and operations-per-second evidence in the ASV candidate. Keep supported-Python
+  and release-decision parity explicit. Implementation presence is not replacement
+  evidence; predecessor paths remain until their real-run equivalents are reviewed.
+- **Consequence:** `reference-comparison` and `diagnostics` are maintained ASV
+  campaigns and the release refresh includes them, while predecessor tooling
+  remains runnable and authoritative.
+- **Review trigger:** Parity review closes the migration, a predecessor metric is
+  deliberately retired through an explicit decision, or a new benchmark role is
+  accepted.
