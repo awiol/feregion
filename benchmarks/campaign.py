@@ -15,6 +15,8 @@ from pathlib import Path
 from typing import Any
 
 from .asv_suite.contracts import CASES, STANDARD_LOAD_SIZES
+from .evidence import collect_asv_evidence, write_evidence
+from .regression import RegressionDecision, compare_release_evidence
 
 PROFILE_CONFIG: dict[str, dict[str, Any]] = {
     "release-history": {
@@ -42,6 +44,18 @@ PROFILE_CONFIG: dict[str, dict[str, Any]] = {
                 "pandas": ["2.1.4", "2.2.3", "2.3.3", "3.0.5"],
             }
         },
+    },
+    "dependency-matrix": {
+        "pythons": ["3.12"],
+        "matrix": {"req": {"numpy": ["1.26.4"], "pandas": ["2.1.4"]}},
+        "include": [
+            {"python": "3.12", "req": {"numpy": "2.0.2", "pandas": "2.1.4"}},
+            {"python": "3.12", "req": {"numpy": "2.2.6", "pandas": "2.1.4"}},
+            {"python": "3.12", "req": {"numpy": "2.5.2", "pandas": "2.1.4"}},
+            {"python": "3.12", "req": {"numpy": "1.26.4", "pandas": "2.2.3"}},
+            {"python": "3.12", "req": {"numpy": "1.26.4", "pandas": "2.3.3"}},
+            {"python": "3.12", "req": {"numpy": "1.26.4", "pandas": "3.0.5"}},
+        ],
     },
 }
 
@@ -201,7 +215,7 @@ def build_asv_config(
         if resolved_revisions is not None
         else list(campaign.revisions)
     )
-    return {
+    config = {
         "version": 1,
         "project": "feregion",
         "repo": str(repository.resolve()),
@@ -216,6 +230,9 @@ def build_asv_config(
         "build_command": list(ASV_BUILD_COMMAND),
         "install_command": list(ASV_INSTALL_COMMAND),
     }
+    if "include" in profile:
+        config["include"] = profile["include"]
+    return config
 
 
 def benchmark_regex(campaign: Campaign) -> str:
@@ -274,12 +291,62 @@ def _run_asv(
         config_path.unlink(missing_ok=True)
 
 
+def check_release_campaign(
+    campaign: Campaign,
+    *,
+    resolved_revisions: Sequence[ResolvedRevision],
+    repository: Path,
+    machine: str | None = None,
+    output: Path | None = None,
+) -> tuple[RegressionDecision, Path]:
+    """Evaluate one two-revision release campaign from retained ASV evidence.
+
+    This function performs no timing work. It normalizes already-retained ASV
+    result JSON and applies the project-owned release decision.
+    """
+
+    if len(resolved_revisions) != 2:
+        raise ValueError("check requires exactly two campaign revisions")
+    if campaign.environment_profile != "release-history":
+        raise ValueError("check requires the fixed release-history environment profile")
+    if "lookup_geographic_numbers" not in campaign.cases:
+        raise ValueError("check requires the lookup_geographic_numbers benchmark case")
+
+    repository = repository.resolve()
+    records = collect_asv_evidence(
+        repository / ".asv" / "results",
+        campaign_id=campaign.campaign_id,
+        revisions=resolved_revisions,
+        cases=campaign.cases,
+        load_sizes=campaign.load_sizes,
+        machine=machine,
+    )
+    evidence_path = output or (
+        repository / "dist" / "benchmarks" / f"{campaign.campaign_id}-evidence.json"
+    )
+    evidence_path.parent.mkdir(parents=True, exist_ok=True)
+    write_evidence(evidence_path, records)
+    baseline = [record for record in records if record.revision == resolved_revisions[0].commit]
+    candidate = [record for record in records if record.revision == resolved_revisions[1].commit]
+    required_loads = tuple(size for size in campaign.load_sizes if size >= 10_000)
+    decision = compare_release_evidence(
+        baseline,
+        candidate,
+        required_loads=required_loads,
+    )
+    return decision, evidence_path
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     subparsers = parser.add_subparsers(dest="command", required=True)
     for name in ("plan", "run", "compare", "report"):
         item = subparsers.add_parser(name)
         item.add_argument("config", type=Path)
+    check = subparsers.add_parser("check")
+    check.add_argument("config", type=Path)
+    check.add_argument("--machine")
+    check.add_argument("--output", type=Path)
     return parser
 
 
@@ -333,6 +400,30 @@ def main(argv: Sequence[str] | None = None) -> int:
             repository=repository,
             resolved_revisions=resolved_revisions,
         )
+    if args.command == "check":
+        try:
+            decision, evidence_path = check_release_campaign(
+                campaign,
+                resolved_revisions=resolved_revisions,
+                repository=repository,
+                machine=args.machine,
+                output=args.output,
+            )
+        except ValueError as exc:
+            raise SystemExit(str(exc)) from exc
+        payload = {
+            "baseline": asdict(resolved_revisions[0]),
+            "candidate": asdict(resolved_revisions[1]),
+            "complete": decision.complete,
+            "triggered": decision.triggered,
+            "reason": decision.reason,
+            "comparisons": [asdict(item) for item in decision.comparisons],
+            "evidence": str(evidence_path),
+        }
+        print(json.dumps(payload, indent=2, sort_keys=True))
+        if not decision.complete:
+            return 2
+        return 1 if decision.triggered else 0
     return _run_asv(
         campaign,
         ["publish"],

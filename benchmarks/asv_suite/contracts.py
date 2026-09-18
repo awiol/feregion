@@ -7,7 +7,32 @@ import json
 from dataclasses import dataclass
 from typing import Final
 
-STANDARD_LOAD_SIZES: Final[tuple[int, ...]] = (1, 100, 1_000, 10_000, 100_000, 1_000_000)
+STANDARD_LOAD_SIZES: Final[tuple[int, ...]] = (
+    1,
+    2,
+    5,
+    10,
+    20,
+    50,
+    100,
+    200,
+    500,
+    1_000,
+    2_000,
+    5_000,
+    10_000,
+    20_000,
+    50_000,
+    100_000,
+    200_000,
+    500_000,
+    1_000_000,
+    2_000_000,
+    5_000_000,
+    10_000_000,
+    20_000_000,
+    50_000_000,
+)
 WORKLOAD_SEED: Final[int] = 20260917
 WORKLOAD_VERSION: Final[str] = "coordinates-v1"
 

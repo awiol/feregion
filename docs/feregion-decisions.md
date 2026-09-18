@@ -987,3 +987,54 @@ changed rationale as historical fact.
 - **Review trigger:** ASV changes revision-selection semantics, `{wheel_file}` or
   build-cache behavior, environment-matrix ownership, or provides a safer native
   exact-revision/project-only-build contract that removes these adapters.
+
+
+## `DEC-050` — Use a 1-2-5 benchmark load grid through 50 million points
+
+- **Context:** The initial ASV target exposed only sparse powers-of-ten-like load
+  sizes, which prevented operators from examining scaling between decades and
+  rejected larger requested workloads.
+- **Decision:** Define the maintained batch load grid as `1×10^x`, `2×10^x`, and
+  `5×10^x` for `x = 0..7`, ending at 50,000,000 points. Campaigns select subsets
+  according to cost; only `head-full` intentionally requests the complete grid.
+  Regression adjacency is defined by this maintained order rather than by whichever
+  result files happen to exist.
+- **Consequence:** Full campaigns can require substantial memory; 50 million
+  coordinate pairs alone occupy about 800 MB as a two-column `float64` array before
+  result and pandas overhead. Resource failure is not accepted as timing evidence.
+- **Review trigger:** Workload representation changes materially, benchmark hosts
+  cannot exercise the upper grid usefully, or decision evidence shows a different
+  spacing gives better diagnostic value.
+
+## `DEC-051` — Treat predefined campaigns and the operator runbook as maintained interfaces
+
+- **Context:** A flexible campaign schema alone left routine operators to recreate
+  smoke, history, dependency, full-suite, report, and publication procedures by hand.
+  That increases drift between iterations and makes benchmark evidence harder to
+  reproduce.
+- **Decision:** Maintain canonical campaign files for smoke, full `HEAD`, release
+  comparison, release history, Python sensitivity, NumPy sensitivity, pandas
+  sensitivity, and a sparse dependency matrix. Maintain a human operations guide
+  that explains both commands and rationale, including evidence retention and
+  GitHub Pages publication. `release-compare.toml` explicitly names the prior
+  accepted benchmark baseline and is updated as part of each new candidate.
+- **Consequence:** Campaign-file changes are benchmark-methodology/source changes and
+  receive normal review. Operators have a stable rerun path instead of reconstructing
+  command sequences from chat history.
+- **Review trigger:** Campaign responsibilities change, the publication host changes,
+  or repeated operation shows the maintained campaign set is too broad or incomplete.
+
+## `DEC-052` — Apply the release regression rule directly to retained ASV evidence
+
+- **Context:** `0.4.0a1` implemented normalized evidence and the project regression
+  rule, but the operator CLI only exposed ASV's generic `compare`; maintainers still
+  had to bridge retained ASV results to the project release decision manually.
+- **Decision:** Add `benchmarks.campaign check`. It parses the supported ASV v2 result
+  format behind `benchmarks.evidence`, writes normalized project evidence under
+  `dist/benchmarks/`, requires one comparable machine/environment context, and
+  returns separate statuses for pass, regression trigger, and incomplete evidence.
+  ASV `compare` remains an exploratory view, not the project acceptance rule.
+- **Consequence:** Routine iterations can measure once, re-evaluate the project gate,
+  and rebuild reports from retained results without rerunning historical measurements.
+- **Review trigger:** ASV result-file format changes, the release performance rule
+  changes, or multi-machine aggregation becomes an explicit project requirement.

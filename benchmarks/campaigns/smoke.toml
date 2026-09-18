@@ -1,0 +1,10 @@
+[campaign]
+id = "smoke"
+purpose = "Fast current-candidate integration check for ASV build, install, discovery, correctness setup, timing, and result persistence."
+revisions = ["HEAD"]
+cases = ["lookup_geographic_numbers"]
+load_sizes = [100, 10000]
+repetitions = 2
+rounds = 1
+environment_profile = "release-history"
+record_samples = true

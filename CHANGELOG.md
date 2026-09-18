@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.0a7 — 2026-09-18
+
+- Expand the maintained batch benchmark load contract to the 1-2-5 engineering grid from 1 through 50,000,000 points, with regression adjacency defined by that maintained order rather than by whichever observations happen to exist.
+- Add maintained predefined campaigns for smoke, full-suite `HEAD`, routine release comparison, backward-compatible release history, supported Python versions, NumPy sensitivity, pandas sensitivity, and a bounded sparse dependency matrix.
+- Add `benchmarks.campaign check` to reconstruct normalized project evidence from retained ASV v2 result files without rerunning measurements, apply the project >25% two-adjacent-load release rule, and return distinct pass/trigger/incomplete statuses.
+- Add a human benchmark-operations runbook covering campaign rationale, per-iteration reruns, high-memory load cautions, evidence retention, report regeneration/preview, and an explicit GitHub Pages publication procedure.
+- Update benchmark requirements, design, decisions, quality gates, traceability, testing guidance, and operator quick reference for the a7 workflow.
+
 ## 0.4.0a6 — 2026-09-18
 
 - Resolve every campaign revision identity to an immutable Git commit before ASV execution; `run` now passes `<resolved-commit>^!` so one campaign revision cannot expand into its first-parent history, while `compare` uses the resolved commit identities.

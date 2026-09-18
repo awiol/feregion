@@ -384,3 +384,27 @@ requested identity. The maintained and generated ASV configuration must use the
 project-only wheel build/install commands with `--no-deps`. The real-ASV smoke for
 a candidate should run one exact revision before a broader historical campaign and
 should retain stderr if discovery/build/install fails.
+
+
+## Benchmark operator workflow
+
+The maintained benchmark runbook is `docs/benchmark-operations.md`. Benchmark
+verification should use the predefined campaigns rather than reconstructing ad hoc
+commands when an equivalent maintained campaign exists. The normal integration
+sequence is:
+
+```bash
+uv run --locked --group benchmark asv check --config asv.conf.json
+uv run --locked --group benchmark python -m benchmarks.campaign plan benchmarks/campaigns/smoke.toml
+uv run --locked --group benchmark python -m benchmarks.campaign run benchmarks/campaigns/smoke.toml
+uv run --locked --group benchmark python -m benchmarks.campaign plan benchmarks/campaigns/release-compare.toml
+uv run --locked --group benchmark python -m benchmarks.campaign run benchmarks/campaigns/release-compare.toml
+uv run --locked --group benchmark python -m benchmarks.campaign check benchmarks/campaigns/release-compare.toml
+uv run --locked --group benchmark python -m benchmarks.campaign report benchmarks/campaigns/release-history.toml
+```
+
+`campaign check` consumes retained ASV result JSON and does not rerun measurements.
+The full `head-full` campaign spans the complete 1-2-5 grid through 50,000,000 and
+requires a host with sufficient memory; resource failure at those sizes is not a valid
+performance result. External GitHub Pages publication is intentionally separate from
+these verification commands and is documented in the benchmark runbook.

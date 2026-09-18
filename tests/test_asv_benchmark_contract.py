@@ -19,6 +19,7 @@ from benchmarks.campaign import (
     Campaign,
     benchmark_regex,
     build_asv_config,
+    check_release_campaign,
     resolve_revision,
 )
 from benchmarks.evidence import EvidenceRecord, normalize_asv_result
@@ -47,6 +48,7 @@ def test_initial_environment_profiles_are_sparse_and_named() -> None:
         "python-supported",
         "numpy-sensitivity",
         "pandas-sensitivity",
+        "dependency-matrix",
     }
     assert PROFILE_CONFIG["release-history"]["pythons"] == ["3.12"]
     assert PROFILE_CONFIG["numpy-sensitivity"]["matrix"]["req"]["numpy"] == [
@@ -444,6 +446,29 @@ def test_asv_fixture_normalizes_raw_samples() -> None:
     assert record.statistic_seconds == 0.4
 
 
+def test_asv_null_and_nan_results_remain_distinct_states() -> None:
+    """ASV failure and explicit skip must not collapse into one applicability state."""
+
+    failed = normalize_asv_result(
+        case_id="lookup_geographic_numbers",
+        case_version=1,
+        revision="abc",
+        campaign_id="slice",
+        result={"result": [None], "samples": [None]},
+        load_size=10_000,
+    )
+    skipped = normalize_asv_result(
+        case_id="lookup_geographic_numbers",
+        case_version=1,
+        revision="abc",
+        campaign_id="slice",
+        result={"result": [float("nan")], "samples": [None]},
+        load_size=10_000,
+    )
+    assert failed.result_state == "execution_failed"
+    assert skipped.result_state == "not_applicable"
+
+
 def _record(load: int, seconds: float, revision: str) -> EvidenceRecord:
     return EvidenceRecord(
         "lookup_geographic_numbers",
@@ -464,14 +489,241 @@ def test_release_gate_triggers_only_on_two_adjacent_slow_loads() -> None:
 
     baseline = [
         _record(10_000, 1.0, "base"),
-        _record(100_000, 10.0, "base"),
-        _record(1_000_000, 100.0, "base"),
+        _record(20_000, 2.0, "base"),
+        _record(50_000, 5.0, "base"),
     ]
     candidate = [
         _record(10_000, 1.3, "cand"),
-        _record(100_000, 13.0, "cand"),
-        _record(1_000_000, 110.0, "cand"),
+        _record(20_000, 2.6, "cand"),
+        _record(50_000, 5.5, "cand"),
     ]
     decision = compare_release_evidence(baseline, candidate)
     assert decision.complete is True
     assert decision.triggered is True
+
+
+def test_standard_load_grid_uses_one_two_five_decades_through_fifty_million() -> None:
+    """The maintained load contract must cover the requested 1-2-5 grid through 5e7."""
+
+    assert STANDARD_LOAD_SIZES == (
+        1,
+        2,
+        5,
+        10,
+        20,
+        50,
+        100,
+        200,
+        500,
+        1_000,
+        2_000,
+        5_000,
+        10_000,
+        20_000,
+        50_000,
+        100_000,
+        200_000,
+        500_000,
+        1_000_000,
+        2_000_000,
+        5_000_000,
+        10_000_000,
+        20_000_000,
+        50_000_000,
+    )
+
+
+def test_dependency_matrix_profile_is_sparse_union_not_cartesian() -> None:
+    """The broad dependency campaign must remain a bounded union of sensitivity sweeps."""
+
+    profile = PROFILE_CONFIG["dependency-matrix"]
+    assert profile["matrix"] == {"req": {"numpy": ["1.26.4"], "pandas": ["2.1.4"]}}
+    assert len(profile["include"]) == 6
+    config = build_asv_config(
+        Campaign(
+            "deps",
+            "test",
+            ("HEAD",),
+            ("lookup_geographic_numbers",),
+            (10_000,),
+            2,
+            1,
+            "dependency-matrix",
+            True,
+        ),
+        repository=Path("."),
+    )
+    assert config["include"] == profile["include"]
+
+
+def test_predefined_campaigns_cover_operator_workflows() -> None:
+    """Canonical campaign files must cover smoke, history, release, matrix, and full-HEAD work."""
+
+    project_root = Path(__file__).resolve().parents[1]
+    campaigns = project_root / "benchmarks" / "campaigns"
+    expected = {
+        "smoke.toml",
+        "head-full.toml",
+        "release-compare.toml",
+        "release-history.toml",
+        "numpy-sensitivity.toml",
+        "pandas-sensitivity.toml",
+        "python-supported.toml",
+        "dependency-matrix.toml",
+    }
+    available = {path.name for path in campaigns.glob("*.toml")}
+    assert expected <= available
+    parsed = {name: Campaign.from_toml(campaigns / name) for name in expected}
+    head_full = parsed["head-full.toml"]
+    assert head_full.load_sizes == STANDARD_LOAD_SIZES
+    assert set(head_full.cases) == set(CASES)
+    release_compare = parsed["release-compare.toml"]
+    assert release_compare.revisions == ("v0.4.0a6", "HEAD")
+    assert max(release_compare.load_sizes) == 1_000_000
+
+
+def _write_asv_result(
+    path: Path,
+    *,
+    commit: str,
+    values: list[float],
+    samples: list[list[float]],
+    loads: list[int],
+) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "version": 2,
+        "commit_hash": commit,
+        "env_name": "uv-py3.12-numpy1.26.4-pandas2.1.4",
+        "result_columns": ["result", "params", "version", "samples"],
+        "results": {
+            "benchmarks.TimeGeographicLookupNumbers.time_lookup_geographic_numbers": [
+                values,
+                [[str(load) for load in loads]],
+                "case-version",
+                samples,
+            ]
+        },
+    }
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+
+def test_collect_asv_evidence_reads_retained_results_without_rerunning(tmp_path: Path) -> None:
+    """Project evidence must be reconstructable from documented ASV v2 result JSON."""
+
+    from benchmarks.evidence import collect_asv_evidence
+
+    base = "a" * 40
+    cand = "b" * 40
+    results = tmp_path / ".asv" / "results"
+    _write_asv_result(
+        results / "host" / "base.json",
+        commit=base,
+        values=[1.0, 2.0],
+        samples=[[0.9, 1.1], [1.9, 2.1]],
+        loads=[10_000, 20_000],
+    )
+    _write_asv_result(
+        results / "host" / "cand.json",
+        commit=cand,
+        values=[1.3, 2.6],
+        samples=[[1.2, 1.4], [2.5, 2.7]],
+        loads=[10_000, 20_000],
+    )
+    revisions = (
+        campaign_module.ResolvedRevision("base", base),
+        campaign_module.ResolvedRevision("cand", cand),
+    )
+    records = collect_asv_evidence(
+        results,
+        campaign_id="release",
+        revisions=revisions,
+        cases=("lookup_geographic_numbers",),
+        load_sizes=(10_000, 20_000),
+    )
+    assert len(records) == 4
+    assert {record.revision for record in records} == {base, cand}
+    assert {record.load_size for record in records} == {10_000, 20_000}
+    assert all(record.machine == "host" for record in records)
+
+
+def test_check_release_campaign_consumes_retained_results_and_writes_evidence(
+    tmp_path: Path,
+) -> None:
+    """The operator gate must consume retained ASV evidence without invoking timing."""
+
+    base = "a" * 40
+    cand = "b" * 40
+    results = tmp_path / ".asv" / "results"
+    loads = [10_000, 20_000, 50_000]
+    _write_asv_result(
+        results / "host" / "base.json",
+        commit=base,
+        values=[1.0, 2.0, 5.0],
+        samples=[[1.0], [2.0], [5.0]],
+        loads=loads,
+    )
+    _write_asv_result(
+        results / "host" / "cand.json",
+        commit=cand,
+        values=[1.30, 2.60, 5.10],
+        samples=[[1.30], [2.60], [5.10]],
+        loads=loads,
+    )
+    campaign = Campaign(
+        "release",
+        "test",
+        ("base", "cand"),
+        ("lookup_geographic_numbers",),
+        tuple(loads),
+        2,
+        1,
+        "release-history",
+        True,
+    )
+    resolved = (
+        campaign_module.ResolvedRevision("base", base),
+        campaign_module.ResolvedRevision("cand", cand),
+    )
+    decision, evidence_path = check_release_campaign(
+        campaign,
+        resolved_revisions=resolved,
+        repository=tmp_path,
+    )
+    assert decision.complete is True
+    assert decision.triggered is True
+    payload = json.loads(evidence_path.read_text(encoding="utf-8"))
+    assert payload["schema_version"] == 1
+    assert len(payload["records"]) == 6
+
+
+def test_release_gate_requires_maintained_adjacent_loads_and_complete_required_set() -> None:
+    """Missing 1-2-5 neighbors must not be mistaken for adjacent regression evidence."""
+
+    baseline = [_record(10_000, 1.0, "base"), _record(50_000, 5.0, "base")]
+    candidate = [_record(10_000, 1.4, "cand"), _record(50_000, 7.0, "cand")]
+    decision = compare_release_evidence(baseline, candidate)
+    assert decision.complete is True
+    assert decision.triggered is False
+
+    incomplete = compare_release_evidence(
+        baseline,
+        candidate,
+        required_loads=(10_000, 20_000, 50_000),
+    )
+    assert incomplete.complete is False
+    assert "20000" in (incomplete.reason or "")
+
+
+def test_benchmark_operator_runbook_covers_rerun_and_publication_workflow() -> None:
+    """Maintained operator guidance must keep rerun/report/publish responsibilities visible."""
+
+    project_root = Path(__file__).resolve().parents[1]
+    text = (project_root / "docs" / "benchmark-operations.md").read_text(encoding="utf-8")
+    assert "benchmarks/campaigns/release-compare.toml" in text
+    assert "python -m benchmarks.campaign check" in text
+    assert "python -m benchmarks.campaign report" in text
+    assert "asv preview --config asv.conf.json" in text
+    assert "asv gh-pages --no-push --config asv.conf.json" in text
+    assert "git push origin gh-pages" in text
+    assert ".asv/results" in text

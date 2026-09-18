@@ -449,16 +449,26 @@ version identifier and seed. A campaign record retains canonical workload
 parameters and, when practical, a fingerprint of the materialized input or its
 canonical generator specification.
 
-The standard batch-load series is:
+The standard batch-load series is the 1-2-5 engineering grid from 1 through
+50,000,000 points:
 
 ```text
-1, 100, 1_000, 10_000, 100_000, 1_000_000
+1, 2, 5,
+10, 20, 50,
+100, 200, 500,
+1_000, 2_000, 5_000,
+10_000, 20_000, 50_000,
+100_000, 200_000, 500_000,
+1_000_000, 2_000_000, 5_000_000,
+10_000_000, 20_000_000, 50_000_000
 ```
 
-A campaign may select a subset. A release-gate campaign retains enough adjacent
-sizes at or above 10,000 to evaluate the existing regression rule. The standard
-release profile should include at least `10_000`, `100_000`, and `1_000_000` so a
-single missing point does not automatically eliminate every adjacent comparison.
+A campaign may select a subset. Adjacency for the project release gate is defined
+by this maintained order, not merely by whichever measurements happen to exist.
+A release-gate campaign selects all sizes it requires for its decision and treats
+missing required measurements as incomplete evidence. The complete grid is
+intentionally available for scaling work but can require substantial memory;
+resource exhaustion is an infrastructure result, not a valid timing result.
 
 Correctness verification occurs before accepted timing. ASV `setup` or an
 equivalent untimed phase builds the workload and calls the selected adapter once
@@ -556,6 +566,16 @@ methodology points, not a claim that they are always the latest patch releases. 
 profile change requires a recorded methodology decision and must preserve enough
 old results to interpret historical comparisons.
 
+#### `dependency-matrix`
+
+Purpose: execute the maintained union of NumPy and pandas sensitivity points in one
+campaign without creating the full Cartesian product. The baseline is CPython 3.12 +
+NumPy 1.26.4 + pandas 2.1.4; ASV `include` entries add the remaining NumPy points at
+pandas 2.1.4 and the remaining pandas points at NumPy 1.26.4.
+
+This profile is broader than either single-dependency sweep but remains bounded and
+reviewable. It is not an exhaustive compatibility matrix.
+
 ### 9.9 Historical revision selection
 
 Authoritative campaigns select exact package revisions deliberately. They do not
@@ -602,10 +622,14 @@ is isolated behind this adapter and covered by fixtures.
 
 The release-regression rule remains project-owned: review is triggered when
 candidate median batch throughput is more than 25 percent slower than the
-accepted baseline at two adjacent recorded load sizes of at least 10,000 points.
-ASV's generic comparison/regression facilities may aid exploration but do not
-replace this project gate. A missing comparable baseline means the performance
-gate is incomplete, not passed.
+accepted baseline at two adjacent maintained 1-2-5 load sizes of at least 10,000
+points. `campaign check` reconstructs normalized evidence from retained ASV v2
+result JSON without rerunning measurements, writes the normalized evidence to
+`dist/benchmarks/`, and applies this rule. It requires exactly two revisions, the
+fixed release-history profile, and one unambiguous common machine/environment
+context. ASV's generic comparison/regression facilities may aid exploration but
+do not replace this project gate. Missing required loads, an absent comparable
+baseline, or ambiguous contexts make the performance gate incomplete, not passed.
 
 ### 9.11 Public benchmark history
 
@@ -616,16 +640,26 @@ The source branch does not contain generated HTML or raw ASV result history.
 
 Raw ASV history is retained in a durable location that can rebuild the static
 site without rerunning measurements. A dedicated results/history branch or an
-equivalent external store is permitted. Publication is a separate state change:
-a successful benchmark run does not prove that the public site was rebuilt or
-published. The publication workflow verifies the resulting branch or public
-artifact before reporting success.
+equivalent external store is permitted. The maintained operator runbook is
+`docs/benchmark-operations.md`; it defines report regeneration, local preview, and
+GitHub Pages publication. Publication is a separate state change: `asv publish`
+builds derived HTML, while `asv gh-pages --no-push` prepares a local publication
+branch and the final push is an explicit authorized external action. A successful
+benchmark run does not prove that the public site was rebuilt or published. The
+publication workflow verifies the resulting branch and public site before
+reporting success.
+
+Predefined campaigns are maintained operator interfaces: `smoke`, `head-full`,
+`release-compare`, `release-history`, `python-supported`, `numpy-sensitivity`,
+`pandas-sensitivity`, and `dependency-matrix`. `release-compare` names the accepted
+prior benchmark candidate explicitly and is advanced as part of the next candidate
+source so reruns do not depend on Git recency or memory.
 
 ### 9.12 Migration from the 0.3 benchmark implementation
 
 Migration uses a vertical slice before broad conversion:
 
-1. implement `lookup_numbers` at 1, 100, 1,000, 10,000, 100,000, and 1,000,000;
+1. implement `lookup_numbers` over the maintained load contract and verify at least the original 1, 100, 1,000, 10,000, 100,000, and 1,000,000 migration points;
 2. run the slice against the current `0.3` beta baseline and at least one older revision whose public
    interface materially exercises the compatibility-adapter boundary;
 3. run at least one selected dependency-sensitivity profile;

@@ -307,19 +307,44 @@ uv run --locked pre-commit run --all-files
 
 ## Benchmarks
 
-Install benchmark dependencies and run the repository harnesses:
+The `0.4` line uses an ASV-driven benchmark system with project-owned benchmark
+semantics, historical adapters, maintained campaigns, a 1-2-5 load grid through
+50 million points, normalized evidence, and the project-specific release
+regression decision. The quick reference is `benchmarks/README.md`; the full
+human operator runbook and GitHub Pages publication procedure are in
+`docs/benchmark-operations.md`.
+
+Install the locked benchmark environment and validate the ASV suite:
 
 ```bash
 uv sync --locked --group benchmark
-uv run --locked --group benchmark pytest benchmarks --benchmark-only \
-  --benchmark-json=benchmark.json
-uv run --locked --group benchmark python -m benchmarks.run_benchmark \
-  --output benchmark-standalone.json
+uv run --locked --group benchmark asv check --config asv.conf.json
 ```
 
-Routine benchmarks cover in-process scalar, batch, name-conversion, and pandas
-interfaces. They exclude CLI and GeoJSON timing. Generated benchmark results are
-delivery evidence and are not repository source.
+Run the maintained smoke campaign before broader measurements:
+
+```bash
+uv run --locked --group benchmark python -m benchmarks.campaign plan benchmarks/campaigns/smoke.toml
+uv run --locked --group benchmark python -m benchmarks.campaign run benchmarks/campaigns/smoke.toml
+```
+
+For the routine previous-candidate versus `HEAD` decision, run the maintained
+release campaign and project gate:
+
+```bash
+uv run --locked --group benchmark python -m benchmarks.campaign run benchmarks/campaigns/release-compare.toml
+uv run --locked --group benchmark python -m benchmarks.campaign check benchmarks/campaigns/release-compare.toml
+```
+
+`head-full.toml` exercises every maintained benchmark case over the complete
+1-2-5 grid through 50,000,000 points and is intentionally high-memory and
+expensive. Use it only when the decision justifies the cost. The maintained
+release-history, Python, NumPy, pandas, and dependency-matrix campaigns provide
+other bounded operator workflows.
+
+The predecessor `pytest-benchmark`, standalone timer, tox Python benchmark
+matrix, and raw-release comparator remain temporary migration evidence under
+`REQ-PERF-017`; they are not the target long-term benchmark authority.
 
 `PERF-INV-001` is resolved for package-internal use. Controlled baseline/candidate
 measurements show material stacking, seismic revalidation, and peak-memory cost.
@@ -328,44 +353,6 @@ longitude/latitude paths used by pandas, and coordinate-to-seismic lookup trusts
 only geographical numbers produced by the same validated engine. The public
 `(n, 2)` NumPy contract remains unchanged. A public split-array API remains
 deferred until an external consumer need justifies another compatibility surface.
-
-
-Compare the same locked benchmark environment across all explicitly supported
-Python versions:
-
-```bash
-uv run --locked python -m tools.fetch_obspy_fe_data
-uv run --locked --group matrix --group benchmark tox run \
-  -e benchmark-py311,benchmark-py312,benchmark-py313,benchmark-py314,benchmark-report
-```
-
-The per-version JSON files and `python-comparison.md` are written below
-`.tox/benchmark-results/`. The combined report compares eight representative
-throughput metrics, records exact Python, NumPy, and pandas versions, and reports
-the geometric mean explicitly as an equal-weight summary of those selected
-metrics rather than as a product workload model.
-
-For release-to-release regression review, compare two raw standalone benchmark
-records produced on the same controlled host/interpreter/dependency/workload
-context:
-
-```bash
-uv run --locked --group benchmark python -m benchmarks.compare_releases \
-  --baseline baseline.json --candidate candidate.json --fail-on-trigger
-```
-
-The review trigger is a slowdown greater than 25 percent at two adjacent batch
-sizes of at least 10,000 points. If no comparable accepted baseline exists, the
-release-specific performance gate remains incomplete rather than being reported
-as passed.
-
-The `0.4` line implements the ASV-driven benchmark system. Benchmark semantics,
-historical adapters, campaign intent, normalized evidence, and release-gate
-logic remain project-owned while revision/environment/build/timing/sample/
-history/static-site mechanics are delegated to ASV. The predecessor commands
-above remain temporary migration evidence until the required ASV vertical-slice
-parity and static-site checks are observed. See `docs/feregion-design.md`,
-`docs/feregion-engineering-requirements.md`, and `benchmarks/README.md`.
 
 ## Clean repository handoff
 
@@ -397,7 +384,7 @@ The maintained contract set uses stable filenames. Git history records document 
 - `docs/feregion-decisions.md`; and
 - `docs/feregion-verification-traceability.md`.
 
-`docs/testing.md` is the maintainer procedure. When behavior changes, update the affected maintained documents in the same repository change.
+`docs/testing.md` is the general maintainer procedure and `docs/benchmark-operations.md` is the benchmark operator runbook. When behavior changes, update the affected maintained documents in the same repository change.
 
 ## License and provenance
 
@@ -405,7 +392,3 @@ The `feregion` project is distributed under LGPL-3.0-only. That project license
 does not by itself establish the license of upstream FE source data. See
 `THIRD_PARTY_NOTICES.md` and `src/feregion/data/metadata.json` for the recorded
 provenance and limitation.
-
-## Performance benchmarking
-
-The `0.4` line adds an ASV-driven benchmark system with project-owned benchmark semantics, historical adapters, sparse Python/NumPy/pandas profiles, TOML campaigns, normalized evidence, and the existing release-regression decision. See `benchmarks/README.md`.

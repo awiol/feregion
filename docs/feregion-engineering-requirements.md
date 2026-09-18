@@ -256,7 +256,10 @@ must include:
   benchmark dependency baseline;
 - `numpy-sensitivity`: CPython 3.12 with NumPy 1.26.4, 2.0.2, 2.2.6, and 2.5.2;
 - `pandas-sensitivity`: CPython 3.12 with NumPy 1.26.4 and pandas 2.1.4, 2.2.3,
-  2.3.3, and 3.0.5.
+  2.3.3, and 3.0.5;
+- `dependency-matrix`: a sparse union of the maintained NumPy and pandas
+  sensitivity points on CPython 3.12. It must not silently expand into the full
+  NumPy×pandas Cartesian product.
 
 A profile revision must be reviewed as a benchmark-methodology change. Exact
 resolved dependency versions must be retained with each result. Cross-environment
@@ -395,6 +398,37 @@ exactly one installable `feregion` wheel in the ASV build cache, and project
 installation must not re-resolve runtime dependencies. Regression coverage must
 exercise real Git history semantics and the effective persistent and
 campaign-generated ASV build/install commands.
+
+**REQ-PERF-020** — Batch benchmark cases must support the maintained 1-2-5 load
+sequence from 1 through 50,000,000 points: `1×10^x`, `2×10^x`, and `5×10^x`
+for `x = 0..7`. Campaigns may select smaller subsets according to decision value
+and host resources. The complete grid is an input/measurement contract, not a
+claim that every benchmark host has enough memory for every case. Resource
+exhaustion must not be converted into a valid timing result. The release
+regression rule must define adjacency from this maintained load order so missing
+intermediate measurements cannot create false adjacency.
+
+**REQ-PERF-021** — The repository must maintain predefined campaigns for at least:
+a fast current-candidate smoke; the full benchmark suite on `HEAD`; a routine
+previous-candidate-versus-`HEAD` release comparison; backward-compatible
+historical benchmarking; supported-Python sensitivity; NumPy sensitivity;
+pandas sensitivity; and the bounded dependency matrix. Maintained campaign files
+are operator interfaces: their purpose, expected cost, revision policy, and
+normal trigger must be documented. A human operations guide must explain the
+measurement lifecycle, what state each step creates, why each step exists, which
+evidence must be retained, how to rerun benchmarks on later iterations, and how
+to distinguish benchmark execution, report generation, preview, and external
+publication.
+
+**REQ-PERF-022** — The operator CLI must provide a project-owned release check
+that consumes retained ASV result files without rerunning measurements, writes
+normalized benchmark evidence, and applies the maintained release-regression rule. The check must require
+exactly two resolved revisions, the fixed `release-history` profile, the
+`lookup_geographic_numbers` case, and one unambiguous machine/environment context.
+It must return distinct outcomes for pass, triggered regression, and incomplete
+or ambiguous evidence. Required selected load sizes at or above 10,000 must all
+have comparable measured baseline/candidate evidence before the decision is
+complete.
 
 ## Packaging, development environment, and license
 

@@ -1,0 +1,10 @@
+[campaign]
+id = "dependency-matrix"
+purpose = "Run the maintained sparse union of NumPy and pandas sensitivity environments on HEAD without a full Cartesian product."
+revisions = ["HEAD"]
+cases = ["lookup_geographic_numbers", "lookup_seismic_numbers", "pandas_lookup_numbers_and_names"]
+load_sizes = [10000, 100000, 1000000]
+repetitions = 5
+rounds = 3
+environment_profile = "dependency-matrix"
+record_samples = true

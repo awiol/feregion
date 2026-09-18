@@ -1,7 +1,7 @@
 [campaign]
-id = "release-history"
-purpose = "Backward-compatible historical benchmark across representative package generations on one fixed environment."
-revisions = ["v0.1.2a10", "v0.2.0b1", "v0.3.0b1", "v0.4.0a6", "HEAD"]
+id = "head-full"
+purpose = "Full benchmark suite on HEAD across the complete maintained 1-2-5 load grid; intentionally expensive and high-memory."
+revisions = ["HEAD"]
 cases = [
   "lookup_geographic_number",
   "lookup_geographic_region",
@@ -15,7 +15,16 @@ cases = [
   "pandas_lookup_numbers",
   "pandas_lookup_numbers_and_names",
 ]
-load_sizes = [100, 1000, 10000, 100000, 1000000]
+load_sizes = [
+  1, 2, 5,
+  10, 20, 50,
+  100, 200, 500,
+  1000, 2000, 5000,
+  10000, 20000, 50000,
+  100000, 200000, 500000,
+  1000000, 2000000, 5000000,
+  10000000, 20000000, 50000000,
+]
 repetitions = 5
 rounds = 3
 environment_profile = "release-history"
