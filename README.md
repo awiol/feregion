@@ -309,10 +309,13 @@ uv run --locked pre-commit run --all-files
 
 The `0.4` line uses an ASV-driven benchmark system with project-owned benchmark
 semantics, historical adapters, maintained campaigns, a 1-2-5 load grid through
-50 million points, normalized evidence, and the project-specific release
-regression decision. The quick reference is `benchmarks/README.md`; the full
-human operator runbook and GitHub Pages publication procedure are in
-`docs/benchmark-operations.md`.
+50 million points, normalized evidence, a project-specific release-regression
+decision, and an additive feregion summary page in the ASV site. The quick
+reference is `benchmarks/README.md`; the full human operator runbook and GitHub
+Pages publication procedure are in `docs/benchmark-operations.md`. Observed
+Python/NumPy/pandas/release evidence is summarized in `docs/benchmark-results.md`;
+`docs/obspy-or-feregion.md` gives bounded user-selection guidance; planned harness
+work is recorded in `docs/benchmark-roadmap.md`.
 
 Install the locked benchmark environment and validate the ASV suite:
 
@@ -327,6 +330,14 @@ Run the maintained smoke campaign before broader measurements:
 uv run --locked --group benchmark python -m benchmarks.campaign plan benchmarks/campaigns/smoke.toml
 uv run --locked --group benchmark python -m benchmarks.campaign run benchmarks/campaigns/smoke.toml
 ```
+
+For routine release preparation, populate the maintained current-release evidence, apply the project gate, and rebuild the complete report with:
+
+```bash
+uv run --locked --group benchmark python -m benchmarks.release_workflow refresh
+```
+
+Add `--history --repetitions 15 --rounds 7 --append-samples` when deliberately strengthening compatible historical/current evidence with more raw samples. Preview and publication remain separate commands; see the runbook before pushing external state.
 
 For the routine previous-candidate versus `HEAD` decision, run the maintained
 release campaign and project gate:

@@ -10,7 +10,7 @@ import sys
 import tempfile
 import tomllib
 from collections.abc import Sequence
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 from typing import Any
 
@@ -229,6 +229,7 @@ def build_asv_config(
         "html_dir": ".asv/html",
         "build_command": list(ASV_BUILD_COMMAND),
         "install_command": list(ASV_INSTALL_COMMAND),
+        "plugins": [".benchmarks.asv_plugin"],
     }
     if "include" in profile:
         config["include"] = profile["include"]
@@ -340,9 +341,18 @@ def check_release_campaign(
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     subparsers = parser.add_subparsers(dest="command", required=True)
-    for name in ("plan", "run", "compare", "report"):
+    for name in ("plan", "compare", "report"):
         item = subparsers.add_parser(name)
         item.add_argument("config", type=Path)
+    run = subparsers.add_parser("run")
+    run.add_argument("config", type=Path)
+    run.add_argument("--repetitions", type=int)
+    run.add_argument("--rounds", type=int)
+    run.add_argument(
+        "--append-samples",
+        action="store_true",
+        help="append raw samples to compatible retained ASV results",
+    )
     check = subparsers.add_parser("check")
     check.add_argument("config", type=Path)
     check.add_argument("--machine")
@@ -355,6 +365,12 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     args = _parser().parse_args(argv)
     campaign = Campaign.from_toml(args.config)
+    if args.command == "run":
+        repetitions = args.repetitions if args.repetitions is not None else campaign.repetitions
+        rounds = args.rounds if args.rounds is not None else campaign.rounds
+        if repetitions < 1 or rounds < 1:
+            raise SystemExit("run overrides must be positive integers")
+        campaign = replace(campaign, repetitions=repetitions, rounds=rounds)
     repository = Path(__file__).resolve().parents[1]
     try:
         resolved_revisions = resolve_revisions(campaign, repository=repository)
@@ -382,6 +398,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             command.extend(["--attribute", f"rounds={campaign.rounds}"])
             if campaign.record_samples:
                 command.append("--record-samples")
+            if args.append_samples:
+                if not campaign.record_samples:
+                    raise SystemExit("--append-samples requires record_samples=true")
+                command.append("--append-samples")
             status = _run_asv(
                 campaign,
                 command,

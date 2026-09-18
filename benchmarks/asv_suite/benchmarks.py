@@ -31,6 +31,11 @@ class _BatchBase:
 
 
 class TimeGeographicLookupNumbers(_BatchBase):
+    pretty_name = "Geographic batch lookup → numbers"
+    pretty_source = (
+        "Generate deterministic longitude/latitude coordinates; time feregion geographic "
+        "batch number lookup only."
+    )
     benchmark_name = "lookup_geographic_numbers"
     version = CASES[benchmark_name].semantic_version_hash
 
@@ -44,6 +49,11 @@ class TimeGeographicLookupNumbers(_BatchBase):
 
 
 class TimeGeographicNames(_BatchBase):
+    pretty_name = "Geographic number batch → names"
+    pretty_source = (
+        "Prepare geographic region numbers outside timing; time batch conversion from "
+        "geographic numbers to packaged names."
+    )
     benchmark_name = "geographic_numbers_to_names"
     version = CASES[benchmark_name].semantic_version_hash
 
@@ -59,6 +69,11 @@ class TimeGeographicNames(_BatchBase):
 
 
 class TimeSeismicLookupNumbers(_BatchBase):
+    pretty_name = "Seismic batch lookup → numbers"
+    pretty_source = (
+        "Generate deterministic longitude/latitude coordinates; time feregion seismic batch "
+        "number lookup only."
+    )
     benchmark_name = "lookup_seismic_numbers"
     version = CASES[benchmark_name].semantic_version_hash
 
@@ -75,6 +90,11 @@ class TimeSeismicLookupNumbers(_BatchBase):
 
 
 class TimeGeographicToSeismic(_BatchBase):
+    pretty_name = "Geographic numbers → seismic numbers"
+    pretty_source = (
+        "Prepare geographic region numbers outside timing; time batch conversion to seismic "
+        "region numbers."
+    )
     benchmark_name = "geographic_numbers_to_seismic_numbers"
     version = CASES[benchmark_name].semantic_version_hash
 
@@ -104,6 +124,8 @@ class _ScalarBase:
 
 
 class TimeGeographicScalarNumber(_ScalarBase):
+    pretty_name = "Geographic scalar lookup → number"
+    pretty_source = "Time one scalar longitude/latitude geographic region-number lookup."
     benchmark_name = "lookup_geographic_number"
     version = CASES[benchmark_name].semantic_version_hash
 
@@ -118,6 +140,8 @@ class TimeGeographicScalarNumber(_ScalarBase):
 
 
 class TimeGeographicScalarRegion(_ScalarBase):
+    pretty_name = "Geographic scalar lookup → region"
+    pretty_source = "Time one scalar longitude/latitude geographic Region lookup."
     benchmark_name = "lookup_geographic_region"
     version = CASES[benchmark_name].semantic_version_hash
 
@@ -130,6 +154,8 @@ class TimeGeographicScalarRegion(_ScalarBase):
 
 
 class TimeGeographicScalarName(_ScalarBase):
+    pretty_name = "Geographic scalar number → name"
+    pretty_source = "Prepare one geographic number outside timing; time packaged-name conversion."
     benchmark_name = "geographic_number_to_name"
     version = CASES[benchmark_name].semantic_version_hash
 
@@ -144,6 +170,8 @@ class TimeGeographicScalarName(_ScalarBase):
 
 
 class TimeSeismicScalarNumber(_ScalarBase):
+    pretty_name = "Seismic scalar lookup → number"
+    pretty_source = "Time one scalar longitude/latitude seismic region-number lookup."
     benchmark_name = "lookup_seismic_number"
     version = CASES[benchmark_name].semantic_version_hash
 
@@ -161,6 +189,8 @@ class TimeSeismicScalarNumber(_ScalarBase):
 
 
 class TimeSeismicScalarRegion(_ScalarBase):
+    pretty_name = "Seismic scalar lookup → region"
+    pretty_source = "Time one scalar longitude/latitude seismic Region lookup."
     benchmark_name = "lookup_seismic_region"
     version = CASES[benchmark_name].semantic_version_hash
 
@@ -188,6 +218,10 @@ class _PandasBase(_BatchBase):
 
 
 class TimePandasLookupNumbers(_PandasBase):
+    pretty_name = "pandas lookup → geographic numbers"
+    pretty_source = (
+        "Prepare a DataFrame outside timing; time pandas lookup with geographic numbers only."
+    )
     benchmark_name = "pandas_lookup_numbers"
     version = CASES[benchmark_name].semantic_version_hash
 
@@ -205,6 +239,11 @@ class TimePandasLookupNumbers(_PandasBase):
 
 
 class TimePandasLookupNumbersAndNames(_PandasBase):
+    pretty_name = "pandas lookup → numbers + names"
+    pretty_source = (
+        "Prepare a DataFrame outside timing; time pandas lookup with geographic numbers and "
+        "packaged names."
+    )
     benchmark_name = "pandas_lookup_numbers_and_names"
     version = CASES[benchmark_name].semantic_version_hash
 

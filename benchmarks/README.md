@@ -152,15 +152,30 @@ rule: it consumes retained ASV results, writes normalized evidence under
 1-2-5 sizes of at least 10,000 points. Exit status `0` means complete/no trigger,
 `1` means triggered, and `2` means incomplete or ambiguous evidence.
 
-Build the report from retained results without rerunning measurements:
+Populate the routine current-release evidence and rebuild the complete retained-result report with one command:
 
 ```bash
-uv run --locked --group benchmark python -m benchmarks.campaign report benchmarks/campaigns/release-history.toml
-uv run --locked --group benchmark asv preview --config asv.conf.json
+uv run --locked --group benchmark python -m benchmarks.release_workflow refresh
 ```
 
-The runbook documents GitHub Pages publication. External publication is never
-implied by `run`, `check`, or `report`.
+For a review/promotion run that also refreshes historical evidence and appends substantially more samples to compatible retained results:
+
+```bash
+uv run --locked --group benchmark \
+  python -m benchmarks.release_workflow refresh \
+  --history --repetitions 15 --rounds 7 --append-samples
+```
+
+The refresh covers the full `HEAD` suite, routine release comparison, supported-Python matrix, and sparse dependency matrix. The dependency matrix includes both pandas benchmark paths. Canonical campaigns overlap at some cells, so append mode can produce unequal sample counts across the result database; retained raw samples remain the evidence.
+
+Rebuild and preview from retained measurements without timing work:
+
+```bash
+uv run --locked --group benchmark python -m benchmarks.release_workflow report
+uv run --locked --group benchmark python -m benchmarks.release_workflow preview
+```
+
+ASV loads the local `feregion` output publisher. The generated site keeps native ASV Grid/List/Graph/Regressions views and adds a project summary with human-readable benchmark metadata and curated load-scaling links. The runbook documents GitHub Pages staging and explicit push. External publication is never implied by measurement or report generation.
 
 ### Revision and build contracts
 

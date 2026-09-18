@@ -160,12 +160,24 @@ def normalize_asv_result(
     samples: tuple[float, ...] = ()
     if raw_samples is not None:
         selected = raw_samples
-        if isinstance(raw_samples, list) and raw_samples and isinstance(raw_samples[0], list):
+        # ASV v2 stores samples as a parameter-list aligned with ``result``.
+        # Do not infer parameterization from the first sample entry: a failed
+        # first parameter is represented by ``None`` while later entries can
+        # still contain sample lists.
+        if isinstance(raw_result, list) and isinstance(raw_samples, list):
             if parameter_index >= len(raw_samples):
                 raise ValueError("parameter_index is outside ASV samples list")
             selected = raw_samples[parameter_index]
-        if isinstance(selected, list):
+        if selected is None:
+            samples = ()
+        elif isinstance(selected, list):
+            if any(isinstance(value, list) for value in selected):
+                raise ValueError("unsupported nested ASV sample layout for one parameter value")
             samples = tuple(float(value) for value in selected if value is not None)
+        else:
+            raise ValueError(
+                f"unsupported ASV samples value for one parameter: {type(selected).__name__}"
+            )
 
     return EvidenceRecord(
         case_id=case_id,

@@ -430,6 +430,39 @@ or ambiguous evidence. Required selected load sizes at or above 10,000 must all
 have comparable measured baseline/candidate evidence before the decision is
 complete.
 
+**REQ-PERF-023** — Every maintained ASV benchmark binding must expose a concise
+human-readable display name and a timing-contract source description. The
+project must provide an additive `OutputPublisher` summary page in the ASV site
+that identifies benchmark/revision/environment coverage, explains the distinction
+between ASV regression signals and the project release gate, and links
+parameterized cases to useful load-scaling views. The extension must not replace
+ASV result storage, graph generation, or regression detection, and must not
+modify the installed ASV package. Any ASV-frontend insertion required by the
+page must be isolated, idempotent, version-bounded, and regression-tested.
+
+**REQ-PERF-024** — The repository must provide one repeatable release benchmark
+workflow that can populate the current candidate's full suite, supported-Python
+profile, sparse dependency profile, routine release comparison, and optionally
+backward-compatible history; apply measurement repetition/round overrides;
+append compatible raw samples to retained ASV evidence; apply the project
+release check; and rebuild the complete retained-result report. Report preview
+and external publication must remain separate actions. An external GitHub Pages
+push must require an explicit operator option.
+
+**REQ-PERF-025** — Maintained documentation must explain the benchmark system,
+operator lifecycle, current observed evidence and its limitations, the choice
+between direct ObsPy FE lookup and feregion, and planned benchmark-harness work.
+Observed performance summaries must identify their machine/environment basis and
+must not convert a single-host measurement into a universal performance claim or
+a direct ObsPy speed claim without like-for-like comparative evidence.
+
+**REQ-PERF-026** — The ASV evidence adapter must interpret v2 `samples` as a
+parameter-list aligned with the benchmark result list even when an earlier
+parameter entry is `null`. It must select only the requested parameter's samples,
+must not flatten samples belonging to other parameter values, and must reject an
+unrecognized per-parameter nested layout with a descriptive error rather than a
+low-level numeric conversion failure.
+
 ## Packaging, development environment, and license
 
 **REQ-PKG-001** — The package must require Python 3.11 or newer. Automated

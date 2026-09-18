@@ -1,7 +1,7 @@
 [campaign]
 id = "release-compare"
 purpose = "Routine previous-candidate versus HEAD performance gate on the fixed release-history environment."
-revisions = ["v0.4.0a6", "HEAD"]
+revisions = ["v0.4.0a7", "HEAD"]
 cases = ["lookup_geographic_numbers"]
 load_sizes = [
   10000, 20000, 50000,

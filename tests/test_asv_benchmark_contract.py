@@ -11,6 +11,7 @@ from pathlib import Path
 import pytest
 
 import benchmarks.campaign as campaign_module
+import benchmarks.release_workflow as release_workflow
 from benchmarks.asv_suite.contracts import CASES, STANDARD_LOAD_SIZES, workload_fingerprint
 from benchmarks.campaign import (
     ASV_BUILD_COMMAND,
@@ -24,6 +25,7 @@ from benchmarks.campaign import (
 )
 from benchmarks.evidence import EvidenceRecord, normalize_asv_result
 from benchmarks.regression import compare_release_evidence
+from benchmarks.reporting import build_publisher_payload, install_report_extension
 
 
 def test_case_versions_have_stable_sha256_identity() -> None:
@@ -578,8 +580,12 @@ def test_predefined_campaigns_cover_operator_workflows() -> None:
     assert head_full.load_sizes == STANDARD_LOAD_SIZES
     assert set(head_full.cases) == set(CASES)
     release_compare = parsed["release-compare.toml"]
-    assert release_compare.revisions == ("v0.4.0a6", "HEAD")
+    assert release_compare.revisions == ("v0.4.0a7", "HEAD")
     assert max(release_compare.load_sizes) == 1_000_000
+    dependency_matrix = parsed["dependency-matrix.toml"]
+    assert {"pandas_lookup_numbers", "pandas_lookup_numbers_and_names"} <= set(
+        dependency_matrix.cases
+    )
 
 
 def _write_asv_result(
@@ -716,14 +722,221 @@ def test_release_gate_requires_maintained_adjacent_loads_and_complete_required_s
 
 
 def test_benchmark_operator_runbook_covers_rerun_and_publication_workflow() -> None:
-    """Maintained operator guidance must keep rerun/report/publish responsibilities visible."""
+    """Maintained guidance must keep refresh/report/preview/publish responsibilities visible."""
 
     project_root = Path(__file__).resolve().parents[1]
     text = (project_root / "docs" / "benchmark-operations.md").read_text(encoding="utf-8")
-    assert "benchmarks/campaigns/release-compare.toml" in text
+    assert "python -m benchmarks.release_workflow refresh" in text
+    assert "--history --repetitions 15 --rounds 7 --append-samples" in text
     assert "python -m benchmarks.campaign check" in text
-    assert "python -m benchmarks.campaign report" in text
-    assert "asv preview --config asv.conf.json" in text
-    assert "asv gh-pages --no-push --config asv.conf.json" in text
-    assert "git push origin gh-pages" in text
+    assert "python -m benchmarks.release_workflow report" in text
+    assert "python -m benchmarks.release_workflow preview" in text
+    assert "python -m benchmarks.release_workflow publish --push" in text
+    assert "feregion summary" in text
     assert ".asv/results" in text
+
+
+def test_benchmark_supporting_documents_cover_evidence_choice_and_roadmap() -> None:
+    """Retain the evidence summary, user choice guide, and future-work boundary.
+
+    These documents preserve the final-alpha benchmark evidence and planned-work context.
+    """
+
+    project_root = Path(__file__).resolve().parents[1]
+    results = (project_root / "docs" / "benchmark-results.md").read_text(encoding="utf-8")
+    choice = (project_root / "docs" / "obspy-or-feregion.md").read_text(encoding="utf-8")
+    roadmap = (project_root / "docs" / "benchmark-roadmap.md").read_text(encoding="utf-8")
+    assert "Python-version sensitivity" in results
+    assert "NumPy-version sensitivity" in results
+    assert "pandas-version sensitivity" in results
+    assert "Performance across feregion releases" in results
+    assert "does **not** establish a current numeric speedup over ObsPy" in choice
+    assert "planned or investigatory work" in roadmap
+
+
+def test_asv_config_loads_feregion_output_publisher_plugin() -> None:
+    """Persistent and generated ASV configs must load the local publisher plugin."""
+
+    persistent = json.loads((Path(__file__).resolve().parents[1] / "asv.conf.json").read_text())
+    assert persistent["plugins"] == [".benchmarks.asv_plugin"]
+    campaign = Campaign(
+        "report",
+        "test",
+        ("HEAD",),
+        ("lookup_geographic_numbers",),
+        (10_000,),
+        2,
+        1,
+        "release-history",
+        True,
+    )
+    generated = build_asv_config(campaign, repository=Path("."))
+    assert generated["plugins"] == [".benchmarks.asv_plugin"]
+
+
+def test_benchmark_bindings_expose_human_readable_asv_metadata() -> None:
+    """Every ASV timing class must provide a useful display name and source explanation."""
+
+    from benchmarks.asv_suite import benchmarks as asv_benchmarks
+
+    classes = [
+        value
+        for name, value in vars(asv_benchmarks).items()
+        if name.startswith("Time") and isinstance(value, type)
+    ]
+    assert len(classes) == len(CASES)
+    for cls in classes:
+        assert getattr(cls, "pretty_name", "")
+        assert getattr(cls, "pretty_source", "")
+
+
+def test_asv_samples_with_missing_first_parameter_select_later_sample_list() -> None:
+    """A null first parameter must not make the ASV sample param-list look scalar."""
+
+    record = normalize_asv_result(
+        case_id="lookup_geographic_numbers",
+        case_version=1,
+        revision="abc",
+        campaign_id="slice",
+        result={"result": [None, 0.4], "samples": [None, [0.39, 0.41]]},
+        parameter_index=1,
+        load_size=20_000,
+    )
+    assert record.samples == (0.39, 0.41)
+    assert record.statistic_seconds == 0.4
+
+
+def test_report_extension_adds_page_without_replacing_asv_assets(tmp_path: Path) -> None:
+    """The project page must be additive and idempotent over a stock-like ASV index."""
+
+    html = tmp_path / "html"
+    html.mkdir()
+    (html / "index.html").write_text(
+        "<html><head>  </head><body><ul>\n"
+        '\t<li id="nav-li-regressions"><a href="#/regressions">Regressions</a></li>\n'
+        '</ul>    <div id="regressions-display"></div></body></html>',
+        encoding="utf-8",
+    )
+    install_report_extension(html)
+    install_report_extension(html)
+    text = (html / "index.html").read_text(encoding="utf-8")
+    assert text.count("feregion-report-extension") == 1
+    assert "nav-li-feregion" in text
+    assert "feregion-display" in text
+    assert (html / "feregion-report.js").is_file()
+    assert (html / "feregion-report.css").is_file()
+
+
+def test_publisher_payload_links_parameterized_cases_to_scaling_view(tmp_path: Path) -> None:
+    """The summary payload must expose curated load-size links and ASV signal counts."""
+
+    (tmp_path / "regressions.json").write_text(
+        json.dumps({"regressions": [["a"], ["b"]]}), encoding="utf-8"
+    )
+
+    class Graphs:
+        def get_params(self):
+            return {"machine": {"host"}, "python": {"3.12", "3.14"}}
+
+    class Repo:
+        def get_tags(self):
+            return {"v1": "a" * 40}
+
+    payload = build_publisher_payload(
+        html_dir=tmp_path,
+        benchmarks={
+            "bench.time_batch": {
+                "pretty_name": "Batch",
+                "pretty_source": "Map coordinates to geographic numbers.",
+                "code": "time batch",
+                "params": [["100", "1000"]],
+                "param_names": ["size"],
+            }
+        },
+        graphs=Graphs(),
+        revisions={"a" * 40: 1},
+        repo=Repo(),
+    )
+    assert payload["regression_count"] == 2
+    assert payload["benchmarks"][0]["scaling_href"].endswith("x-axis=size&y-axis-scale=log")
+    assert payload["benchmarks"][0]["pretty_source"] == "Map coordinates to geographic numbers."
+    assert payload["revisions"][0]["tags"] == ["v1"]
+
+
+def test_release_workflow_refresh_uses_maintained_population_set(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Release refresh must cover current/full/matrix/history roles through maintained campaigns."""
+
+    commands: list[list[str]] = []
+
+    def fake_run(command):
+        commands.append(list(command))
+        return 0
+
+    monkeypatch.setattr(release_workflow, "_run", fake_run)
+    status = release_workflow.refresh(
+        repetitions=15,
+        rounds=7,
+        append_samples=True,
+        include_history=True,
+    )
+    assert status == 0
+    rendered = [" ".join(command) for command in commands]
+    assert any(
+        "head-full.toml --repetitions 15 --rounds 7 --append-samples" in item for item in rendered
+    )
+    assert any("dependency-matrix.toml" in item for item in rendered)
+    assert any("python-supported.toml" in item for item in rendered)
+    assert any("release-history.toml" in item for item in rendered)
+    assert not any("numpy-sensitivity.toml" in item for item in rendered)
+    assert not any("pandas-sensitivity.toml" in item for item in rendered)
+    assert rendered[-1] == "asv publish --no-pull --config asv.conf.json"
+
+
+def test_source_manifest_includes_report_assets() -> None:
+    """The source delivery must retain the JS/CSS needed by the local ASV publisher."""
+
+    project_root = Path(__file__).resolve().parents[1]
+    manifest = (project_root / "MANIFEST.in").read_text(encoding="utf-8")
+    assert "recursive-include benchmarks *.py *.md *.toml *.js *.css" in manifest
+
+
+def test_release_workflow_rebuilds_report_when_project_gate_triggers(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A regression signal must not prevent report generation needed to investigate it."""
+
+    commands: list[list[str]] = []
+
+    def fake_run(command):
+        rendered = list(command)
+        commands.append(rendered)
+        if "benchmarks.campaign" in rendered and "check" in rendered:
+            return 1
+        return 0
+
+    monkeypatch.setattr(release_workflow, "_run", fake_run)
+    status = release_workflow.refresh(
+        repetitions=None,
+        rounds=None,
+        append_samples=False,
+        include_history=False,
+    )
+    assert status == 1
+    assert commands[-1] == ["asv", "publish", "--no-pull", "--config", "asv.conf.json"]
+
+
+def test_release_workflow_publication_requires_explicit_push(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The helper must keep local publication staging separate from an external push."""
+
+    commands: list[list[str]] = []
+    monkeypatch.setattr(
+        release_workflow, "_run", lambda command: commands.append(list(command)) or 0
+    )
+    assert release_workflow.stage_publication(push=False) == 0
+    assert "--no-push" in commands[-1]
+    assert release_workflow.stage_publication(push=True) == 0
+    assert "--no-push" not in commands[-1]

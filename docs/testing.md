@@ -391,20 +391,50 @@ should retain stderr if discovery/build/install fails.
 The maintained benchmark runbook is `docs/benchmark-operations.md`. Benchmark
 verification should use the predefined campaigns rather than reconstructing ad hoc
 commands when an equivalent maintained campaign exists. The normal integration
-sequence is:
+preflight is:
 
 ```bash
 uv run --locked --group benchmark asv check --config asv.conf.json
 uv run --locked --group benchmark python -m benchmarks.campaign plan benchmarks/campaigns/smoke.toml
 uv run --locked --group benchmark python -m benchmarks.campaign run benchmarks/campaigns/smoke.toml
-uv run --locked --group benchmark python -m benchmarks.campaign plan benchmarks/campaigns/release-compare.toml
-uv run --locked --group benchmark python -m benchmarks.campaign run benchmarks/campaigns/release-compare.toml
-uv run --locked --group benchmark python -m benchmarks.campaign check benchmarks/campaigns/release-compare.toml
-uv run --locked --group benchmark python -m benchmarks.campaign report benchmarks/campaigns/release-history.toml
 ```
 
-`campaign check` consumes retained ASV result JSON and does not rerun measurements.
-The full `head-full` campaign spans the complete 1-2-5 grid through 50,000,000 and
-requires a host with sufficient memory; resource failure at those sizes is not a valid
-performance result. External GitHub Pages publication is intentionally separate from
-these verification commands and is documented in the benchmark runbook.
+For routine release preparation, the synchronized workflow plans and runs the
+release comparison, full `HEAD` suite, sparse dependency matrix, and supported
+Python matrix, applies the project release check, and rebuilds the complete ASV
+site:
+
+```bash
+uv run --locked --group benchmark python -m benchmarks.release_workflow refresh
+```
+
+A review/promotion evidence-strengthening run can include backward-compatible
+history and append more samples to compatible retained ASV result cells:
+
+```bash
+uv run --locked --group benchmark \
+  python -m benchmarks.release_workflow refresh \
+  --history --repetitions 15 --rounds 7 --append-samples
+```
+
+Canonical campaigns overlap at selected cells, so append mode can produce unequal
+sample counts. Raw samples and exact environment/revision identities remain the
+evidence; do not imply uniform precision across cells. `campaign check` consumes
+retained ASV result JSON and does not rerun measurements. Its evidence adapter
+interprets ASV v2 `samples` as a parameter-aligned list even when earlier
+parameter entries are null, and rejects unsupported deeper nesting descriptively.
+
+The local ASV plugin gives every benchmark a human-readable display/source
+description and adds an additive `feregion summary` page to the generated site.
+It does not replace ASV's native Grid/List/Graph/Regressions views or modify the
+installed ASV package. Rebuild and preview without timing work with:
+
+```bash
+uv run --locked --group benchmark python -m benchmarks.release_workflow report
+uv run --locked --group benchmark python -m benchmarks.release_workflow preview
+```
+
+The full `head-full` campaign spans the complete 1-2-5 grid through 50,000,000
+and requires a host with sufficient memory; resource failure at those sizes is
+not a valid performance result. External GitHub Pages publication is intentionally
+separate and requires an explicit push option as documented in the runbook.

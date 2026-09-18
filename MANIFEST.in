@@ -9,7 +9,7 @@ include THIRD_PARTY_NOTICES.md
 include tox.toml
 recursive-include .github/workflows *.yml
 recursive-include LICENSES *.txt
-recursive-include benchmarks *.py *.md *.toml
+recursive-include benchmarks *.py *.md *.toml *.js *.css
 recursive-include docs *.md
 recursive-include tests *.py
 recursive-include tools *.py

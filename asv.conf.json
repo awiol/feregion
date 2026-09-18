@@ -28,5 +28,8 @@
   ],
   "install_command": [
     "in-dir={env_dir} python -m pip install --no-deps --force-reinstall {wheel_file}"
+  ],
+  "plugins": [
+    ".benchmarks.asv_plugin"
   ]
 }

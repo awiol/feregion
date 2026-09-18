@@ -1038,3 +1038,69 @@ changed rationale as historical fact.
   and rebuild reports from retained results without rerunning historical measurements.
 - **Review trigger:** ASV result-file format changes, the release performance rule
   changes, or multi-machine aggregation becomes an explicit project requirement.
+
+## `DEC-053` — Extend ASV reporting instead of replacing it
+
+- **Context:** A fully populated ASV 0.6.6 report proved materially more useful
+  than the earlier sparse report: parameterized `size` can be selected as the
+  graph x-axis, historical/dependency environments are retained, and the native
+  regressions page is valuable. The remaining usability gap is orientation and
+  interpretation rather than missing benchmark infrastructure.
+- **Decision:** Keep ASV as the authoritative generic benchmark execution,
+  history, graph, and regression substrate. Add human-readable benchmark
+  `pretty_name`/`pretty_source` metadata and one local `OutputPublisher` summary
+  page. Because ASV 0.6.6 records custom publisher metadata but its stock HTML
+  does not dynamically create arbitrary custom-page navigation/DOM/script
+  elements, apply a bounded additive post-publish insertion to the freshly
+  copied ASV site. Do not modify the installed ASV package or fork its graphing
+  frontend in this lineage.
+- **Consequence:** The project owns only a small summary/curation layer. Native
+  ASV Grid/List/Graph/Regressions views remain available and remain the detailed
+  technical explorer.
+- **Review trigger:** ASV provides a stable custom-page frontend hook, the
+  extension becomes incompatible with the reviewed ASV 0.6.x template, or richer
+  reporting would require a substantial ASV JavaScript fork.
+
+## `DEC-054` — Provide one repeatable release benchmark refresh workflow
+
+- **Context:** The maintained campaign files are reproducible individually, but
+  every new candidate still required a maintainer to remember which campaigns
+  collectively populate the useful report, how to add more samples, and when to
+  rebuild or publish the site.
+- **Decision:** Add `benchmarks.release_workflow`. `refresh` plans and runs the
+  smoke, release comparison, full `HEAD`, sparse dependency, and supported-Python
+  campaigns, optionally includes release history, applies the project release
+  check, and rebuilds the full ASV report. Measurement repetition/round overrides
+  and `--append-samples` are forwarded to campaign runs. Report preview and
+  GitHub Pages staging/push remain explicit separate commands; push requires an
+  explicit `--push`.
+- **Consequence:** A maintainer can repopulate evidence and regenerate the report
+  with one command while retained ASV data remains the measurement authority.
+  The workflow intentionally avoids separately rerunning NumPy/pandas sensitivity
+  campaign files because their maintained environment points and both pandas
+  benchmark paths are already covered by the sparse `dependency-matrix` campaign.
+  Some canonical campaigns still overlap at selected release-history cells; append
+  mode may therefore retain more samples for those cells, and the workflow does
+  not claim uniform sample counts.
+- **Review trigger:** Canonical campaign responsibilities change, ASV gains a
+  better built-in incremental release workflow, or repeated operation shows that
+  the selected refresh set is too expensive for normal release preparation.
+
+## `DEC-055` — Record observed benchmark results as bounded evidence, not product guarantees
+
+- **Context:** The populated ASV history now contains useful Python, NumPy,
+  pandas, and cross-release observations that help users and reviewers interpret
+  the `0.4` benchmark system. Those measurements come from one recorded machine
+  and finite repeated samples.
+- **Decision:** Maintain `docs/benchmark-results.md` as an evidence snapshot that
+  states its host/environment basis and limitations. Keep aggregate ratios
+  diagnostic and keep the project release gate separate. Maintain
+  `docs/obspy-or-feregion.md` for user selection guidance and explicitly state
+  that the current ASV evidence does not provide a like-for-like numeric ObsPy
+  speed comparison. Maintain `docs/benchmark-roadmap.md` for unapproved future
+  benchmark work.
+- **Consequence:** Users can consume the evidence without relying on chat history,
+  while documentation does not overstate portability, causality, or comparative
+  ObsPy performance.
+- **Review trigger:** Material new evidence is acquired, benchmark methodology or
+  comparison basis changes, or a direct ObsPy ASV comparator becomes available.

@@ -808,3 +808,42 @@ records must state whether dependency locking, the supported-Python matrix,
 lower-bound dependency checks, the direct ObsPy oracle, Ruff, mypy public typing, and clean
 installation were actually observed. Workflow configuration alone is not a
 verification result.
+
+### 9.8 ASV information and project summary page
+
+The native ASV site remains the detailed benchmark explorer. Benchmark bindings
+provide `pretty_name` and `pretty_source` metadata so ASV can show a human label
+and the timed-operation contract without changing benchmark semantics or case
+version identity.
+
+A repository-local ASV plugin defines `FeregionSummary(OutputPublisher)`. During
+`asv publish`, the publisher writes a small `feregion.json` summary and installs
+project-owned JavaScript/CSS into the freshly generated site. ASV 0.6.6 copies a
+fixed packaged HTML frontend and calls publisher subclasses, but the fixed HTML
+does not automatically create navigation and DOM insertion points for arbitrary
+custom pages. The publisher therefore applies one idempotent, marker-checked
+addition to that copied HTML. It does not edit ASV's installed files and does not
+replace ASV graph/regression code.
+
+The summary page exposes coverage counts, measured tags/revisions, relevant
+environment dimensions, ASV regression-signal count, project-gate interpretation,
+and curated links that open parameterized benchmarks with `size` on the x-axis.
+The native Grid, List, Graph, and Regressions pages remain accessible.
+
+### 9.9 Release benchmark refresh
+
+`benchmarks.release_workflow` is a thin orchestration layer over maintained
+campaigns and ASV commands. It does not time code itself. The normal `refresh`
+path covers the current-candidate integration smoke, routine release comparison,
+full `HEAD` suite, sparse dependency matrix, and supported-Python profile; history
+is opt-in because it is more expensive. It then runs the project release check
+and rebuilds the complete ASV report from all retained results.
+
+Campaign `run` accepts optional repetition/round overrides and `--append-samples`.
+Append mode uses ASV's own retained-result sample combination behavior; the
+project evidence adapter reads the resulting v2 parameter-list without combining
+samples from different load values.
+
+Publication state remains separate. `report` rebuilds local derived HTML,
+`preview` serves it locally, and `publish` stages the GitHub Pages branch without
+pushing unless the operator explicitly supplies `--push`.

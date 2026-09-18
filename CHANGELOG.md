@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.4.0a9 — 2026-09-18
+
+- Fix seven Ruff E501 findings in ASV benchmark metadata, reporting HTML insertion, and benchmark contract-test documentation without changing benchmark semantics or reporting behavior.
+- Advance the package candidate after the formatting/lint normalization and keep maintained verification wording aligned with the a9 candidate.
+
+## 0.4.0a8 — 2026-09-18
+
+- Improve ASV's existing information surface with human-readable benchmark names and timing-contract source descriptions, while preserving project-owned semantic case versions.
+- Add a local ASV `OutputPublisher` plugin that creates an additive `feregion summary` page with environment/revision coverage, ASV regression-signal context, and curated load-scaling links without replacing ASV's native graphs or modifying the installed ASV package.
+- Add `benchmarks.release_workflow` for repeatable current-release benchmark population, retained-evidence report rebuild/preview, and explicitly authorized GitHub Pages publication; campaign runs now accept repetition/round overrides and ASV raw-sample append mode.
+- Fix retained-ASV sample normalization when an earlier parameter value has no samples but a later parameter does, matching ASV v2's parameter-list contract instead of inspecting only the first sample entry.
+- Add maintained benchmark-results, ObsPy-versus-feregion selection, benchmark-roadmap, and expanded operator documentation based on the populated ASV evidence supplied during final-alpha development.
+- Expand the sparse dependency-matrix release refresh to retain both pandas numbers-only and numbers-plus-names evidence, include the reporting JS/CSS in source distributions, and document the higher-round sample-append workflow and its intentionally non-uniform sample counts.
+
 ## 0.4.0a7 — 2026-09-18
 
 - Expand the maintained batch benchmark load contract to the 1-2-5 engineering grid from 1 through 50,000,000 points, with regression adjacency defined by that maintained order rather than by whichever observations happen to exist.
