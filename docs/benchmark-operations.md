@@ -3,7 +3,7 @@
 This guide explains how to operate the `feregion` ASV benchmark system and why each step exists. The benchmark harness is development tooling, not runtime API.
 
 
-## Migration authority in 0.4 alpha
+## Migration authority in 0.4 beta stabilization
 
 ASV is **not yet the primary release-performance authority**. The predecessor
 standalone timer, `pytest-benchmark` suite, Tox Python matrix, and release comparator

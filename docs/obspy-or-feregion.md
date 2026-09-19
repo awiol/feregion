@@ -40,10 +40,10 @@ load. See `benchmark-results.md` for the exact conditions and limitations.
 
 That evidence answers **how the current feregion batch implementation scales**.
 The repository also retains a direct ObsPy comparator in the authoritative
-predecessor standalone/pytest-benchmark harness. `0.4.0a10` restores an ASV-native
-`reference-comparison` campaign that measures feregion, direct ObsPy, and the pinned
-source scanner on common deterministic workloads. The a10 ASV comparator is migration
-source until its real-run parity evidence is reviewed.
+predecessor standalone/pytest-benchmark harness. `0.4.0b1` retains the ASV-native
+`reference-comparison` campaign restored in a10, measuring feregion, direct ObsPy,
+and the pinned source scanner on common deterministic workloads. The b1 ASV comparator
+remains migration evidence until its real-run parity evidence is reviewed.
 
 This document still does not quote a current numeric feregion-versus-ObsPy speedup,
 because the supplied populated ASV snapshot did not contain that direct comparison

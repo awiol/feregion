@@ -199,8 +199,9 @@ could not run must remain an explicit verification limitation.
 
 The standalone benchmark runner, `pytest-benchmark`, the Tox supported-Python
 benchmark matrix, and the custom release comparator remain the authoritative
-performance-evidence path during the `0.4` alpha ASV migration. The ASV candidate
-is supplementary until `REQ-PERF-017` parity is closed by reviewed real-run evidence.
+performance-evidence path during `0.4` beta stabilization while ASV migration parity
+is open. The ASV candidate is supplementary until `REQ-PERF-017` parity is closed by
+reviewed real-run evidence.
 See `docs/benchmark-migration-parity.md` for the maintained case/metric ledger.
 
 Before timing the geographical coordinate candidate, current benchmark code

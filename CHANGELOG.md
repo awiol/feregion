@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.0b1 — 2026-09-19
+
+- Promote the `0.4` benchmark-system target to beta maturity without changing runtime lookup behavior or the a10 benchmark algorithms. The a10 source already addresses isolated-review findings FREG-001 through FREG-005; b1 is a stabilization and verification candidate rather than a second implementation of those fixes.
+- Incorporate maintainer-host ASV evidence acquired after a10: exact `v0.4.0a10`/HEAD identity was resolved to `665d3c85d537155cbeae417f80a8a572048dd9a0`, current and historical numeric cases executed, and a controlled `0.1.2a10`/`0.2.0b1`/`0.3.0b1` rerun found geographic batch performance approximately flat while `0.3.0b1` seismic batch lookup is materially faster than `0.2.0b1` at large loads.
+- Keep `REQ-PERF-017` open. The supplied result handoff still lacks current measurements for the restored direct ObsPy/source reference cases, split/stack diagnostics, and pandas in-place cases, and it does not demonstrate the complete real failure-state/report-rebuild parity contract. The predecessor standalone/pytest-benchmark/Tox/release-comparator path therefore remains authoritative.
+- Record memory-pressure limits explicitly: a prior broad run entered swap, and the controlled historical rerun did not retain swap-I/O telemetry. Large name/pandas measurements remain investigation evidence unless resource state is recorded; small percentage differences are not promoted into regression claims.
+- Advance project/package maturity metadata from alpha to beta while keeping release validation, benchmark-authority migration, external-source/oracle checks, static/multi-Python checks, and publication approval as separate evidence states.
+
 ## 0.4.0a10 — 2026-09-18
 
 - Address isolated benchmark review findings FREG-001 through FREG-005: replace shape/range-only ASV acceptance with bounded pinned-source semantic checks, preserve stored ASV benchmark-version identity, correct the release gate to compare throughput slowdown, retain explicit setup/run failure-state evidence, and synchronize maintained implementation-state documentation.

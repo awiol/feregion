@@ -2,17 +2,22 @@
 
 ## Purpose and evidence status
 
-This document records benchmark observations available during the final `0.4`
-alpha review preparation on 2026-09-18. It is an **observational snapshot**, not
-a universal performance guarantee and not a substitute for retained ASV result
-files. Re-run the maintained campaigns before making a release-specific claim.
+This document records benchmark observations available for `0.4` beta entry on
+2026-09-19. It is an **observational snapshot**, not a universal performance guarantee
+and not a substitute for retained raw result files. Re-run the maintained campaigns
+before making a release-specific claim.
 
-The source evidence was the populated ASV 0.6.6 result/report archive supplied by
-the maintainer on 2026-09-18, SHA-256
-`5157a6ea65e269e46e8a494e005482e383368fbec7f1a18a3c62411746dcbab6`.
-The current measured candidate in that snapshot was Git commit
-`226b36441a3d604b4b7b26536ffbff3c88e17bca` (`v0.4.0a7`). The principal
-machine identity was:
+Evidence retained for this summary includes the earlier populated ASV 0.6.6
+result/report archive supplied on 2026-09-18 (SHA-256
+`5157a6ea65e269e46e8a494e005482e383368fbec7f1a18a3c62411746dcbab6`), the later raw
+a10 results handoff (SHA-256
+`9025f956e59e5c7465da8b2fc59a2c80838f5bec77858b69f5ac137abf2262b2`), and the
+controlled historical rerun (SHA-256
+`59b3c94dae942ccbb7a2eb5dd9cd5d945c39c2d724f180d799360e7f3a84efa4`). The latter
+maps `v0.4.0a10`/`HEAD` to
+`665d3c85d537155cbeae417f80a8a572048dd9a0`. The earlier dependency-sensitivity
+sections below retain their recorded a7 basis rather than silently relabeling those
+measurements as a10 data.
 
 - machine: `awiol-ryzen3600`;
 - CPU: AMD Ryzen 5 3600 6-Core Processor, 12 logical CPUs;
@@ -101,36 +106,38 @@ pandas 3.0.5 globally favorable or unfavorable.
 
 ## Performance across feregion releases
 
-The fixed historical comparison environment is CPython 3.12, NumPy 1.26.4, and
-pandas 2.1.4. Each row below uses only measurements common to both adjacent
-revisions; therefore row coverage differs and ratios must not be compared as if
-they were one uniform score.
+### Controlled 0.1/0.2/0.3 historical rerun
 
-| Transition | Common measurements | Geometric ratio | Main observation |
-|---|---:|---:|---|
-| 0.1.2a10 → 0.2.0b1 | 4 | 1.483 | material early slowdown, concentrated in seismic lookup |
-| 0.2.0b1 → 0.3.0b1 | 4 | 0.875 | recovery, with seismic lookup about 24% faster geometrically |
-| 0.3.0b1 → 0.4.0a5 | 9 | 0.807 | broad improvement; geographic about 20% faster and seismic about 35% faster geometrically |
-| 0.4.0a5 → 0.4.0a6 | 12 | 1.010 | approximately flat overall |
-| 0.4.0a6 → 0.4.0a7 | 12 | 1.008 | approximately flat overall |
+The beta-entry rerun uses CPython 3.12, NumPy 1.26.4, and pandas 2.1.4 on the same
+recorded host and directly remeasures the numeric geographic/seismic batch cases.
+Representative medians are:
 
-The last two transitions are important context for the ASV regression page:
-small step-detection signals can occur even when the broad same-environment
-release comparison is approximately flat.
+| Load | Geographic 0.1.2a10 | Geographic 0.2.0b1 | Geographic 0.3.0b1 | Seismic 0.2.0b1 | Seismic 0.3.0b1 |
+|---:|---:|---:|---:|---:|---:|
+| 100k | 1.269 ms | 1.280 ms | 1.275 ms | 3.334 ms | 1.419 ms |
+| 500k | 6.856 ms | 6.652 ms | 6.561 ms | 48.817 ms | 7.279 ms |
+| 1M | 16.386 ms | 16.444 ms | 16.272 ms | 98.940 ms | 18.028 ms |
 
-### Was the early throughput decrease a one-time event?
+The geographic path is approximately flat across these three revisions at the
+shared loads. The controlled rerun therefore does **not** reproduce a material
+`0.1.2a10`→`0.2.0b1` geographic regression. The seismic path is different:
+`0.3.0b1` is about 2.35×, 6.71×, and 5.49× faster than `0.2.0b1` at 100k, 500k,
+and 1M respectively. This is a material historical improvement, not a regression.
+The rerun has no usable `0.1.2a10` seismic result, so it cannot establish the
+seismic `0.1`→`0.2` transition.
 
-The retained snapshot supports a narrower conclusion: the slowdown from
-`0.1.2a10` to `0.2.0b1` was **not a persistent monotonic degradation**. The next
-measured transition recovered performance, the `0.3.0b1`→`0.4.0a5` transition
-improved further, and the measured a5→a6→a7 transitions were approximately flat.
+The earlier broad retained snapshot remains useful historical evidence, but its
+aggregate `0.1.2a10`→`0.2.0b1` slowdown must not be generalized to the geographic
+batch path after this controlled rerun. The cause of the earlier aggregate signal
+remains unresolved: workload coverage, historical benchmark semantics, environment,
+or transient host effects are still credible alternatives.
 
-That sequence does **not** establish that the original decrease was a one-time
-causal event. Coverage differs between transitions, the evidence is single-host,
-and no controlled causal experiment isolates the responsible change. The stronger
-`release_workflow refresh --history ... --append-samples` run in progress during
-a10 development should be treated as new evidence and incorporated before beta if
-it materially changes these observations.
+The rerun archive records swap space occupied after measurement but does not retain
+`vmstat` or equivalent swap-I/O telemetry. Occupied swap alone does not prove active
+swapping during timed work. The large seismic difference remains materially larger
+than normal sample variation, but small percentage differences are not interpreted
+as revision effects from this run. Future memory-heavy name/pandas campaigns should
+retain swap-I/O and peak-RSS evidence.
 
 ## ASV regression signals versus the project gate
 

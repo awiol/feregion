@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| Status | Current alpha quality contract |
-| Current target | `0.4` benchmark-system alpha; predecessor performance authority retained while ASV migration evidence remains incomplete |
+| Status | Current beta quality contract |
+| Current target | `0.4` benchmark-system beta stabilization; predecessor performance authority retained while ASV migration evidence remains incomplete |
 
 ## Purpose
 
@@ -52,7 +52,7 @@ stronger product claim by itself.
 | `QG-CI` | CI executes a reproducible declared tool/dependency state | Compatible constrained uv, committed `uv.lock`, `uv sync --locked`, bounded job timeouts, and concurrency cancellation | Workflow syntax is valid; lock-preserving jobs pass on the exact candidate state | Project decision owner | workflow, lock, and CI run |
 | `QG-PKG` | Built distributions contain and install the intended product | `uv build`, wheel archive inspection, dependency-isolated wheel installation and smoke checks | Build succeeds; wheel contents/metadata meet the package contract; installed smoke checks pass | Project decision owner | verification record and package hashes |
 | `QG-BENCH` | The `0.4` ASV migration candidate preserves its declared semantic, evidence, and operator contract | Source-oracle sensitivity tests; stored benchmark-version mapping fixtures; explicit state-sidecar/run-record fixtures; campaign/Git/build-install boundary tests; comparator/diagnostic parity tests; raw/nested-sample normalization; throughput-gate parity tests; OutputPublisher and release-workflow tests; real ASV vertical slice | Wrong-but-in-range output is rejected before timing; unknown stored benchmark versions are incompatible; not-applicable/build/correctness/execution/measured states remain distinguishable; operations-per-second is retained; throughput gate matches the predecessor decision; comparator and diagnostic roles match the parity ledger; real ASV source-oracle smoke/history/reference/diagnostic runs succeed | Project decision owner | predecessor benchmark evidence plus ASV result/state/run preservation set, normalized evidence, parity review, project check output, generated site |
-| `QG-PERF` | Performance claims remain bounded by evidence | During `0.4` alpha migration, predecessor standalone/pytest-benchmark/Tox/release-comparator evidence remains authoritative; ASV evidence supplements it and must be reconciled through `QG-BENCH`. After migration acceptance, the authority decision may be revised explicitly. | Correctness-sensitive evidence exists on one comparable context; median throughput slowdown exceeds 25% at no two adjacent maintained loads without disposition; direct ObsPy/source comparisons are cited only when actually run; otherwise the gate is incomplete. | Project decision owner | predecessor raw reports/comparison plus retained ASV result/state/run evidence and parity review |
+| `QG-PERF` | Performance claims remain bounded by evidence | During `0.4` beta stabilization while `REQ-PERF-017` remains open, predecessor standalone/pytest-benchmark/Tox/release-comparator evidence remains authoritative; ASV evidence supplements it and must be reconciled through `QG-BENCH`. After migration acceptance, the authority decision may be revised explicitly. | Correctness-sensitive evidence exists on one comparable context; median throughput slowdown exceeds 25% at no two adjacent maintained loads without disposition; direct ObsPy/source comparisons are cited only when actually run; otherwise the gate is incomplete. | Project decision owner | predecessor raw reports/comparison plus retained ASV result/state/run evidence and parity review |
 | `QG-PROV` | Upstream and generated-data identity is known to the stated level | Pinned ObsPy source hashes; literal reviewed ISC semantic hash independent from hierarchy declarations; generated-asset SHA-256 checks; multi-source metadata and third-party notice review | Identity checks pass and unresolved license/provenance limitations remain explicit; live ISC comparison is scheduled/manual integration evidence | Source-data license disposition requires qualified/human decision | semantic-pin record, metadata, notices, verification record |
 | `QG-DOC` | Maintained knowledge matches the target behavior | Contract/document synchronization tests plus semantic review | Current requirements/design/quality/decision/traceability set matches the changed public and repository behavior | Project decision owner | source documents and review record |
 | `QG-DELIVERY` | The exported source handoff is replayable | Full source archive, exact-baseline patch, manifest, checksums, patch application and tree comparison | Patch reconstructs target byte-for-byte; archive safety and checksums pass | Project decision owner | delivery manifest, checksums, patch, verification record |
@@ -60,14 +60,20 @@ stronger product claim by itself.
 ## Maturity and release-validation decision
 
 Prerelease identifiers describe maturity for one target line and remain separate
-from release-validation status. The current `0.3` line is the active beta target: its
-accepted runtime functionality is substantially complete and beta work remains
-stabilization/verification unless a separate target is selected.
+from release-validation status. The `0.4` line is now the active beta target. Its
+intended benchmark-system functionality is substantially complete after the a10
+review corrections; beta work is stabilization, evidence reconciliation, and migration
+closure rather than discretionary benchmark-surface expansion.
 
-The user has selected `0.4.0` as a new target release core dedicated to the
-benchmark system described in the engineering requirements and design. This is
-new functionality relative to the `0.3` beta line, so it is not folded back into
-`0.3` stabilization. The `0.4` target is now implemented at alpha maturity. Repository contract tests cover the project-owned benchmark model, campaign planning, evidence normalization, and release-decision logic. Real ASV execution, historical-revision parity, raw-history generation, and static-site rebuild remain integration evidence required before migration completion.
+The `0.4.0` target remains dedicated to the benchmark system described in the
+engineering requirements and design. Repository contract tests cover the project-owned
+benchmark model, campaign planning, semantic oracle, evidence normalization, explicit
+result states, and release-decision logic. Maintainer-host ASV current/history numeric
+execution is now observed, but complete reference/diagnostic parity, controlled
+failure-state evidence, predecessor reconciliation, and static-site/preservation-set
+replay remain required before ASV migration completion. These open items do not undo
+beta maturity; they continue to block stronger migration-authority and release-validation
+claims.
 
 `QG-BENCH` applies to implementation and promotion of the `0.4` benchmark target.
 It is not retroactively added as a blocker for `0.3` beta stabilization. Until the

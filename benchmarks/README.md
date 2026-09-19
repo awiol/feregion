@@ -89,8 +89,8 @@ The harness cannot establish CPU power/frequency policy; control that externally
 ## `0.4` ASV migration candidate
 
 The predecessor commands above remain the **authoritative performance-evidence
-path during the `0.4` alpha migration**. ASV is a supplementary migration
-candidate until the semantic/case/metric parity and real-run evidence required by
+path during `0.4` beta stabilization while migration parity remains open**. ASV is a
+supplementary migration candidate until the semantic/case/metric parity and real-run evidence required by
 `REQ-PERF-017` are reviewed. See `docs/benchmark-migration-parity.md` for the
 explicit parity ledger.
 

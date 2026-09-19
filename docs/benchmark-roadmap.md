@@ -3,16 +3,16 @@
 ## Status
 
 This document records **planned or investigatory work**, not implemented requirements.
-The `0.4.0a10` source repairs the reviewed ASV evidence semantics and restores much of
-predecessor case/metric parity, but ASV remains a secondary migration candidate until
-`REQ-PERF-017` is closed. The predecessor benchmark harness remains authoritative in
-that interval.
+The first `0.4` beta candidate preserves the a10 repairs to reviewed ASV evidence
+semantics and restored predecessor case/metric roles. ASV remains a secondary migration
+candidate until `REQ-PERF-017` is closed; the predecessor benchmark harness remains
+authoritative in that interval.
 
 ## Migration closure
 
-1. Run a real a10 ASV smoke/history/reference/diagnostic vertical slice with the pinned
-   source oracle present and demonstrate that deliberately wrong but in-range output is
-   rejected before timing.
+1. Complete the real beta ASV vertical slice. Current/history numeric execution is now
+   observed; reference/diagnostic cases, retained correctness/failure-state evidence,
+   and report-rebuild parity still require explicit closure evidence.
 2. Reconcile predecessor and ASV case/metric parity using
    `benchmark-migration-parity.md`, including operations-per-second, direct ObsPy/source
    comparators, pandas in-place, and internal diagnostics.
@@ -63,9 +63,15 @@ that interval.
 18. Evaluate whether the scalar direct-ObsPy comparison should also retain the
     predecessor 10,000-call loop form as a distinct ASV case, rather than relying only on
     per-call timing plus the still-authoritative predecessor loop benchmark.
+19. Add a repository-native machine-readable results handoff command that packages raw
+    ASV results, project state/run sidecars, fresh predecessor JSON outputs, campaign
+    configuration, exact tag/commit identity, dependency/environment metadata, and
+    resource/swap telemetry without requiring operators to know internal result paths.
 
 ## Maintenance trigger
 
-Review this roadmap after the a10 closure review and before beta promotion. Moving an
+
+Review this roadmap during beta stabilization and before any benchmark-authority
+migration or release-candidate decision. Moving an
 item into implementation requires an explicit requirement/design decision rather than
 editing this roadmap alone.

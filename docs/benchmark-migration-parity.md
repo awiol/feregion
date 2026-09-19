@@ -3,7 +3,7 @@
 ## Purpose
 
 This document prevents the ASV migration from silently reducing benchmark coverage.
-It compares the predecessor benchmark roles with the `0.4.0a10` ASV migration
+It compares the predecessor benchmark roles with the `0.4.0b1` ASV migration
 candidate. The predecessor standalone timer, `pytest-benchmark` suite, Tox Python
 matrix, and release comparator remain the current authoritative benchmark path until
 `REQ-PERF-017` is closed by reviewed real-run parity evidence.
@@ -14,7 +14,7 @@ host or accepted as replacement evidence.
 
 ## Case and metric parity
 
-| Predecessor role | Predecessor surface | a10 ASV status | Migration note |
+| Predecessor role | Predecessor surface | b1 ASV status | Migration note |
 |---|---|---|---|
 | Scalar geographic number | standalone + pytest-benchmark | implemented | Source-table semantic setup added. |
 | Scalar geographic `Region` | standalone + pytest-benchmark | implemented | Number and name are checked against source tables. |
@@ -39,6 +39,24 @@ host or accepted as replacement evidence.
 | Supported-Python comparison | Tox + custom reducer | ASV profile implemented | Predecessor Tox matrix remains authoritative until result/report parity is reviewed. |
 | Release regression decision | custom release comparator | ASV normalization/check implemented | a10 corrects the gate to throughput slowdown; real closure evidence remains required. |
 | Iterations/operations per unit time | standalone + cross-Python reducer | retained in predecessor and normalized ASV evidence | `operations_per_second` is derived from declared operations and measured duration. |
+
+## Post-a10 execution evidence used for beta entry
+
+The maintainer supplied raw ASV result evidence after a10 plus a controlled historical
+rerun. The rerun resolves `v0.4.0a10` and `HEAD` to commit
+`665d3c85d537155cbeae417f80a8a572048dd9a0`. Geographic batch lookup is approximately
+flat across the measured `0.1.2a10`, `0.2.0b1`, and `0.3.0b1` revisions, while seismic
+batch lookup in `0.3.0b1` is materially faster than `0.2.0b1` at larger loads. This
+supports beta stabilization and narrows the earlier slowdown claim; it does not identify
+a one-time causal regression.
+
+The supplied evidence does **not** close migration parity. The current result handoff
+contains no finite measurements for the restored direct ObsPy scalar reference, pinned
+source scalar/batch references, split geographic/seismic diagnostics, caller stacking,
+or pandas in-place cases. Its predecessor JSON outputs are older `0.3.0a1` evidence,
+not a fresh a10/beta predecessor run, and the handoff does not contain the complete
+failure-state sidecar set needed to demonstrate each state transition. `REQ-PERF-017`
+therefore remains open and predecessor authority is unchanged.
 
 ## Why the predecessor harness remains
 

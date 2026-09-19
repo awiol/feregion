@@ -1,0 +1,29 @@
+[campaign]
+id = "recheck-0.2-0.3"
+purpose = "Controlled interleaved remeasurement of the 0.2 to 0.3 lookup change."
+
+revisions = [
+  "v0.1.2a10",
+  "v0.2.0b1",
+  "v0.3.0b1",
+]
+
+cases = [
+  "lookup_geographic_numbers",
+  "lookup_seismic_numbers",
+]
+
+load_sizes = [
+  10000,
+  20000,
+  50000,
+  100000,
+  200000,
+  500000,
+  1000000,
+]
+
+repetitions = 7
+rounds = 5
+environment_profile = "release-history"
+record_samples = true

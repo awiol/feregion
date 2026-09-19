@@ -1173,3 +1173,31 @@ changed rationale as historical fact.
 - **Review trigger:** Parity review closes the migration, a predecessor metric is
   deliberately retired through an explicit decision, or a new benchmark role is
   accepted.
+
+## `DEC-059` — Promote the `0.4` target to beta without promoting ASV authority
+
+- **Context:** The isolated a9 review identified five material benchmark/evidence
+  findings. The a10 source addressed all five with semantic oracle sensitivity,
+  retained benchmark-version mapping, throughput-space gating, explicit evidence
+  states, and synchronized maintained documentation. Subsequent maintainer-host ASV
+  evidence demonstrates current and historical numeric execution, and a controlled
+  historical rerun does not reproduce a geographic `0.1`→`0.2` regression while
+  showing a material `0.2`→`0.3` seismic improvement. The supplied handoff still lacks
+  complete real reference/diagnostic/in-place measurements and end-to-end induction of
+  every declared failure state.
+- **Decision:** Treat the intended `0.4` benchmark-system functionality as
+  substantially complete and advance the target to beta maturity. Beta work is
+  stabilization, verification, and migration-parity closure. Keep `REQ-PERF-017` open,
+  keep the predecessor benchmark harness authoritative, and keep ASV supplementary
+  until reviewed parity evidence explicitly changes that authority decision. Do not
+  include the separate geographic-ID→seismic optimization investigation in this
+  promotion change.
+- **Alternatives considered:** remain alpha until every benchmark migration gate is
+  closed; promote ASV authority together with beta; include newly identified runtime
+  optimization work in the beta promotion.
+- **Consequence:** Package maturity advances without implying release validation or
+  benchmark-authority migration. Runtime lookup behavior and the a10 benchmark
+  algorithms remain unchanged in the promotion delta. Open benchmark evidence remains
+  visible rather than being converted into a favorable gate by maturity alone.
+- **Review trigger:** A beta blocker is found, accepted beta scope changes, or reviewed
+  `REQ-PERF-017` evidence supports a new benchmark-authority decision.

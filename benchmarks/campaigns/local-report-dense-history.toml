@@ -1,0 +1,34 @@
+[campaign]
+id = "local-report-dense-history"
+purpose = "Populate two revisions densely enough to evaluate ASV native parameterized-history reporting."
+
+revisions = ["v0.4.0a6", "HEAD"]
+
+cases = [
+  "lookup_geographic_number",
+  "lookup_geographic_region",
+  "geographic_number_to_name",
+  "lookup_geographic_numbers",
+  "lookup_seismic_number",
+  "lookup_seismic_region",
+  "lookup_seismic_numbers",
+  "geographic_numbers_to_seismic_numbers",
+  "geographic_numbers_to_names",
+  "pandas_lookup_numbers",
+  "pandas_lookup_numbers_and_names",
+]
+
+load_sizes = [
+  1, 2, 5,
+  10, 20, 50,
+  100, 200, 500,
+  1000, 2000, 5000,
+  10000, 20000, 50000,
+  100000, 200000, 500000,
+  1000000,
+]
+
+repetitions = 5
+rounds = 3
+environment_profile = "release-history"
+record_samples = true

@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Behavioral contract series | `0.2` |
-| Status | Implemented alpha contract |
+| Status | Implemented beta contract |
 
 ## Normative profile and terminology
 

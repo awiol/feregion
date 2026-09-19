@@ -3,8 +3,8 @@
 | Field | Value |
 |---|---|
 | Behavioral contract series | `0.2` |
-| Status | Current alpha design |
-| Implemented target | `0.4` benchmark-system source implemented; external ASV execution evidence pending |
+| Status | Current beta design |
+| Implemented target | `0.4` benchmark-system source implemented; migration-parity evidence remains incomplete |
 
 ## 1. Design result
 
@@ -256,13 +256,19 @@ geographical IDs 172, 299, and 550 receive no fabricated geometry.
 The `0.3` beta source is the migration baseline. It uses the standalone timer,
 `pytest-benchmark`, Tox benchmark-Python environments, a custom cross-Python
 reducer, and the custom release comparator documented in `benchmarks/README.md`.
-During the remaining `0.4` alpha migration these predecessor paths remain the
+During `0.4` beta stabilization these predecessor paths remain the
 **authoritative performance-evidence path**. ASV is supplementary until reviewed
-semantic/case/metric parity and the real vertical slice satisfy `REQ-PERF-017`.
+semantic/case/metric parity and the required vertical-slice evidence satisfy
+`REQ-PERF-017`.
 
-The implemented target core is `0.4.0`, dedicated to benchmark-system work. `0.4 alpha implementation` introduces the source implementation. The `0.4` target does not authorize unrelated runtime lookup features or
+The implemented target core is `0.4.0`, dedicated to benchmark-system work. Beta
+stabilization preserves the source implementation established and review-corrected in
+alpha. The `0.4` target does not authorize unrelated runtime lookup features or
 performance optimizations. Measurements may identify such work, but adoption of
-that work requires its own compatibility/scope decision. Implementation status and verification status remain separate; external ASV execution and site-build evidence are still pending in this environment.
+that work requires its own compatibility/scope decision. Implementation status,
+maturity, and verification status remain separate; maintainer-host ASV current/history
+execution is now observed, while complete reference/diagnostic/failure-state and
+site-rebuild parity evidence remains open.
 
 Routine benchmark semantics continue to cover in-process scalar, batch,
 name-conversion, hierarchy, and pandas interfaces. CLI and GeoJSON timing remain
