@@ -60,6 +60,14 @@ def test_initial_environment_profiles_are_sparse_and_named() -> None:
         "2.2.6",
         "2.5.2",
     ]
+    reference = PROFILE_CONFIG["reference-comparison"]["matrix"]["req"]
+    assert list(reference) == ["numpy", "pandas", "obspy", "setuptools"]
+    assert reference == {
+        "obspy": ["1.4.2"],
+        "numpy": ["1.26.4"],
+        "pandas": ["2.1.4"],
+        "setuptools": ["81.0.0"],
+    }
 
 
 def test_campaign_parses_and_resolves_plan(tmp_path: Path) -> None:
@@ -230,7 +238,9 @@ def test_run_asv_uses_supported_cli_order_and_repository_rooted_config(
     )
     observed_config: Path | None = None
 
-    def fake_run(argv: list[str], *, cwd: Path) -> subprocess.CompletedProcess[str]:
+    def fake_run(
+        argv: list[str], *, cwd: Path, env: dict[str, str]
+    ) -> subprocess.CompletedProcess[str]:
         nonlocal observed_config
         assert argv[:2] == ["asv", "run"]
         assert "-c" not in argv
@@ -239,6 +249,7 @@ def test_run_asv_uses_supported_cli_order_and_repository_rooted_config(
         observed_config = Path(argv[config_index + 1])
         assert observed_config.parent == repository.resolve()
         assert cwd == repository.resolve()
+        assert "PIP_CONSTRAINT" not in env
         config = json.loads(observed_config.read_text(encoding="utf-8"))
         assert config["benchmark_dir"] == "benchmarks/asv_suite"
         assert (observed_config.parent / config["benchmark_dir"]).is_dir()
@@ -251,6 +262,44 @@ def test_run_asv_uses_supported_cli_order_and_repository_rooted_config(
     assert status == 0
     assert observed_config is not None
     assert not observed_config.exists()
+
+
+def test_reference_comparison_applies_process_level_pip_constraints(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Reference installs must remain pinned across ASV's sequential pip upgrades."""
+
+    repository = tmp_path / "repo"
+    (repository / "benchmarks" / "asv_suite").mkdir(parents=True)
+    constraints = repository / "benchmarks" / "constraints" / "reference-comparison.txt"
+    constraints.parent.mkdir(parents=True)
+    constraints.write_text(
+        "numpy==1.26.4\npandas==2.1.4\nobspy==1.4.2\nsetuptools==81.0.0\n",
+        encoding="utf-8",
+    )
+    campaign = Campaign(
+        "reference-comparison",
+        "test",
+        ("HEAD",),
+        ("obspy_geographic_number",),
+        (100,),
+        2,
+        1,
+        "reference-comparison",
+        True,
+    )
+
+    def fake_run(
+        argv: list[str], *, cwd: Path, env: dict[str, str]
+    ) -> subprocess.CompletedProcess[str]:
+        assert cwd == repository.resolve()
+        assert env["PIP_CONSTRAINT"] == str(constraints.resolve())
+        return subprocess.CompletedProcess(argv, 0)
+
+    monkeypatch.setattr(campaign_module.subprocess, "run", fake_run)
+    status = campaign_module._run_asv(campaign, ["run", "HEAD"], repository=repository)
+
+    assert status == 0
 
 
 def test_run_asv_crosses_real_subprocess_boundary_with_supported_contract(
@@ -408,7 +457,9 @@ def test_exact_selector_and_build_contract_cross_subprocess_adapter(
     resolved = (campaign_module.ResolvedRevision("v-test", second),)
     observed: list[list[str]] = []
 
-    def fake_run(argv: list[str], *, cwd: Path) -> subprocess.CompletedProcess[str]:
+    def fake_run(
+        argv: list[str], *, cwd: Path, env: dict[str, str]
+    ) -> subprocess.CompletedProcess[str]:
         observed.append(argv)
         assert argv[1:3] == ["run", f"{second}^!"]
         config_path = Path(argv[argv.index("--config") + 1])
@@ -925,12 +976,12 @@ def test_release_workflow_refresh_uses_maintained_population_set(
     assert rendered[-1] == "asv publish --no-pull --config asv.conf.json"
 
 
-def test_source_manifest_includes_report_assets() -> None:
-    """The source delivery must retain the JS/CSS needed by the local ASV publisher."""
+def test_source_manifest_includes_benchmark_assets_and_constraints() -> None:
+    """Source deliveries retain ASV report assets, campaigns, and pip constraints."""
 
     project_root = Path(__file__).resolve().parents[1]
     manifest = (project_root / "MANIFEST.in").read_text(encoding="utf-8")
-    assert "recursive-include benchmarks *.py *.md *.toml *.js *.css" in manifest
+    assert "recursive-include benchmarks *.py *.md *.toml *.txt *.js *.css" in manifest
 
 
 def test_release_workflow_rebuilds_report_when_project_gate_triggers(

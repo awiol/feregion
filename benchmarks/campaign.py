@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import subprocess
 import sys
@@ -62,9 +63,15 @@ PROFILE_CONFIG: dict[str, dict[str, Any]] = {
         "pythons": ["3.12"],
         "matrix": {
             "req": {
+                # The campaign wrapper applies the matching pip constraints
+                # file to every ASV environment-install subprocess. This is
+                # required because ASV 0.6.6 installs declarations one at a
+                # time with ``pip --upgrade``. Environment preflight then
+                # verifies the final installed state before timing is accepted.
                 "numpy": ["1.26.4"],
                 "pandas": ["2.1.4"],
                 "obspy": ["1.4.2"],
+                "setuptools": ["81.0.0"],
             }
         },
     },
@@ -76,6 +83,7 @@ ASV_BUILD_COMMAND = [
 ASV_INSTALL_COMMAND = [
     "in-dir={env_dir} python -m pip install --no-deps --force-reinstall {wheel_file}",
 ]
+REFERENCE_CONSTRAINTS = Path("benchmarks/constraints/reference-comparison.txt")
 
 _REVISION_META_CHARS = re.compile(r"(?:\.\.|@\{|[\s~^:?*\[\\])")
 _HEX_COMMIT = re.compile(r"^[0-9A-Fa-f]{7,40}$")
@@ -294,9 +302,25 @@ def _run_asv(
         json.dump(config, handle, indent=2)
         config_path = Path(handle.name)
     try:
+        environment = os.environ.copy()
+        if campaign.environment_profile == "reference-comparison":
+            constraints = (repository / REFERENCE_CONSTRAINTS).resolve()
+            if not constraints.is_file():
+                raise FileNotFoundError(
+                    f"reference-comparison constraints file is missing: {constraints}"
+                )
+            # ASV 0.6.6's uv environment installs matrix and build requirements
+            # one declaration at a time with ``pip install --upgrade``. Apply one
+            # process-level constraint set so later declarations cannot silently
+            # upgrade an earlier exact matrix pin. This also constrains the
+            # project build-system Setuptools requirement for ObsPy 1.4.2
+            # compatibility. The benchmark-side environment preflight verifies
+            # the final installed state independently before accepting timing.
+            environment["PIP_CONSTRAINT"] = str(constraints)
         completed = subprocess.run(
             ["asv", *command, "--config", str(config_path)],
             cwd=repository,
+            env=environment,
         )
         return completed.returncode
     finally:

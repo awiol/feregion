@@ -197,9 +197,11 @@ uv run --locked --group benchmark python -m benchmarks.release_workflow preview
 ASV benchmark setup writes retained sidecars under `.asv/feregion-state/`. The
 normalized evidence adapter uses them to distinguish correctness failure,
 environment/oracle unavailability, explicit not-applicable capability, execution
-failure, and measured results. Campaign execution also records revision-level run
-status under `.asv/feregion-runs/` for failures that occur before ASV can write a
-benchmark result file.
+failure, and measured results. Campaign execution records revision-level run status
+under `.asv/feregion-runs/`. b2 also verifies requested-versus-installed dependency
+versions, requested imports, and `pip check` before timing and retains the result under
+`.asv/feregion-environments/`. A broken explicitly requested comparator dependency is
+environment/build failure, not `not_applicable`.
 
 Stored ASV benchmark `version` is an input to comparability. An unknown semantic
 version is normalized as incompatible instead of being assigned the current project
@@ -217,5 +219,13 @@ Both persistent and generated ASV configs build only the `feregion` wheel with
 Dependency versions belong to the selected ASV environment profile.
 
 Generated `.asv/` state is benchmark evidence/derived output and remains outside the
-source tree. Preserve `.asv/results`, `.asv/feregion-state`, and relevant
-`.asv/feregion-runs` together when retaining authoritative migration evidence.
+source tree. Preserve `.asv/results`, `.asv/feregion-state`, relevant
+`.asv/feregion-runs`, and `.asv/feregion-environments` together when retaining
+migration evidence. Create a machine-readable handoff with:
+
+```bash
+uv run --locked --group benchmark python -m benchmarks.evidence_bundle
+```
+
+The ZIP includes a manifest with hashes and available/missing evidence families and
+excludes rebuildable `.asv/html` by default.

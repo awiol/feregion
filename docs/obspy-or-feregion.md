@@ -33,24 +33,23 @@ supersedes the other.
 
 ## Performance evidence
 
-The current ASV snapshot demonstrates that `feregion`'s vectorized geographical
-and seismic batch paths process 10k–1M point workloads at roughly 56–80 million
-coordinates per second on the measured Ryzen 5 3600 host, depending on case and
-load. See `benchmark-results.md` for the exact conditions and limitations.
+The retained b1 ASV evidence demonstrates current vectorized geographic and seismic
+batch scaling through tens of millions of points on the measured Ryzen 5 3600 host.
+See `benchmark-results.md` for exact timings, campaign status, and limitations.
 
-That evidence answers **how the current feregion batch implementation scales**.
-The repository also retains a direct ObsPy comparator in the authoritative
-predecessor standalone/pytest-benchmark harness. `0.4.0b1` retains the ASV-native
-`reference-comparison` campaign restored in a10, measuring feregion, direct ObsPy,
-and the pinned source scanner on common deterministic workloads. The b1 ASV comparator
-remains migration evidence until its real-run parity evidence is reviewed.
+The repository also retains a direct ObsPy comparator in the authoritative predecessor
+standalone/pytest-benchmark harness. A historical predecessor result for `feregion
+0.3.0a1` measured the 10,000-call scalar loop at about 357.9k feregion lookups/s versus
+507.1k ObsPy lookups/s on the same host. That historical scalar result does not imply a
+batch-performance ordering.
 
-This document still does not quote a current numeric feregion-versus-ObsPy speedup,
-because the supplied populated ASV snapshot did not contain that direct comparison
-and no raw predecessor comparison result was supplied with the a9 review. When the
-relative performance matters, run the predecessor direct comparator now and retain
-its raw result; run the ASV reference-comparison alongside it to close migration
-parity.
+The b1 ASV `reference-comparison` campaign did execute, but its direct ObsPy result is
+not valid comparative evidence. Environment investigation found that ASV requested
+ObsPy 1.4.2 / NumPy 1.26.4 / pandas 2.1.4, while the actual interpreter contained
+NumPy 2.5.3 and Setuptools 84.0.0; ObsPy 1.4.2 then failed to import because
+`pkg_resources` was unavailable. b2 adds environment-integrity preflight and repairs the
+reference profile. Until that corrected campaign is rerun, this document does not quote
+a **current** feregion-versus-ObsPy speed ratio.
 
 Do not choose feregion solely because of an unsupported speed claim. Choose it for
 its dedicated interfaces and measured batch behavior; use direct comparator evidence

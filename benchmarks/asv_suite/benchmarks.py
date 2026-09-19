@@ -9,6 +9,7 @@ import numpy as np
 
 from .adapters import CapabilityUnavailable, PackageAdapter
 from .contracts import CASES, DIAGNOSTIC_LOAD_SIZES, REFERENCE_LOAD_SIZES, STANDARD_LOAD_SIZES
+from .environment import EnvironmentIntegrityError, verify_benchmark_environment
 from .source_oracle import (
     OracleUnavailable,
     geographic_to_seismic,
@@ -33,6 +34,16 @@ def _skip(exc: CapabilityUnavailable, *, case_id: str, load_size: int | None = N
 
     record_state(case_id, load_size, "not_applicable", reason=str(exc))
     raise NotImplementedError(str(exc)) from exc
+
+
+def _require_environment(case_id: str, load_size: int | None) -> object:
+    """Verify the ASV environment and retain a case-level failure on drift."""
+
+    try:
+        return verify_benchmark_environment()
+    except EnvironmentIntegrityError as exc:
+        record_state(case_id, load_size, "build_unavailable", reason=str(exc))
+        raise
 
 
 def _checked_setup(
@@ -65,6 +76,7 @@ class _BatchBase:
     warmup_time = 0.1
 
     def setup(self, size: int) -> None:
+        _require_environment(self.benchmark_name, size)
         self.adapter = PackageAdapter.installed()
         self.coordinates = coordinates(size)
 
@@ -201,6 +213,7 @@ class _ScalarBase:
     warmup_time = 0.1
 
     def setup(self) -> None:
+        _require_environment(self.benchmark_name, None)
         self.adapter = PackageAdapter.installed()
         self.lon = 12.34
         self.lat = 56.78
@@ -564,15 +577,26 @@ class TimeObsPyScalarNumber(_ScalarBase):
     version = CASES[benchmark_name].semantic_version_hash
 
     def setup(self) -> None:
+        report = _require_environment(self.benchmark_name, None)
+        if "obspy" not in getattr(report, "requested", {}):
+            _skip(
+                CapabilityUnavailable(
+                    "ObsPy comparator requires the reference-comparison environment profile"
+                ),
+                case_id=self.benchmark_name,
+            )
         self.lon = 12.34
         self.lat = 56.78
         try:
             from obspy.geodetics import FlinnEngdahl
-        except ImportError:
-            _skip(
-                CapabilityUnavailable("ObsPy is unavailable in benchmark environment"),
-                case_id=self.benchmark_name,
+        except ImportError as exc:
+            record_state(
+                self.benchmark_name,
+                None,
+                "build_unavailable",
+                reason=f"required ObsPy import failed: {exc!r}",
             )
+            raise
         self.obspy_lookup = FlinnEngdahl()
         value = int(self.obspy_lookup.get_number(self.lon, self.lat))
         _checked_setup(
@@ -592,6 +616,7 @@ class TimeSourceReferenceScalarNumber(_ScalarBase):
     version = CASES[benchmark_name].semantic_version_hash
 
     def setup(self) -> None:
+        _require_environment(self.benchmark_name, None)
         self.lon = 12.34
         self.lat = 56.78
         self.reference = source_reference()

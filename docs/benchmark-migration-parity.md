@@ -3,7 +3,7 @@
 ## Purpose
 
 This document prevents the ASV migration from silently reducing benchmark coverage.
-It compares the predecessor benchmark roles with the `0.4.0b1` ASV migration
+It compares the predecessor benchmark roles with the `0.4.0b2` ASV migration
 candidate. The predecessor standalone timer, `pytest-benchmark` suite, Tox Python
 matrix, and release comparator remain the current authoritative benchmark path until
 `REQ-PERF-017` is closed by reviewed real-run parity evidence.
@@ -14,15 +14,15 @@ host or accepted as replacement evidence.
 
 ## Case and metric parity
 
-| Predecessor role | Predecessor surface | b1 ASV status | Migration note |
+| Predecessor role | Predecessor surface | b2 ASV status | Migration note |
 |---|---|---|---|
 | Scalar geographic number | standalone + pytest-benchmark | implemented | Source-table semantic setup added. |
 | Scalar geographic `Region` | standalone + pytest-benchmark | implemented | Number and name are checked against source tables. |
 | Scalar geographic number→name | standalone + pytest-benchmark | implemented | Uses source-derived number/name oracle. |
-| Direct ObsPy scalar baseline | standalone + pytest-benchmark | implemented in `reference-comparison` | Requires the ObsPy comparison profile; real parity measurement still required. |
-| Direct pinned-source scalar baseline | standalone | implemented in `reference-comparison` | Uses the same hash-verified source tables as the semantic oracle. |
+| Direct ObsPy scalar baseline | standalone + pytest-benchmark | implemented; corrected profile pending rerun | b1 executed the case but the requested environment was inconsistent and ObsPy import failed; b2 makes this an environment failure rather than `not_applicable`. |
+| Direct pinned-source scalar baseline | standalone | implemented and measured in b1 | Raw b1 timing exists, but its reference environment failed integrity and must be replaced by a b2-verified rerun before profile-specific parity acceptance. |
 | Public geographic batch lookup | standalone + pytest-benchmark | implemented | Full maintained 1-2-5 grid available. |
-| Direct pinned-source batch-equivalent scan | standalone + pytest-benchmark | implemented through 100k | Bounded comparator loads match the predecessor's practical source-scan range. |
+| Direct pinned-source batch-equivalent scan | standalone + pytest-benchmark | implemented and measured through 100k | Raw b1 timing exists; corrected b2 environment verification is required before profile-specific parity acceptance. |
 | Candidate/source speedup | standalone derived metric | derivable, not a separate timer | Compare the candidate and source-reference cases on identical loads/environment. |
 | Seismic batch lookup | standalone + pytest-benchmark | implemented | Source geographic lookup + project crosswalk is the correctness oracle. |
 | Geographic→seismic crosswalk | standalone + pytest-benchmark | implemented | Crosswalk oracle is checked outside timing. |
@@ -30,33 +30,42 @@ host or accepted as replacement evidence.
 | Geographic number→name batch | standalone + pytest-benchmark | implemented | Source names are checked outside timing. |
 | pandas copy, numbers | standalone + pytest-benchmark | implemented | Dependency sensitivity retained. |
 | pandas copy, numbers + names | standalone + pytest-benchmark | implemented | Dependency sensitivity retained. |
-| pandas in-place, numbers | standalone + pytest-benchmark | implemented in `diagnostics` | Restored in a10. |
-| pandas in-place, numbers + names | standalone | implemented in `diagnostics` | Restored in a10. |
-| pandas in-place seismic numbers | pytest-benchmark | implemented in `diagnostics` | Historical revisions may be not applicable. |
-| Internal split geographic path | standalone + pytest-benchmark | implemented in `diagnostics` | Diagnostic/private, not public API. |
-| Internal split seismic path | standalone + pytest-benchmark | implemented in `diagnostics` | Diagnostic/private, not public API. |
-| Caller `column_stack` + geographic lookup | standalone | implemented in `diagnostics` | Retains the allocation/stacking comparison role. |
-| Supported-Python comparison | Tox + custom reducer | ASV profile implemented | Predecessor Tox matrix remains authoritative until result/report parity is reviewed. |
+| pandas in-place, numbers | standalone + pytest-benchmark | implemented and measured in `diagnostics` | Real b1 ASV measurement is retained; fresh predecessor reconciliation remains open. |
+| pandas in-place, numbers + names | standalone | implemented and measured in `diagnostics` | Real b1 ASV measurement is retained; fresh predecessor reconciliation remains open. |
+| pandas in-place seismic numbers | pytest-benchmark | implemented and measured in `diagnostics` | Real b1 ASV measurement is retained; historical revisions may be not applicable. |
+| Internal split geographic path | standalone + pytest-benchmark | implemented and measured in `diagnostics` | Real b1 ASV measurement is retained; diagnostic/private, not public API. |
+| Internal split seismic path | standalone + pytest-benchmark | implemented and measured in `diagnostics` | Real b1 ASV measurement is retained; diagnostic/private, not public API. |
+| Caller `column_stack` + geographic lookup | standalone | implemented and measured in `diagnostics` | Real b1 ASV measurement is retained; fresh predecessor reconciliation remains open. |
+| Supported-Python comparison | Tox + custom reducer | ASV profile implemented and measured on b1 | Python 3.11–3.14 b1 ASV results exist; predecessor Tox matrix remains authoritative until parity is reviewed. |
 | Release regression decision | custom release comparator | ASV normalization/check implemented | a10 corrects the gate to throughput slowdown; real closure evidence remains required. |
 | Iterations/operations per unit time | standalone + cross-Python reducer | retained in predecessor and normalized ASV evidence | `operations_per_second` is derived from declared operations and measured duration. |
 
-## Post-a10 execution evidence used for beta entry
+## b1 execution evidence and b2 correction
 
-The maintainer supplied raw ASV result evidence after a10 plus a controlled historical
-rerun. The rerun resolves `v0.4.0a10` and `HEAD` to commit
-`665d3c85d537155cbeae417f80a8a572048dd9a0`. Geographic batch lookup is approximately
-flat across the measured `0.1.2a10`, `0.2.0b1`, and `0.3.0b1` revisions, while seismic
-batch lookup in `0.3.0b1` is materially faster than `0.2.0b1` at larger loads. This
-supports beta stabilization and narrows the earlier slowdown claim; it does not identify
-a one-time causal regression.
+The supplied b1 preservation set contains successful smoke, release comparison/history,
+dependency-matrix, supported-Python, reference-comparison, and diagnostic campaign run
+records. It retains 910 `correctness_passed` setup records and 22 `not_applicable`
+records. Genuine historical `not_applicable` examples correspond to revisions that lack
+newer capabilities.
 
-The supplied evidence does **not** close migration parity. The current result handoff
-contains no finite measurements for the restored direct ObsPy scalar reference, pinned
-source scalar/batch references, split geographic/seismic diagnostics, caller stacking,
-or pandas in-place cases. Its predecessor JSON outputs are older `0.3.0a1` evidence,
-not a fresh a10/beta predecessor run, and the handoff does not contain the complete
-failure-state sidecar set needed to demonstrate each state transition. `REQ-PERF-017`
-therefore remains open and predecessor authority is unchanged.
+Real b1 ASV measurements now exist for the restored pinned-source scalar/batch cases,
+pandas in-place paths, split geographic/seismic diagnostics, caller stacking, and the
+supported-Python/dependency matrices. This closes the earlier "implemented but never
+measured" gap for those roles. It does not establish predecessor-equivalent replacement
+evidence without a fresh like-for-like reconciliation.
+
+The direct ObsPy case is different. The b1 reference campaign returned success while the
+ObsPy result was `NaN`/`not_applicable`. A retained environment diagnostic showed ObsPy
+1.4.2 installed, but the interpreter contained NumPy 2.5.3 instead of requested 1.26.4,
+`pip check` found pandas 2.1.4 incompatible with that NumPy, and Setuptools 84 lacked
+`pkg_resources`, causing ObsPy import failure. b2 therefore treats requested-versus-
+observed environment agreement as part of timing acceptance and changes a broken
+requested comparator dependency from `not_applicable` to environment/build failure.
+
+`REQ-PERF-017` remains open. The corrected b2 reference profile must be rerun, fresh
+predecessor evidence must be reconciled with ASV, remaining failure-state examples and
+report-regeneration evidence should be retained, and benchmark authority remains with the
+predecessor path until that review explicitly closes migration parity.
 
 ## Why the predecessor harness remains
 

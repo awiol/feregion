@@ -2,115 +2,206 @@
 
 ## Purpose and evidence status
 
-This document records benchmark observations available for `0.4` beta entry on
+This document records benchmark observations available during `0.4.0b2` preparation on
 2026-09-19. It is an **observational snapshot**, not a universal performance guarantee
-and not a substitute for retained raw result files. Re-run the maintained campaigns
-before making a release-specific claim.
+and not a substitute for retained machine-readable evidence.
 
-Evidence retained for this summary includes the earlier populated ASV 0.6.6
-result/report archive supplied on 2026-09-18 (SHA-256
-`5157a6ea65e269e46e8a494e005482e383368fbec7f1a18a3c62411746dcbab6`), the later raw
-a10 results handoff (SHA-256
-`9025f956e59e5c7465da8b2fc59a2c80838f5bec77858b69f5ac137abf2262b2`), and the
-controlled historical rerun (SHA-256
-`59b3c94dae942ccbb7a2eb5dd9cd5d945c39c2d724f180d799360e7f3a84efa4`). The latter
-maps `v0.4.0a10`/`HEAD` to
-`665d3c85d537155cbeae417f80a8a572048dd9a0`. The earlier dependency-sensitivity
-sections below retain their recorded a7 basis rather than silently relabeling those
-measurements as a10 data.
+The principal current evidence is the b1 ASV result/state/run preservation set supplied
+on 2026-09-19, SHA-256
+`77c29a91225b8b0ac249632bf833890a1647016563511b20457fe7225818323a`. It contains
+measurements for commit `f220dd08be148fcac1f668f9e786207494b2de05` (`0.4.0b1`) plus retained
+historical results. The separate ObsPy environment diagnostic has SHA-256
+`7d66d4dca910bd00c6d9e3c74c36625e21b55bd596c1688a8a1ca0ac7b95aefa`.
+Earlier predecessor/ASV evidence is retained for historical comparison, including the
+2026-09-18 benchmark-results archive SHA-256
+`9025f956e59e5c7465da8b2fc59a2c80838f5bec77858b69f5ac137abf2262b2` and controlled
+historical rerun SHA-256
+`59b3c94dae942ccbb7a2eb5dd9cd5d945c39c2d724f180d799360e7f3a84efa4`.
+
+Principal host:
 
 - machine: `awiol-ryzen3600`;
 - CPU: AMD Ryzen 5 3600 6-Core Processor, 12 logical CPUs;
 - RAM: 32 GB;
 - OS: Linux 6.8.0-138-generic.
 
-Unless stated otherwise, ratios below are geometric means of directly comparable
-measurements. A ratio below `1.0` is faster than the named baseline; above `1.0`
-is slower. These aggregate ratios are diagnostic summaries, not project release
-gates. The project gate remains the requirement in `REQ-PERF-006`.
+The b1 evidence predates the b2 environment-integrity preflight. ASV result metadata
+records requested dependency profiles, but it did not prove that the interpreter used
+those exact distributions. The b1 ObsPy investigation demonstrated one concrete profile
+drift, so dependency-profile measurements below are labeled as ASV-recorded profiles
+until rerun under b2 preflight.
 
-## Current batch scale
+## Campaign coverage observed for b1
 
-On `0.4.0a7`, CPython 3.12, NumPy 1.26.4, and pandas 2.1.4, representative core
-batch measurements were:
+Retained run records show successful b1 execution for:
 
-| Case | 10,000 points | 100,000 points | 1,000,000 points |
-|---|---:|---:|---:|
-| Geographic batch lookup | 0.165 ms | 1.256 ms | 16.705 ms |
-| Seismic batch lookup | 0.178 ms | 1.427 ms | 17.924 ms |
+- `smoke`;
+- `release-compare`;
+- `release-history`;
+- `reference-comparison`;
+- `diagnostics`;
+- `dependency-matrix`; and
+- `python-supported`.
 
-Those measurements correspond to roughly 56–80 million coordinate lookups per
-second over these three loads on the measured host. This is evidence for the
-`feregion` vectorized batch path on this host; it is not a direct comparison with
-ObsPy.
+The b1 `head-full` run retained many finite measurements but returned status `2`; it is
+therefore incomplete and must not be represented as a fully successful campaign.
 
-## Throughput as a retained metric
+## Current b1 batch scale
 
-The predecessor harness reports `median_operations_per_second`, and this remains the
-project performance quantity for batch/release decisions. The a10 normalized ASV
-evidence also derives and retains `operations_per_second` from the declared operation
-count and measured duration. A timing of `t` seconds for `n` points corresponds to
-`n / t` operations per second. This preserves the earlier iterations-per-unit-time
-view instead of replacing it with elapsed time alone.
+Under the ASV-recorded CPython 3.12 / NumPy 1.26.4 / pandas 2.1.4 profile,
+representative b1 medians are:
+
+| Load | Geographic lookup | Seismic lookup |
+|---:|---:|---:|
+| 100k | 1.279 ms | 1.424 ms |
+| 500k | 6.458 ms | 7.445 ms |
+| 1M | 16.576 ms | 17.982 ms |
+| 5M | 98.720 ms | 104.300 ms |
+| 10M | 192.770 ms | 203.330 ms |
+| 20M | 386.660 ms | 416.180 ms |
+| 50M | 966.008 ms | 1.079 s |
+
+The large numeric cases remain close to linear scaling on this host. Finite upper-load
+measurements survive even though `head-full` as a whole was incomplete. Name and
+pandas-with-name cases have missing upper-load cells; the retained run record does not
+identify the failure mechanism, so those cells are not classified as memory exhaustion
+without separate resource evidence.
+
+## Throughput remains the project decision metric
+
+The predecessor harness records `median_operations_per_second`. Normalized ASV evidence
+derives `operations_per_second` from declared operation count and measured duration. A
+timing of `t` seconds for `n` operations corresponds to `n / t` operations per second.
+Elapsed duration remains useful raw evidence but does not replace throughput in the
+project release-regression rule.
 
 ## Python-version sensitivity
 
-For `0.4.0a7`, NumPy 2.3.5, pandas 2.3.3, and the geographic/seismic batch cases
-at 10k, 100k, and 1M points, CPython 3.11 is the ratio baseline:
+The b1 `python-supported` campaign completed for CPython 3.11, 3.12, 3.13, and 3.14
+under the ASV-recorded NumPy 2.3.5 / pandas 2.3.3 profile. Across geographic and seismic
+batch cases at 10k, 100k, and 1M points, the geometric timing ratios relative to Python
+3.11 are:
 
-| Python | Geometric timing ratio | Observation |
-|---|---:|---|
-| 3.11 | 1.000 | baseline |
-| 3.12 | 1.060 | about 6% slower in this snapshot |
-| 3.13 | 1.164 | about 16% slower in this snapshot |
-| 3.14 | 0.979 | about 2% faster in this snapshot |
+| Python | Timing ratio vs 3.11 |
+|---|---:|
+| 3.11 | 1.000 |
+| 3.12 | 1.061 |
+| 3.13 | 1.187 |
+| 3.14 | 1.013 |
 
-This is single-host evidence. The differences, especially between adjacent
-interpreter versions, should be strengthened with additional rounds before they
-are treated as durable interpreter-performance characteristics.
+These are single-host observations, not interpreter-wide guarantees.
 
 ## NumPy-version sensitivity
 
-For `0.4.0a7`, CPython 3.12, pandas 2.1.4, and the geographic/seismic batch cases
-at 10k, 100k, and 1M points:
+Under the ASV-recorded CPython 3.12 / pandas 2.1.4 profiles, geographic and seismic
+batch timings at 10k, 100k, and 1M give these geometric ratios relative to NumPy 1.26.4:
 
-| NumPy | Ratio vs 1.26.4 | Observation |
-|---|---:|---|
-| 1.26.4 | 1.000 | baseline |
-| 2.0.2 | 0.991 | about 0.9% faster |
-| 2.2.6 | 0.976 | about 2.4% faster |
-| 2.5.2 | 0.981 | about 1.9% faster |
+| NumPy | Timing ratio vs 1.26.4 |
+|---|---:|
+| 1.26.4 | 1.000 |
+| 2.0.2 | 1.003 |
+| 2.2.6 | 1.001 |
+| 2.5.2 | 1.018 |
 
-The newer NumPy versions are slightly favorable in this snapshot, but the
-spread is small. There is no evidence here for selecting one supported NumPy
-version solely for performance.
+The spread is small in this evidence. No supported NumPy version is selected on this
+basis alone.
 
 ## pandas-version sensitivity
 
-For `0.4.0a7`, CPython 3.12 and NumPy 1.26.4, pandas behavior depends strongly on
-which adapter result is requested:
+Under the ASV-recorded CPython 3.12 / NumPy 1.26.4 profiles, pandas behavior remains
+path-dependent. Geometric timing ratios over 10k, 100k, and 1M rows are:
 
-| pandas | Numbers-only ratio vs 2.1.4 | Numbers + names ratio vs 2.1.4 |
+| pandas | Copy numbers | Copy numbers + names | In-place numbers | In-place numbers + names |
+|---|---:|---:|---:|---:|
+| 2.1.4 | 1.000 | 1.000 | 1.000 | 1.000 |
+| 2.2.3 | 0.995 | 0.973 | 0.909 | 0.947 |
+| 2.3.3 | 0.992 | 0.979 | 0.901 | 0.963 |
+| 3.0.5 | 1.067 | 0.658 | 0.926 | 0.624 |
+
+The name-materializing path remains much more sensitive to pandas version than the
+numbers-only path. This is an investigation result, not a dependency-selection rule.
+
+## Restored diagnostic cases are now measured
+
+The b1 `diagnostics` campaign completed. At 1M rows/points under the ASV-recorded
+CPython 3.12 / NumPy 1.26.4 / pandas 2.1.4 profile:
+
+| Diagnostic case | Median |
+|---|---:|
+| Internal split geographic | 10.589 ms |
+| Internal split seismic | 12.064 ms |
+| Caller `column_stack` + geographic | 18.648 ms |
+| pandas in-place geographic numbers | 12.592 ms |
+| pandas in-place numbers + names | 341.831 ms |
+| pandas in-place seismic numbers | 14.088 ms |
+
+These measurements restore real ASV observations for predecessor diagnostic roles. They
+do not by themselves close migration parity because fresh predecessor measurements and
+like-for-like reconciliation remain required.
+
+## Reference comparison and the b1 ObsPy environment defect
+
+The b1 `reference-comparison` campaign completed at the campaign level and produced
+finite feregion and pinned-source measurements. Raw medians were approximately:
+
+| Case/load | Median |
+|---|---:|
+| feregion scalar geographic number | 5.880 µs |
+| pinned source scalar | 1.970 µs |
+| feregion batch 100 | 43.841 µs |
+| source scanner 100 | 183.973 µs |
+| feregion batch 1k | 59.761 µs |
+| source scanner 1k | 2.261 ms |
+| feregion batch 10k | 187.364 µs |
+| source scanner 10k | 17.135 ms |
+| feregion batch 100k | 1.431 ms |
+| source scanner 100k | 176.310 ms |
+
+These raw timings are **diagnostic only** because the same retained reference environment
+failed integrity investigation. ASV requested NumPy 1.26.4, pandas 2.1.4, ObsPy 1.4.2,
+but the actual interpreter contained NumPy 2.5.3, pandas 2.1.4, ObsPy 1.4.2, and
+Setuptools 84.0.0. `pip check` reported that pandas 2.1.4 was incompatible with the
+installed NumPy. ObsPy itself failed to import because its normal import path required
+`pkg_resources`, which was absent from that Setuptools release. The direct ObsPy timing
+was therefore stored as `NaN`/`not_applicable` by b1.
+
+b2 changes the environment contract: requested and observed versions, required imports,
+and `pip check` must pass before timing is accepted. A corrected reference campaign must
+replace the b1 reference timings before they support a profile-specific comparative
+claim.
+
+## Historical predecessor ObsPy comparison
+
+A predecessor standalone result retained in the 2026-09-18 evidence archive provides a
+real historical direct comparison. It is **not** a b1 result. The environment was
+`feregion 0.3.0a1`, CPython 3.14.6, NumPy 2.5.2 on the same Ryzen 5 3600 host. Over one
+10,000-coordinate scalar loop:
+
+| Implementation | Median | Throughput |
 |---|---:|---:|
-| 2.1.4 | 1.000 | 1.000 |
-| 2.2.3 | 1.009 | 0.973 |
-| 2.3.3 | 0.988 | 0.989 |
-| 3.0.5 | 1.208 | 0.616 |
+| feregion scalar lookup | 27.944 ms | 357.9k lookups/s |
+| ObsPy `FlinnEngdahl.get_number()` | 19.720 ms | 507.1k lookups/s |
+| pinned source-table scanner | 14.787 ms | 676.3k lookups/s |
 
-pandas 2.2.3 and 2.3.3 are comparatively balanced in this evidence. pandas
-3.0.5 is not uniformly better: numbers-only lookup is about 21% slower by the
-geometric summary, while numbers-plus-names is about 38% faster. At the 100k
-load specifically, the numbers-only measurement was about 56% slower than
-pandas 2.1.4. This divergence is an investigation target, not a basis for calling
-pandas 3.0.5 globally favorable or unfavorable.
+In that historical scalar workload ObsPy was about 1.42× faster than feregion. That
+result must not be generalized to vectorized batch workloads. The same predecessor
+report measured feregion's vectorized batch path as approximately 5.28×, 35.96×,
+87.61×, and 118.03× faster than the scalar source-table scanner at 100, 1k, 10k, and
+100k points respectively.
 
 ## Performance across feregion releases
 
+### b1 release-to-release evidence
+
+The b1 release-comparison evidence shows the geographic batch path approximately flat
+relative to `0.4.0a9`: all measured 10k–1M median differences are below about 1% in the
+retained same-profile data. This is consistent with the beta-stabilization claim that
+b1 did not intentionally change runtime lookup behavior.
+
 ### Controlled 0.1/0.2/0.3 historical rerun
 
-The beta-entry rerun uses CPython 3.12, NumPy 1.26.4, and pandas 2.1.4 on the same
-recorded host and directly remeasures the numeric geographic/seismic batch cases.
-Representative medians are:
+The controlled rerun uses CPython 3.12, NumPy 1.26.4, and pandas 2.1.4 and directly
+remeasures geographic/seismic batch cases:
 
 | Load | Geographic 0.1.2a10 | Geographic 0.2.0b1 | Geographic 0.3.0b1 | Seismic 0.2.0b1 | Seismic 0.3.0b1 |
 |---:|---:|---:|---:|---:|---:|
@@ -118,53 +209,45 @@ Representative medians are:
 | 500k | 6.856 ms | 6.652 ms | 6.561 ms | 48.817 ms | 7.279 ms |
 | 1M | 16.386 ms | 16.444 ms | 16.272 ms | 98.940 ms | 18.028 ms |
 
-The geographic path is approximately flat across these three revisions at the
-shared loads. The controlled rerun therefore does **not** reproduce a material
-`0.1.2a10`→`0.2.0b1` geographic regression. The seismic path is different:
-`0.3.0b1` is about 2.35×, 6.71×, and 5.49× faster than `0.2.0b1` at 100k, 500k,
-and 1M respectively. This is a material historical improvement, not a regression.
-The rerun has no usable `0.1.2a10` seismic result, so it cannot establish the
-seismic `0.1`→`0.2` transition.
+The geographic path is approximately flat across these three revisions. The controlled
+rerun does not reproduce a material `0.1.2a10`→`0.2.0b1` geographic regression.
+`0.3.0b1` seismic lookup is about 2.35×, 6.71×, and 5.49× faster than `0.2.0b1` at
+100k, 500k, and 1M respectively. The rerun has no usable `0.1.2a10` seismic result, so
+it cannot establish the seismic `0.1`→`0.2` transition.
 
-The earlier broad retained snapshot remains useful historical evidence, but its
-aggregate `0.1.2a10`→`0.2.0b1` slowdown must not be generalized to the geographic
-batch path after this controlled rerun. The cause of the earlier aggregate signal
-remains unresolved: workload coverage, historical benchmark semantics, environment,
-or transient host effects are still credible alternatives.
+## Retained state evidence
 
-The rerun archive records swap space occupied after measurement but does not retain
-`vmstat` or equivalent swap-I/O telemetry. Occupied swap alone does not prove active
-swapping during timed work. The large seismic difference remains materially larger
-than normal sample variation, but small percentage differences are not interpreted
-as revision effects from this run. Future memory-heavy name/pandas campaigns should
-retain swap-I/O and peak-RSS evidence.
+The supplied b1 preservation set contains 910 `correctness_passed` setup records and 22
+`not_applicable` records. Genuine historical `not_applicable` examples include revisions
+that predate seismic interfaces. The b1 ObsPy `not_applicable` record is **not accepted
+as genuine capability absence** after environment investigation; b2 treats failure of an
+explicitly requested comparator dependency as environment/build unavailability instead.
 
-## ASV regression signals versus the project gate
+No real retained b1 example establishes every declared failure state. Controlled real
+examples of `build_unavailable`, `correctness_failed`, `execution_failed`, and
+`incompatible` remain useful migration-closure evidence even though fixture coverage
+already verifies the normalization taxonomy.
 
-The populated ASV report contained seven regression signals using ASV's normal
-step detector. The largest observed signal was about 29% for seismic lookup at
-10k in one Python/dependency environment; another was about 18% for geographic
-lookup at 100k. The remaining signals were smaller.
+## Resource and reporting limitations
 
-None of the observed signals satisfied the `feregion` release trigger of more
-than 25% slowdown at **two adjacent maintained load sizes of at least 10,000**
-under one comparable machine/environment basis. Treat the ASV regression page as
-a sensitive investigation surface and `benchmarks.campaign check` as the
-project release-decision surface.
+The b1 `head-full` campaign returned status `2`. Numeric cases retained finite results
+through 50M, but some high-load name and pandas-with-name cells are absent. A previous
+broad run entered swap, while the controlled historical rerun did not retain active
+swap-I/O telemetry. Missing high-load cells therefore remain unclassified unless a
+bounded rerun records resource state.
 
-## Limitations and next evidence step
+The supplied preservation set does not itself demonstrate a fresh report rebuild from
+retained evidence. `python -m benchmarks.release_workflow report` remains the explicit
+report-regeneration check. b2 additionally provides `python -m benchmarks.evidence_bundle`
+so raw results, state/run/environment evidence, predecessor outputs, and configuration
+can be handed off without relying on derived HTML.
 
-The observations above come from one host and a finite number of rounds. They
-support investigation and dependency/interpreter selection discussions, but do
-not establish causal explanations. The recommended strengthening run is:
+## Current interpretation
 
-```bash
-uv run --locked --group benchmark \
-  python -m benchmarks.release_workflow refresh \
-  --history --repetitions 15 --rounds 7 --append-samples
-```
-
-This appends new raw samples to compatible retained ASV results, reruns the
-current full suite, sparse dependency matrix, supported-Python matrix, routine
-release comparison, and historical campaign, re-applies the project release
-check, and rebuilds the report. Preserve `.asv/results` before and after the run.
+The b1 evidence materially strengthens ASV case coverage: current numeric, history,
+dependency, supported-Python, pinned-source reference, and diagnostic campaigns have all
+executed. It does **not** close `REQ-PERF-017`. The direct ObsPy reference environment
+must be rerun after b2 correction, fresh predecessor evidence must be reconciled against
+ASV, and remaining failure-state/report-rebuild evidence must stay explicit. Until that
+review closes, the predecessor harness remains the performance-evidence authority and ASV
+remains supplementary migration evidence.

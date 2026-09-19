@@ -1,0 +1,8 @@
+# Keep the ASV reference-comparison environment equal to its declared profile.
+# ASV 0.6.6 installs requirements independently with ``pip --upgrade``; without
+# these constraints, installing ObsPy can upgrade NumPy after ASV selected 1.26.4.
+# ObsPy 1.4.2 also imports pkg_resources, removed by Setuptools 82.
+numpy==1.26.4
+pandas==2.1.4
+obspy==1.4.2
+setuptools==81.0.0

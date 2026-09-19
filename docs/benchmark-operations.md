@@ -252,10 +252,14 @@ uv run --locked --group benchmark \
   python -m benchmarks.campaign run benchmarks/campaigns/reference-comparison.toml
 ```
 
-This profile installs ObsPy 1.4.2 and measures feregion scalar lookup, direct ObsPy
-scalar lookup, direct pinned-source scalar lookup, feregion batch lookup, and the
-pinned-source batch-equivalent scan on common deterministic workloads. It supplements,
-but does not yet replace, the predecessor direct-comparison harness.
+This profile requests ObsPy 1.4.2, NumPy 1.26.4, pandas 2.1.4, and Setuptools 81.0.0.
+The campaign wrapper applies `benchmarks/constraints/reference-comparison.txt` as a
+process-level pip constraint so ASV's sequential `pip --upgrade` operations cannot
+change those requested versions. It measures feregion scalar lookup, direct ObsPy scalar lookup, direct pinned-source
+scalar lookup, feregion batch lookup, and the pinned-source batch-equivalent scan on
+common deterministic workloads. b2 verifies requested-versus-installed versions,
+required imports, and `pip check` before timing is accepted. A broken explicitly
+requested ObsPy environment is an environment/build failure, not `not_applicable`.
 
 Run migration diagnostics with:
 
@@ -304,9 +308,23 @@ uv run --locked --group benchmark \
 Inspect the project summary, benchmark descriptions, scaling views, revision/tag history, environment selectors, missing/skipped values, and native Regressions page before publication.
 
 Do not delete `.asv/results` merely because a report was built. During migration,
-preserve `.asv/results`, `.asv/feregion-state`, and `.asv/feregion-runs` together in
-an approved durable evidence location. The sidecars retain correctness/failure-state
-meaning that raw ASV timing JSON does not encode by itself.
+preserve `.asv/results`, `.asv/feregion-state`, `.asv/feregion-runs`, and
+`.asv/feregion-environments` together. The sidecars retain correctness, failure-state,
+and requested-versus-observed environment meaning that raw ASV timing JSON does not
+encode by itself.
+
+Create one machine-readable handoff without derived HTML with:
+
+```bash
+uv run --locked --group benchmark python -m benchmarks.evidence_bundle
+```
+
+The command writes a timestamped ZIP under `dist/benchmarks/` by default. Use
+`--output PATH.zip` when another destination is required. The archive contains a JSON
+manifest with SHA-256 values and present/missing evidence-family status, available raw
+ASV results/state/run/environment records, normalized evidence, predecessor benchmark
+outputs, campaign definitions, configuration, and repository identity. Missing optional
+evidence families remain explicit and do not prevent creating a partial handoff.
 
 ## 12. Publish to GitHub Pages
 

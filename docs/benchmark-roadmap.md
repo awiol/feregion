@@ -3,22 +3,24 @@
 ## Status
 
 This document records **planned or investigatory work**, not implemented requirements.
-The first `0.4` beta candidate preserves the a10 repairs to reviewed ASV evidence
-semantics and restored predecessor case/metric roles. ASV remains a secondary migration
-candidate until `REQ-PERF-017` is closed; the predecessor benchmark harness remains
-authoritative in that interval.
+The current `0.4` beta line preserves the a10 evidence-semantic repairs and restored
+predecessor case/metric roles. b2 adds environment-integrity verification and a
+machine-readable evidence-handoff command. ASV remains a secondary migration candidate
+until `REQ-PERF-017` is closed; the predecessor benchmark harness remains authoritative
+in that interval.
 
 ## Migration closure
 
-1. Complete the real beta ASV vertical slice. Current/history numeric execution is now
-   observed; reference/diagnostic cases, retained correctness/failure-state evidence,
-   and report-rebuild parity still require explicit closure evidence.
+1. Rerun the corrected b2 `reference-comparison` profile and require a finite direct
+   ObsPy result plus a passing retained environment-integrity record. b1 reference and
+   diagnostic execution is observed, but the b1 ObsPy environment was invalid.
 2. Reconcile predecessor and ASV case/metric parity using
    `benchmark-migration-parity.md`, including operations-per-second, direct ObsPy/source
    comparators, pandas in-place, and internal diagnostics.
-3. Exercise and retain each failure state: not applicable, environment/build
-   unavailable, correctness failed, execution failed, incompatible benchmark version,
-   and measured/correctness-passed.
+3. Complete real failure-state evidence. `correctness_passed` and genuine historical
+   `not_applicable` are observed; b2 can now retain environment/build failure directly.
+   Controlled `correctness_failed`, `execution_failed`, and incompatible-version evidence
+   remains useful migration-closure material.
 4. Verify the corrected throughput gate against the predecessor release comparator on
    the same retained baseline/candidate evidence.
 5. Only after reviewed parity closure, decide whether ASV becomes the primary benchmark
@@ -46,13 +48,16 @@ authoritative in that interval.
     release decision.
 12. Retain report-regeneration metadata so a published report identifies the exact
     retained result/state/run evidence from which it was produced.
-13. Define durable storage/export for `.asv/results`, `.asv/feregion-state`, and
-    `.asv/feregion-runs` as one preservation set.
+13. Define the durable retention/location policy for evidence handoff archives and the
+    preservation-set source directories. The b2 handoff command now exports results,
+    state, run, and environment evidence, but repository policy still needs to define
+    where long-lived archives are stored and pruned.
 
 ## Benchmark coverage and investigation
 
-14. Complete real direct ObsPy/source comparison measurements under the new
-    `reference-comparison` campaign and reconcile them with the predecessor comparator.
+14. Reconcile the corrected b2 direct ObsPy/source comparison with the predecessor
+    comparator after environment integrity passes. b1 source-reference timings exist but
+    came from an invalid requested-versus-observed dependency environment.
 15. Investigate the pandas 3.0.5 divergence between numbers-only and
     numbers-plus-names paths. Profile construction, assignment, and string/name handling
     before proposing runtime changes.
@@ -63,10 +68,6 @@ authoritative in that interval.
 18. Evaluate whether the scalar direct-ObsPy comparison should also retain the
     predecessor 10,000-call loop form as a distinct ASV case, rather than relying only on
     per-call timing plus the still-authoritative predecessor loop benchmark.
-19. Add a repository-native machine-readable results handoff command that packages raw
-    ASV results, project state/run sidecars, fresh predecessor JSON outputs, campaign
-    configuration, exact tag/commit identity, dependency/environment metadata, and
-    resource/swap telemetry without requiring operators to know internal result paths.
 
 ## Maintenance trigger
 

@@ -1201,3 +1201,39 @@ changed rationale as historical fact.
   visible rather than being converted into a favorable gate by maturity alone.
 - **Review trigger:** A beta blocker is found, accepted beta scope changes, or reviewed
   `REQ-PERF-017` evidence supports a new benchmark-authority decision.
+
+## `DEC-060` — Verify benchmark environments and provide one evidence handoff
+
+- **Context:** The b1 `reference-comparison` campaign returned success while the direct
+  ObsPy timing was stored as `not_applicable`. A retained environment diagnostic showed
+  that ObsPy 1.4.2 was installed but failed to import because Setuptools 84 no longer
+  supplied `pkg_resources`. The same environment recorded NumPy 1.26.4 as requested but
+  actually contained NumPy 2.5.3, and `pip check` reported that pandas 2.1.4 was
+  incompatible with that installed NumPy. ASV 0.6.6 installs matrix requirements one at
+  a time with upgrade semantics, so requested environment identity alone is insufficient
+  evidence for the interpreter state that produced a timing. The benchmark evidence is
+  also distributed across ASV results, project sidecars, predecessor outputs, and
+  configuration paths.
+- **Decision:** Before timing, verify the current ASV environment against its
+  `asv-env-info.json` requested requirements, import requested benchmark dependencies,
+  and run `pip check`. Retain the observed result under
+  `.asv/feregion-environments/`; classify integrity failure as environment/build
+  unavailability and fail the affected benchmark rather than converting a required
+  dependency failure into `not_applicable`. For the ObsPy 1.4.2 reference profile,
+  apply `benchmarks/constraints/reference-comparison.txt` as a process-level pip
+  constraint set for the exact NumPy/pandas/ObsPy profile and Setuptools 81.0.0, which
+  predates removal of `pkg_resources`. Provide `python -m benchmarks.evidence_bundle`
+  to package the complete available machine-readable benchmark preservation set without
+  derived HTML.
+- **Alternatives considered:** trust ASV environment names; treat broken ObsPy as an
+  optional skip; pin Setuptools globally; archive the entire `.asv` directory including
+  environments and HTML.
+- **Consequence:** Future accepted timings have evidence that requested and observed
+  benchmark dependencies agree. The ObsPy compatibility pin remains benchmark-only and
+  does not constrain runtime `feregion` users. Evidence handoffs become reproducible and
+  inspectable without requiring operators to know internal result paths. Existing b1
+  reference timings from the inconsistent environment remain diagnostic only and must be
+  replaced by a corrected reference run.
+- **Review trigger:** ASV changes its environment installation contract, ObsPy no longer
+  requires the compatibility pin, environment metadata schema changes, or another
+  evidence family becomes necessary for replay or review.

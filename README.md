@@ -341,6 +341,17 @@ For routine release preparation, populate the maintained current-release evidenc
 uv run --locked --group benchmark python -m benchmarks.release_workflow refresh
 ```
 
+Create a machine-readable benchmark-results handoff after the desired campaigns and
+predecessor harnesses have run:
+
+```bash
+uv run --locked --group benchmark python -m benchmarks.evidence_bundle
+```
+
+The archive preserves raw ASV result/state/run/environment evidence, available
+predecessor outputs, normalized evidence, campaign/configuration files, and a hashed
+manifest. Rebuildable `.asv/html` is excluded.
+
 Add `--history --repetitions 15 --rounds 7 --append-samples` when deliberately strengthening compatible historical/current evidence with more raw samples. Preview and publication remain separate commands; see the runbook before pushing external state.
 
 For the routine previous-candidate versus `HEAD` decision, run the maintained

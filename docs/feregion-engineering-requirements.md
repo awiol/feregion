@@ -477,6 +477,27 @@ evidence must retain declared operation count and derived operations per second 
 throughput-capable cases; elapsed duration alone must not replace the project
 throughput metric.
 
+**REQ-PERF-028** — The repository must provide a human-operator command that packages
+retained benchmark evidence into one machine-readable handoff archive. The handoff
+must include available ASV result JSON, project setup-state and revision-run sidecars,
+environment-integrity records, normalized project evidence, predecessor benchmark
+JSON/Tox evidence, campaign definitions, benchmark configuration, project metadata,
+and repository identity. It must include a manifest with file SHA-256 values and
+present/missing evidence-family status. Rebuildable `.asv/html` output must be excluded
+by default. Missing optional evidence families must remain explicit rather than making
+the handoff command fail when a campaign has not been run.
+
+**REQ-PERF-029** — Before an ASV timing can be accepted, the benchmark environment must
+be checked against the dependency profile recorded in its ASV environment metadata.
+The check must compare requested versions with installed distribution versions, import
+known requested benchmark dependencies, run dependency-consistency checking, and retain
+the observed environment result separately from ASV's requested environment identity.
+A mismatch, broken required import, or inconsistent dependency set must be classified as
+environment/build unavailability and must prevent valid timing evidence. Capability
+absence may be `not_applicable` only when the selected profile or historical package
+revision does not require/provide that capability; failure of an explicitly requested
+comparator dependency must not be converted into `not_applicable`.
+
 ## Packaging, development environment, and license
 
 **REQ-PKG-001** — The package must require Python 3.11 or newer. Automated

@@ -266,9 +266,10 @@ stabilization preserves the source implementation established and review-correct
 alpha. The `0.4` target does not authorize unrelated runtime lookup features or
 performance optimizations. Measurements may identify such work, but adoption of
 that work requires its own compatibility/scope decision. Implementation status,
-maturity, and verification status remain separate; maintainer-host ASV current/history
-execution is now observed, while complete reference/diagnostic/failure-state and
-site-rebuild parity evidence remains open.
+maturity, and verification status remain separate; maintainer-host ASV current/history,
+dependency, supported-Python, pinned-source reference, and diagnostic execution is now
+observed. The b1 direct ObsPy environment was invalid, and complete corrected-reference,
+failure-state, predecessor-reconciliation, and site-rebuild parity evidence remains open.
 
 Routine benchmark semantics continue to cover in-process scalar, batch,
 name-conversion, hierarchy, and pandas interfaces. CLI and GeoJSON timing remain
@@ -362,6 +363,27 @@ that emulation as historical package performance. Infrastructure/build failure
 must not be relabeled as capability absence. Modern benchmark code may run
 against older installed revisions; old revisions do not need to contain the
 current benchmark harness.
+
+### 9.3a Benchmark-environment integrity
+
+Requested ASV environment identity is not sufficient evidence for the interpreter state
+that produced a timing. Before timing is accepted in an ASV-managed environment, project
+setup reads `asv-env-info.json`, compares each requested dependency version with installed
+distribution metadata, imports known requested benchmark dependencies, and runs
+`python -m pip check`. The observed result is retained independently under
+`.asv/feregion-environments/`.
+
+A mismatch, broken required import, or inconsistent dependency set is environment/build
+unavailability and prevents valid timing evidence. A comparator can be `not_applicable`
+only when the selected profile does not request it or a historical package revision
+genuinely lacks the capability. Failure of an explicitly requested comparator dependency
+must not be converted into capability absence.
+
+The b1 ObsPy investigation motivates this boundary: ASV requested NumPy 1.26.4,
+pandas 2.1.4, and ObsPy 1.4.2, while the actual interpreter contained NumPy 2.5.3 and
+Setuptools 84.0.0; ObsPy then failed to import. b2 pins a compatible Setuptools release
+for the reference profile and verifies the resulting installed state instead of trusting
+the requested profile name.
 
 ### 9.4 Campaign control
 
@@ -649,6 +671,19 @@ fixed release-history profile, and one unambiguous common machine/environment
 context. ASV's generic comparison/regression facilities may aid exploration but
 do not replace this project gate. Missing required loads, an absent comparable
 baseline, or ambiguous contexts make the performance gate incomplete, not passed.
+
+### 9.10a Evidence preservation and handoff
+
+The preservation set contains raw ASV result JSON, project setup-state sidecars,
+revision-run records, environment-integrity records, normalized evidence, and applicable
+predecessor benchmark outputs. Derived `.asv/html` is not part of the primary evidence
+set because it can be rebuilt from retained results.
+
+`python -m benchmarks.evidence_bundle` packages the available preservation set into one
+ZIP for machine reading. The archive contains a JSON manifest with SHA-256 values,
+repository identity when Git is available, and explicit present/missing evidence-family
+status. The command does not claim that missing campaigns were run; it packages the
+state that exists.
 
 ### 9.11 Public benchmark history
 

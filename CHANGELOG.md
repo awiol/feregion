@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.0b2 — 2026-09-19
+
+- Add `python -m benchmarks.evidence_bundle` as the human-operator command for a machine-readable benchmark handoff. The ZIP preserves raw ASV results, setup state, revision-run records, environment-integrity records, normalized evidence, predecessor benchmark outputs, campaign configuration, and repository identity while excluding rebuildable `.asv/html`.
+- Add ASV environment-integrity preflight. Before timing is accepted, the benchmark process now compares `asv-env-info.json` requested versions with installed distributions, imports requested benchmark dependencies, runs `pip check`, and retains the observed result under `.asv/feregion-environments/`. Environment drift is recorded as `build_unavailable` rather than as a valid timing.
+- Repair the `reference-comparison` profile after the b1 investigation reproduced an invalid environment: ObsPy 1.4.2 was installed but failed because Setuptools 84 no longer supplied `pkg_resources`, while NumPy had drifted from requested 1.26.4 to 2.5.3. Apply an explicit reference-comparison pip constraint set for NumPy 1.26.4, pandas 2.1.4, ObsPy 1.4.2, and Setuptools 81.0.0 to every ASV environment-install subprocess; the environment preflight then verifies the final installed state before timing.
+- Stop treating failure to import explicitly requested ObsPy as a normal capability absence. The ObsPy comparator remains `not_applicable` when the selected ASV profile does not request ObsPy; a broken requested reference environment is now retained as environment failure and causes benchmark execution to fail.
+- Reconcile maintained benchmark documentation with the supplied b1 ASV preservation set: real smoke, release, history, dependency, supported-Python, reference, and diagnostic campaigns are recorded; source-reference and diagnostic cases are measured; real `correctness_passed` and historical `not_applicable` states are observed; direct b1 ObsPy timing remains invalid pending rerun under the corrected profile; and the partial `head-full` result remains incomplete.
+- Preserve `REQ-PERF-017` and predecessor benchmark authority. b2 improves the evidence substrate and documentation but does not claim migration parity, release validation, or a current like-for-like ObsPy speed result until the corrected reference campaign and predecessor reconciliation are rerun.
+
 ## 0.4.0b1 — 2026-09-19
 
 - Promote the `0.4` benchmark-system target to beta maturity without changing runtime lookup behavior or the a10 benchmark algorithms. The a10 source already addresses isolated-review findings FREG-001 through FREG-005; b1 is a stabilization and verification candidate rather than a second implementation of those fixes.

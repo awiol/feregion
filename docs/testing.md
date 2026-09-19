@@ -212,8 +212,11 @@ crosswalk before timing; the hierarchy-only crosswalk is measured separately.
 
 Current reports retain workload, environment, repetitions, median duration,
 throughput, speedup, CPU model when discoverable, machine architecture, and
-logical CPU count. Generated benchmark JSON and reports are delivery artifacts
-and are not committed to source. CPU power/frequency policy is not measured by
+logical CPU count. b2 additionally verifies the installed ASV dependency state against
+`asv-env-info.json`, imports requested benchmark dependencies, runs `pip check`, and
+retains the observed result under `.asv/feregion-environments/`. A requested dependency
+failure blocks accepted timing instead of becoming an optional capability skip. Generated
+benchmark JSON and reports are delivery artifacts and are not committed to source. CPU power/frequency policy is not measured by
 the current harness and must be controlled externally for a release ratio used as
 a gate.
 
