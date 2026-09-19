@@ -86,15 +86,16 @@ timing contract. It triggers review if candidate median batch throughput is more
 than 25 percent slower at two adjacent recorded sizes of at least 10,000 points.
 The harness cannot establish CPU power/frequency policy; control that externally.
 
-## `0.4` ASV migration candidate
+## `0.4` ASV benchmark system
 
-The predecessor commands above remain the **authoritative performance-evidence
-path during `0.4` beta stabilization while migration parity remains open**. ASV is a
-supplementary migration candidate until the semantic/case/metric parity and real-run evidence required by
-`REQ-PERF-017` are reviewed. See `docs/benchmark-migration-parity.md` for the
-explicit parity ledger.
+Reviewed post-b3 evidence satisfies `REQ-PERF-017`. ASV plus the project-owned
+campaign/evidence/regression layers are the **primary performance-evidence path** for
+`0.4`. The predecessor commands above remain runnable for compatibility checks,
+investigation, and historical provenance; they no longer define a second co-equal
+release-performance authority. See `docs/benchmark-migration-parity.md` for the accepted
+parity record.
 
-The ASV path is still valuable and should be run during migration. `feregion` owns
+`feregion` owns
 case semantics, source-oracle correctness, historical adapters, normalized evidence,
 throughput interpretation, and release decisions; ASV owns revision/environment
 mechanics, package build/install, timing, raw samples, retained history, and the

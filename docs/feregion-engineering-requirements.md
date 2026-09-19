@@ -3,17 +3,18 @@
 | Field | Value |
 |---|---|
 | Status | Current beta engineering contract |
-| Current target | `0.4.0` benchmark-system beta stabilization; ASV migration authority not yet accepted |
+| Current target | `0.4.0` benchmark-system beta stabilization; ASV migration accepted and primary benchmark authority established |
 
 This document uses the normative profile defined by `feregion-requirements.md`.
 
 ## Governing guidance for the 0.4 benchmark target
 
 The user-approved release-core decision dedicates `0.4.0` to benchmark-system
-work. The `0.4` beta source preserves the review-corrected ASV migration candidate,
-but the predecessor benchmark harness remains the current performance-evidence
-authority until the migration-parity requirement below is satisfied. The following
-method sources govern the benchmark-target design and its review. They guide
+work. The reviewed post-b3 evidence satisfies the migration-parity requirement below;
+ASV plus the project-owned campaign/evidence/regression layers are now the primary
+performance-evidence path. The predecessor harness remains runnable compatibility/
+reference tooling and historical provenance. The following method sources govern the
+benchmark-target design and its review. They guide
 engineering work; they do not create runtime package requirements unless a requirement
 below adopts them.
 

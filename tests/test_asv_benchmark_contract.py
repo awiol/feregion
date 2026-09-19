@@ -1269,8 +1269,8 @@ def test_source_oracle_pin_matches_repository_source_definition() -> None:
     assert source_oracle.SOURCE_SHA256 == obspy_fe_source.SOURCE_SHA256
 
 
-def test_publisher_payload_marks_asv_as_supplementary_during_migration(tmp_path: Path) -> None:
-    """The ASV summary must not imply benchmark authority before parity closure."""
+def test_publisher_payload_marks_asv_as_primary_after_migration(tmp_path: Path) -> None:
+    """The ASV summary must state the accepted post-migration authority model."""
 
     class Graphs:
         def get_params(self):
@@ -1287,7 +1287,7 @@ def test_publisher_payload_marks_asv_as_supplementary_during_migration(tmp_path:
         revisions={},
         repo=Repo(),
     )
-    assert "supplementary" in payload["migration_authority_note"]
+    assert "primary benchmark-evidence path" in payload["migration_authority_note"]
     assert "operations-per-second" in payload["throughput_note"]
 
 
@@ -1318,12 +1318,12 @@ def test_failed_revision_run_normalizes_conservatively_as_execution_failed(tmp_p
     assert "does not identify a narrower build/setup phase" in (records[0].reason or "")
 
 
-def test_migration_parity_document_preserves_predecessor_authority_and_throughput() -> None:
-    """Migration docs must keep old harness authority and operations-per-second visible."""
+def test_migration_parity_document_records_asv_authority_and_retained_predecessor_tools() -> None:
+    """Parity docs must record ASV authority and retain predecessor reference tooling."""
 
     project_root = Path(__file__).resolve().parents[1]
     text = (project_root / "docs" / "benchmark-migration-parity.md").read_text(encoding="utf-8")
-    assert "remain the current authoritative benchmark path" in text
+    assert "primary benchmark-evidence path" in text
     assert "Direct ObsPy scalar baseline" in text
     assert "median_operations_per_second" in text or "operations_per_second" in text
     assert "pytest-benchmark" in text

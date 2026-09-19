@@ -106,9 +106,10 @@ def build_publisher_payload(
             "load sizes of at least 10,000 under one comparable machine/environment basis."
         ),
         "migration_authority_note": (
-            "During the 0.4 alpha migration, predecessor standalone/pytest-benchmark/Tox/"
-            "release-comparator evidence remains authoritative until REQ-PERF-017 parity "
-            "is reviewed. This ASV report is supplementary migration evidence."
+            "Reviewed post-b3 evidence satisfies REQ-PERF-017. ASV plus the project-owned "
+            "campaign/evidence/regression layers are the primary benchmark-evidence path for "
+            "0.4; predecessor benchmark tooling remains runnable for compatibility, "
+            "investigation, and historical provenance."
         ),
         "throughput_note": (
             "Normalized feregion evidence retains declared operations and operations-per-second. "

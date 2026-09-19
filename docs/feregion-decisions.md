@@ -1245,3 +1245,41 @@ changed rationale as historical fact.
 - **Decision:** Filter normalized evidence by the ASV environment identities resolved from the campaign's declared profile before assigning campaign identity or applying project release logic. A missing required-profile result remains incomplete. Retain every local `asv publish` rebuild outcome under `.asv/feregion-reports/` with a digest over the retained result/state/run/environment source set and include those records in benchmark handoffs. Do not deliberately corrupt real environments solely to manufacture every rare failure state: `REQ-PERF-009` requires the states to remain distinguishable, which is verified by controlled integration fixtures plus genuine observed applicability/environment failures.
 - **Consequence:** Release decisions cannot silently cross environment-profile boundaries, report regeneration becomes auditable without preserving derived HTML, and migration closure no longer depends on contaminating authoritative result stores with synthetic failures.
 - **Review trigger:** Campaign profiles gain nontrivial environment-variable naming semantics, ASV changes environment naming, evidence collection gains native campaign provenance, or report publication semantics change.
+
+## `DEC-061` — Complete the `0.4` benchmark migration and promote ASV authority
+
+- **Context:** The reviewed post-b3 evidence handoff, SHA-256
+  `087990a7aff4e7c2efaaba4a7bbd0445f4a1edcd2fb4fae8c3776341209848a3`, binds the
+  final migration evidence to b3 commit `bc38d96441de9ffb4c7744e34f4aaf78640b7238`. The normalized
+  release comparison contains seven measured loads for both `0.4.0a9` and b3 under
+  one exact machine/environment context, the throughput gate is complete and does not
+  trigger, corrected direct ObsPy/source evidence is retained, fresh predecessor
+  standalone/pytest-benchmark/Tox evidence is retained, and the latest report-rebuild
+  record shows successful static-site reconstruction from a content-addressed 1,020-file
+  preservation set.
+- **Decision:** Accept the `REQ-PERF-017` migration vertical slice and close the `0.4`
+  benchmark migration. ASV plus the project-owned campaign, semantic-oracle, normalized-
+  evidence, and regression-decision layers become the primary benchmark-evidence path.
+  Keep the predecessor standalone timer, `pytest-benchmark` suite, Tox benchmark matrix,
+  and custom reducers runnable as compatibility/reference tooling and historical
+  provenance. They are not a second co-equal benchmark authority. Do not require
+  destructive induction of every rare failure state when controlled integration fixtures
+  demonstrate state discrimination and retained operational evidence covers genuine
+  applicability/environment failures.
+- **Rationale:** The accepted evidence closes the defects that previously blocked ASV
+  authority: semantic sensitivity, case/metric parity, operations-per-second retention,
+  required comparator execution, environment-integrity verification, same-profile release
+  comparison, explicit result states, and reproducible report rebuilding. Permanent dual
+  authority would conflict with `REQ-PERF-007` and `REQ-PERF-017`.
+- **Consequence:** `QG-PERF` and routine release-performance decisions use the ASV-derived
+  path. Historical predecessor evidence remains preserved and the predecessor tools may
+  still be useful for investigation or compatibility checks. Immediate deletion of those
+  tools is not required. High-load resource attribution, report UX, and archive-retention
+  policy remain non-blocking roadmap work. Benchmark migration acceptance does not imply
+  that unrelated package release-validation gates or external publication approval passed.
+- **Supersedes:** The temporary benchmark-authority decision in `DEC-056` and the
+  migration-open authority/status portions of `DEC-059`. `DEC-057`, `DEC-058`, and
+  `DEC-060` remain applicable technical controls.
+- **Review trigger:** A material benchmark semantic/schema change, loss of ASV support,
+  evidence that the accepted migration comparison was invalid, or a later requirement to
+  replace the primary benchmark infrastructure.

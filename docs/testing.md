@@ -195,14 +195,13 @@ could not run must remain an explicit verification limitation.
 
 ## Performance evidence
 
-### Authoritative predecessor harness during the `0.4` ASV migration
+### Performance evidence after the `0.4` ASV migration
 
-The standalone benchmark runner, `pytest-benchmark`, the Tox supported-Python
-benchmark matrix, and the custom release comparator remain the authoritative
-performance-evidence path during `0.4` beta stabilization while ASV migration parity
-is open. The ASV candidate is supplementary until `REQ-PERF-017` parity is closed by
-reviewed real-run evidence.
-See `docs/benchmark-migration-parity.md` for the maintained case/metric ledger.
+Reviewed post-b3 evidence satisfies `REQ-PERF-017`. ASV plus the project-owned
+campaign/evidence/regression layers are the primary performance-evidence path. The
+standalone benchmark runner, `pytest-benchmark`, Tox supported-Python benchmark matrix,
+and custom reducers remain runnable compatibility/reference tooling and retained
+provenance. See `docs/benchmark-migration-parity.md` for the accepted parity record.
 
 Before timing the geographical coordinate candidate, current benchmark code
 compares its output with the source-table scanner. Direct batch comparisons use
@@ -330,12 +329,11 @@ Run the predecessor and ASV slice under one controlled environment and compare:
 - representative timing behavior without requiring identical samples; and
 - release-gate outcome for controlled synthetic and real comparison records.
 
-After the vertical slice passes, migrate remaining cases incrementally. Remove
-predecessor timing/reporting paths only when their required evidence is covered.
-`pytest` continues to serve two distinct roles during migration: `pytest-benchmark` is
-part of the authoritative predecessor timing path, while ordinary pytest tests benchmark
+The reviewed post-b3 vertical slice passes and completes the migration. Predecessor
+timing/reporting paths remain available as compatibility/reference tooling and may be
+retired only through a separate maintenance decision. `pytest-benchmark` remains useful
+for predecessor-compatible investigation, while ordinary pytest tests benchmark
 semantics, adapters, campaign resolution, evidence normalization, and gate behavior.
-Do not collapse those roles when ASV is eventually reconsidered for promotion.
 
 ## Clean repository handoff
 
@@ -408,12 +406,12 @@ uv run --locked --group benchmark python -m benchmarks.campaign plan benchmarks/
 uv run --locked --group benchmark python -m benchmarks.campaign run benchmarks/campaigns/smoke.toml
 ```
 
-For routine ASV migration evidence, the synchronized workflow plans and runs the
+For routine benchmark evidence, the synchronized workflow plans and runs the
 release comparison, full `HEAD` suite, sparse dependency matrix, supported-Python
-matrix, direct ObsPy/source reference comparison, and diagnostic parity campaign.
-It applies the project ASV release check and rebuilds the complete ASV site. This
-does not replace the authoritative predecessor release evidence before migration
-closure:
+matrix, direct ObsPy/source reference comparison, and diagnostic campaign. It applies
+the project ASV release check and rebuilds the complete ASV site. After accepted
+`REQ-PERF-017` migration evidence, this ASV-derived workflow is the primary
+release-performance path:
 
 ```bash
 uv run --locked --group benchmark python -m benchmarks.release_workflow refresh

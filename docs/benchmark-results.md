@@ -2,21 +2,16 @@
 
 ## Purpose and evidence status
 
-This document records benchmark observations available during `0.4.0b3` preparation on
-2026-09-19. It is an **observational snapshot**, not a universal performance guarantee
-and not a substitute for retained machine-readable evidence.
+This document records benchmark observations accepted for the `0.4` benchmark-migration
+closeout on 2026-09-19. It is an **observational snapshot**, not a universal performance
+guarantee and not a substitute for retained machine-readable evidence.
 
-The principal current evidence is the b1 ASV result/state/run preservation set supplied
-on 2026-09-19, SHA-256
-`77c29a91225b8b0ac249632bf833890a1647016563511b20457fe7225818323a`. It contains
-measurements for commit `f220dd08be148fcac1f668f9e786207494b2de05` (`0.4.0b1`) plus retained
-historical results. The separate ObsPy environment diagnostic has SHA-256
-`7d66d4dca910bd00c6d9e3c74c36625e21b55bd596c1688a8a1ca0ac7b95aefa`.
-Earlier predecessor/ASV evidence is retained for historical comparison, including the
-2026-09-18 benchmark-results archive SHA-256
-`9025f956e59e5c7465da8b2fc59a2c80838f5bec77858b69f5ac137abf2262b2` and controlled
-historical rerun SHA-256
-`59b3c94dae942ccbb7a2eb5dd9cd5d945c39c2d724f180d799360e7f3a84efa4`.
+The principal accepted checkpoint is the post-b3 machine-readable benchmark handoff,
+SHA-256 `087990a7aff4e7c2efaaba4a7bbd0445f4a1edcd2fb4fae8c3776341209848a3`. It
+identifies b3 commit `bc38d96441de9ffb4c7744e34f4aaf78640b7238` and includes raw ASV
+results, state/run/environment/report records, normalized release evidence, fresh
+predecessor standalone/pytest-benchmark evidence, and Python 3.11–3.14 predecessor Tox
+results. Earlier b1/b2 and 2026-09-18 archives remain historical/provenance evidence.
 
 Principal host:
 
@@ -56,12 +51,39 @@ only. The standalone report identifies `feregion 0.4.0b2` on CPython 3.14.6 / Nu
 2.5.2, pytest-benchmark identifies commit `796b00b4...`, and the Tox preservation set
 contains Python 3.11, 3.12, 3.13, and 3.14 result files plus the cross-Python report.
 
-The first normalized `release-compare` evidence generated after these runs is **not
-accepted as release-gate evidence**. Its a9 baseline rows use the fixed release-history
-environment, but its b2 candidate rows were collected from the ObsPy reference
-environment. b3 makes normalized evidence environment-profile-aware so a campaign cannot
-relabel same-case timings from another profile. A post-b3 release-comparison rerun is
-therefore still required.
+The first normalized `release-compare` evidence generated after the b2 runs was not
+accepted because its candidate rows came from the ObsPy reference environment. b3 made
+normalized evidence environment-profile-aware. The post-b3 rerun closes that defect: the
+accepted normalized artifact contains exactly seven measured loads for a9 and seven for
+b3, all on `awiol-ryzen3600` under
+`uv-py3.12-numpy1.26.4-pandas2.1.4`.
+
+## Accepted post-b3 release comparison
+
+| Load | a9 throughput | b3 throughput | b3 change |
+|---:|---:|---:|---:|
+| 10k | 55.14 M points/s | 55.03 M points/s | -0.21% |
+| 20k | 64.34 M points/s | 65.29 M points/s | +1.47% |
+| 50k | 74.60 M points/s | 74.56 M points/s | -0.06% |
+| 100k | 76.54 M points/s | 78.67 M points/s | +2.78% |
+| 200k | 77.77 M points/s | 79.07 M points/s | +1.67% |
+| 500k | 72.01 M points/s | 74.66 M points/s | +3.68% |
+| 1M | 56.32 M points/s | 59.75 M points/s | +6.10% |
+
+The project release gate is complete and does not trigger. The small 10k and 50k
+slowdowns are far below the >25% threshold and do not form a triggering adjacent pair.
+These figures are single-host evidence, not a general performance guarantee.
+
+## Accepted report reconstruction and preservation set
+
+The latest retained report record shows
+`asv publish --no-pull --config asv.conf.json` returned 0, produced an HTML index and
+127 HTML files, and bound the rebuild to a 1,020-file source-evidence set with SHA-256
+`0191a194284511b1271c8d1f376cf954e20ea2ffbe142edccc59e1b8cdeb5d9b`.
+The final evidence handoff contains 41 ASV result files, 951 state records, 25 run
+records, three environment-integrity records, three report-rebuild records, normalized
+release evidence, two predecessor JSON reports, and five predecessor Tox/report files.
+Derived HTML is intentionally excluded from the handoff because it can be regenerated.
 
 ## Campaign coverage observed for b1
 
@@ -270,19 +292,17 @@ broad run entered swap, while the controlled historical rerun did not retain act
 swap-I/O telemetry. Missing high-load cells therefore remain unclassified unless a
 bounded rerun records resource state.
 
-The supplied preservation set does not itself demonstrate a fresh report rebuild from
-retained evidence. `python -m benchmarks.release_workflow report` remains the explicit
-report-regeneration check. b2 additionally provides `python -m benchmarks.evidence_bundle`
-so raw results, state/run/environment evidence, predecessor outputs, and configuration
-can be handed off without relying on derived HTML.
+Post-b3 retained report records demonstrate fresh report rebuilding from retained
+evidence. `python -m benchmarks.release_workflow report` remains the explicit
+regeneration command. `python -m benchmarks.evidence_bundle` preserves raw results,
+state/run/environment/report evidence, normalized evidence, predecessor outputs, and
+configuration without relying on derived HTML.
 
 ## Current interpretation
 
-The available evidence now covers current numeric/history/dependency/supported-Python
-ASV campaigns, verified direct ObsPy/source comparison, restored diagnostics, fresh b2
-standalone/pytest-benchmark evidence, and the Python 3.11–3.14 predecessor Tox matrix.
-`REQ-PERF-017` remains open only because the normalized b2 release-check artifact crossed
-environment-profile boundaries and no retained report-rebuild record existed. b3 fixes
-both harness defects; after a post-b3 same-profile release check and report rebuild are
-retained and reviewed, the remaining work is the final benchmark-authority decision, not
-additional broad measurement collection.
+The accepted evidence covers current/history/dependency/supported-Python ASV campaigns,
+verified direct ObsPy/source comparison, restored diagnostics, fresh predecessor
+standalone/pytest-benchmark/Tox evidence, a complete same-profile release gate, and a
+content-addressed report rebuild. `REQ-PERF-017` is satisfied and `DEC-061` promotes the
+ASV-derived path to primary benchmark authority. Remaining high-load resource attribution,
+reporting UX, and archive-retention questions are non-blocking roadmap work.

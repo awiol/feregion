@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.0b4 — 2026-09-19
+
+- Close `REQ-PERF-017` from the reviewed post-b3 benchmark-evidence checkpoint. The retained normalized `release-compare` evidence contains all seven required loads for both `0.4.0a9` and b3 under the same `uv-py3.12-numpy1.26.4-pandas2.1.4` environment, and the project throughput gate is complete with no trigger.
+- Accept the retained post-b3 report-rebuild evidence: `asv publish --no-pull --config asv.conf.json` returned success, produced an HTML index with 127 files, and recorded the exact source-evidence digest used for the rebuild.
+- Promote ASV to the primary benchmark-evidence path for the completed `0.4` migration. Keep the standalone timer, `pytest-benchmark`, Tox Python matrix, and predecessor comparator runnable as compatibility/reference tooling and retained provenance rather than as a second co-equal benchmark authority.
+- Reconcile maintained benchmark results, migration parity, quality/traceability, operator guidance, roadmap, and report metadata with the accepted post-b3 evidence checkpoint. Remaining high-load resource attribution and reporting/archival enhancements stay non-blocking investigation or roadmap work.
+- Keep runtime lookup behavior, benchmark timing semantics, normalized-evidence algorithms, and the release threshold unchanged; b4 is an evidence/authority closeout patch plus prerelease-version advance.
+
 ## 0.4.0b3 — 2026-09-19
 
 - Bind normalized campaign evidence to the campaign's declared ASV environment profile. A release check can no longer relabel same-case timings from `reference-comparison` or another profile as `release-compare` evidence.

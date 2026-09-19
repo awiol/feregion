@@ -256,10 +256,10 @@ geographical IDs 172, 299, and 550 receive no fabricated geometry.
 The `0.3` beta source is the migration baseline. It uses the standalone timer,
 `pytest-benchmark`, Tox benchmark-Python environments, a custom cross-Python
 reducer, and the custom release comparator documented in `benchmarks/README.md`.
-During `0.4` beta stabilization these predecessor paths remain the
-**authoritative performance-evidence path**. ASV is supplementary until reviewed
-semantic/case/metric parity and the required vertical-slice evidence satisfy
-`REQ-PERF-017`.
+The reviewed post-b3 vertical slice satisfies `REQ-PERF-017`. ASV plus the project-
+owned campaign/evidence/regression layers are the **primary performance-evidence path**.
+The predecessor paths remain runnable compatibility/reference tooling and historical
+provenance; they are no longer a second co-equal authority.
 
 The implemented target core is `0.4.0`, dedicated to benchmark-system work. Beta
 stabilization preserves the source implementation established and review-corrected in
@@ -270,8 +270,9 @@ maturity, and verification status remain separate; maintainer-host ASV current/h
 dependency, supported-Python, pinned-source reference, diagnostic, and corrected b2
 ObsPy execution is now observed. Fresh b2 predecessor/Tox evidence is also retained. b3
 binds normalized evidence to the campaign environment profile and retains report-rebuild
-provenance; only the post-b3 release-gate/report replay and final parity/authority review
-remain open.
+provenance. Reviewed post-b3 release-gate and report-replay evidence satisfies
+`REQ-PERF-017`; `DEC-061` establishes the ASV-derived path as primary benchmark
+authority.
 
 Routine benchmark semantics continue to cover in-process scalar, batch,
 name-conversion, hierarchy, and pandas interfaces. CLI and GeoJSON timing remain

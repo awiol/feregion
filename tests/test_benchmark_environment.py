@@ -168,7 +168,7 @@ def test_evidence_bundle_collects_machine_readable_preservation_set_without_html
     (tmp_path / "benchmark-standalone.json").write_text("{}", encoding="utf-8")
     (tmp_path / "asv.conf.json").write_text("{}", encoding="utf-8")
     (tmp_path / "pyproject.toml").write_text(
-        '[project]\nname="feregion"\nversion="0.4.0b3"\n', encoding="utf-8"
+        '[project]\nname="feregion"\nversion="0.4.0b4"\n', encoding="utf-8"
     )
     monkeypatch.setattr(evidence_bundle, "_git_output", lambda args: None)
 

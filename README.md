@@ -307,13 +307,13 @@ uv run --locked pre-commit run --all-files
 
 ## Benchmarks
 
-The `0.4` line contains an ASV migration candidate with project-owned benchmark
+The `0.4` line contains the accepted ASV benchmark system with project-owned benchmark
 semantics, historical adapters, maintained campaigns, a 1-2-5 load grid through
 50 million points, normalized throughput evidence, a project-specific release gate,
-and an additive feregion summary page. During beta stabilization, while
-`REQ-PERF-017` migration parity remains open, the predecessor
-standalone/pytest-benchmark/Tox/release-comparator paths remain the
-performance-evidence authority. The quick
+and an additive feregion summary page. Reviewed post-b3 evidence satisfies
+`REQ-PERF-017`; ASV plus the project-owned evidence/gate layers are now the primary
+performance-evidence path. The predecessor standalone/pytest-benchmark/Tox tools remain
+runnable for compatibility, investigation, and historical provenance. The quick
 reference is `benchmarks/README.md`; the full human operator runbook and GitHub
 Pages publication procedure are in `docs/benchmark-operations.md`. Observed
 Python/NumPy/pandas/release evidence is summarized in `docs/benchmark-results.md`;
@@ -368,13 +368,11 @@ expensive. Use it only when the decision justifies the cost. The maintained
 release-history, Python, NumPy, pandas, and dependency-matrix campaigns provide
 other bounded operator workflows.
 
-The predecessor `pytest-benchmark`, standalone timer, Tox Python benchmark
-matrix, and raw-release comparator remain runnable and authoritative during the
-migration. `docs/benchmark-migration-parity.md` records which predecessor cases and
-metrics are implemented in ASV and which real parity evidence remains before ASV may
-be promoted to the primary benchmark source. The b3 source retains the a10-restored
-direct ObsPy/source comparators, seismic names, pandas in-place,
-split-vector/caller-stacking diagnostics, and derived operations-per-second evidence.
+Reviewed post-b3 evidence satisfies `REQ-PERF-017`; ASV plus the project-owned
+campaign/evidence/regression layers are the primary benchmark source. The predecessor
+`pytest-benchmark`, standalone timer, Tox Python benchmark matrix, and raw-release
+comparator remain runnable for compatibility checks, investigation, and historical
+provenance. `docs/benchmark-migration-parity.md` records the accepted parity review.
 
 `PERF-INV-001` is resolved for package-internal use. Controlled baseline/candidate
 measurements show material stacking, seismic revalidation, and peak-memory cost.

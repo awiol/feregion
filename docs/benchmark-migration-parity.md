@@ -2,115 +2,92 @@
 
 ## Purpose
 
-This document prevents the ASV migration from silently reducing benchmark coverage.
-It compares the predecessor benchmark roles with the `0.4.0b3` ASV migration
-candidate. The predecessor standalone timer, `pytest-benchmark` suite, Tox Python
-matrix, and release comparator remain the current authoritative benchmark path until
-`REQ-PERF-017` is closed by reviewed real-run parity evidence.
+This document records the completed migration from the predecessor benchmark harness to
+the `0.4` ASV benchmark system. The predecessor standalone timer, `pytest-benchmark`
+suite, Tox Python matrix, and release comparator remain runnable as compatibility,
+reference, and provenance tooling. They are no longer a second co-equal benchmark
+authority after the reviewed post-b3 evidence closed `REQ-PERF-017`.
 
-Implementation presence is not verification. A row marked **implemented in ASV**
-means source exists; it does not mean the ASV result has been measured on the target
-host or accepted as replacement evidence.
+Implementation presence is not verification. The accepted migration decision uses the
+retained real-run evidence described below in addition to repository tests.
 
 ## Case and metric parity
 
-| Predecessor role | Predecessor surface | b3 ASV status | Migration note |
+| Predecessor role | Predecessor surface | Accepted ASV status | Migration result |
 |---|---|---|---|
-| Scalar geographic number | standalone + pytest-benchmark | implemented | Source-table semantic setup added. |
-| Scalar geographic `Region` | standalone + pytest-benchmark | implemented | Number and name are checked against source tables. |
-| Scalar geographic number→name | standalone + pytest-benchmark | implemented | Uses source-derived number/name oracle. |
-| Direct ObsPy scalar baseline | standalone + pytest-benchmark | implemented and measured under verified b2 profile | b2 retained a valid ObsPy 1.4.2 environment and finite scalar timing; final parity review remains tied to the post-b3 release check. |
-| Direct pinned-source scalar baseline | standalone | implemented and measured under verified b2 profile | The corrected b2 reference run replaces invalid b1 profile-specific evidence. |
-| Public geographic batch lookup | standalone + pytest-benchmark | implemented | Full maintained 1-2-5 grid available. |
-| Direct pinned-source batch-equivalent scan | standalone + pytest-benchmark | implemented and measured through 100k under verified b2 profile | The corrected b2 reference run replaces invalid b1 profile-specific evidence. |
-| Candidate/source speedup | standalone derived metric | derivable, not a separate timer | Compare the candidate and source-reference cases on identical loads/environment. |
-| Seismic batch lookup | standalone + pytest-benchmark | implemented | Source geographic lookup + project crosswalk is the correctness oracle. |
-| Geographic→seismic crosswalk | standalone + pytest-benchmark | implemented | Crosswalk oracle is checked outside timing. |
-| Seismic number→name batch | standalone + pytest-benchmark | implemented | Restored in a10. |
-| Geographic number→name batch | standalone + pytest-benchmark | implemented | Source names are checked outside timing. |
-| pandas copy, numbers | standalone + pytest-benchmark | implemented | Dependency sensitivity retained. |
-| pandas copy, numbers + names | standalone + pytest-benchmark | implemented | Dependency sensitivity retained. |
-| pandas in-place, numbers | standalone + pytest-benchmark | implemented and measured in `diagnostics` | Real b1 ASV measurement is retained; fresh predecessor reconciliation remains open. |
-| pandas in-place, numbers + names | standalone | implemented and measured in `diagnostics` | Real b1 ASV measurement is retained; fresh predecessor reconciliation remains open. |
-| pandas in-place seismic numbers | pytest-benchmark | implemented and measured in `diagnostics` | Real b1 ASV measurement is retained; historical revisions may be not applicable. |
-| Internal split geographic path | standalone + pytest-benchmark | implemented and measured in `diagnostics` | Real b1 ASV measurement is retained; diagnostic/private, not public API. |
-| Internal split seismic path | standalone + pytest-benchmark | implemented and measured in `diagnostics` | Real b1 ASV measurement is retained; diagnostic/private, not public API. |
-| Caller `column_stack` + geographic lookup | standalone | implemented and measured in `diagnostics` | Real b1 ASV measurement is retained; fresh predecessor reconciliation remains open. |
-| Supported-Python comparison | Tox + custom reducer | ASV profile implemented and measured on b1 | Python 3.11–3.14 b1 ASV results exist; predecessor Tox matrix remains authoritative until parity is reviewed. |
-| Release regression decision | custom release comparator | ASV normalization/check implemented | a10 corrects the gate to throughput slowdown; real closure evidence remains required. |
-| Iterations/operations per unit time | standalone + cross-Python reducer | retained in predecessor and normalized ASV evidence | `operations_per_second` is derived from declared operations and measured duration. |
+| Scalar geographic number | standalone + pytest-benchmark | implemented and measured | Source-table semantic setup verified before timing. |
+| Scalar geographic `Region` | standalone + pytest-benchmark | implemented and measured | Number and name checked against source tables. |
+| Scalar geographic number→name | standalone + pytest-benchmark | implemented and measured | Source-derived number/name oracle retained. |
+| Direct ObsPy scalar baseline | standalone + pytest-benchmark | implemented and measured under verified b2 profile | ObsPy 1.4.2 environment integrity passed and finite scalar timing is retained. |
+| Direct pinned-source scalar baseline | standalone | implemented and measured under verified b2 profile | Independent source comparator retained. |
+| Public geographic batch lookup | standalone + pytest-benchmark | implemented and measured | Full maintained 1-2-5 grid is supported; release gate uses the bounded 10k–1M subset. |
+| Direct pinned-source batch-equivalent scan | standalone + pytest-benchmark | implemented and measured through 100k | Candidate/source comparison retained on identical deterministic workloads. |
+| Candidate/source speedup | standalone derived metric | derivable from normalized evidence | No separate timer is required. |
+| Seismic batch lookup | standalone + pytest-benchmark | implemented and measured | Source geographic lookup + hierarchy crosswalk remains the correctness oracle. |
+| Geographic→seismic crosswalk | standalone + pytest-benchmark | implemented and measured | Crosswalk oracle is checked outside timing. |
+| Seismic number→name batch | standalone + pytest-benchmark | implemented and measured | Restored ASV role retained. |
+| Geographic number→name batch | standalone + pytest-benchmark | implemented and measured | Source names checked outside timing. |
+| pandas copy, numbers | standalone + pytest-benchmark | implemented and measured | Dependency sensitivity retained. |
+| pandas copy, numbers + names | standalone + pytest-benchmark | implemented and measured | Dependency sensitivity retained. |
+| pandas in-place, numbers | standalone + pytest-benchmark | implemented and measured in `diagnostics` | Real ASV diagnostic evidence retained. |
+| pandas in-place, numbers + names | standalone | implemented and measured in `diagnostics` | Real ASV diagnostic evidence retained. |
+| pandas in-place seismic numbers | pytest-benchmark | implemented and measured in `diagnostics` | Historical revisions may legitimately be not applicable. |
+| Internal split geographic path | standalone + pytest-benchmark | implemented and measured in `diagnostics` | Diagnostic/private role retained. |
+| Internal split seismic path | standalone + pytest-benchmark | implemented and measured in `diagnostics` | Diagnostic/private role retained. |
+| Caller `column_stack` + geographic lookup | standalone | implemented and measured in `diagnostics` | Allocation/stacking diagnostic retained. |
+| Supported-Python comparison | Tox + custom reducer | ASV profile implemented and measured | Python 3.11–3.14 ASV evidence exists; fresh predecessor Tox evidence was retained for parity review. |
+| Release regression decision | custom release comparator | ASV normalization/check implemented and accepted | Same-profile a9↔b3 release evidence is complete and the throughput gate does not trigger. |
+| Iterations/operations per unit time | standalone + cross-Python reducer | retained as normalized ASV `operations_per_second` | Throughput remains the project decision quantity. |
 
-## b1 execution evidence and b2 correction
+## Accepted closure evidence
 
-The supplied b1 preservation set contains successful smoke, release comparison/history,
-dependency-matrix, supported-Python, reference-comparison, and diagnostic campaign run
-records. It retains 910 `correctness_passed` setup records and 22 `not_applicable`
-records. Genuine historical `not_applicable` examples correspond to revisions that lack
-newer capabilities.
+The post-b3 machine-readable evidence handoff has SHA-256
+`087990a7aff4e7c2efaaba4a7bbd0445f4a1edcd2fb4fae8c3776341209848a3` and identifies
+b3 commit `bc38d96441de9ffb4c7744e34f4aaf78640b7238`. It contains raw ASV results,
+951 setup-state records, 25 revision/campaign-run records, three environment-integrity
+records, three report-rebuild records, normalized release evidence, fresh predecessor
+standalone/pytest-benchmark evidence, and the Python 3.11–3.14 predecessor Tox results.
 
-Real b1 ASV measurements now exist for the restored pinned-source scalar/batch cases,
-pandas in-place paths, split geographic/seismic diagnostics, caller stacking, and the
-supported-Python/dependency matrices. This closes the earlier "implemented but never
-measured" gap for those roles. It does not establish predecessor-equivalent replacement
-evidence without a fresh like-for-like reconciliation.
+The normalized `release-compare` artifact contains exactly 14 measured records: seven
+loads for `0.4.0a9` and seven loads for b3. Every record uses machine
+`awiol-ryzen3600` and environment `uv-py3.12-numpy1.26.4-pandas2.1.4`. The project gate
+is complete and does not trigger. Candidate throughput differs from a9 by approximately
+-0.21%, +1.47%, -0.06%, +2.78%, +1.67%, +3.68%, and +6.10% at 10k, 20k, 50k, 100k,
+200k, 500k, and 1M respectively. No measured slowdown approaches the accepted >25%
+adjacent-load trigger.
 
-The direct ObsPy case is different. The b1 reference campaign returned success while the
-ObsPy result was `NaN`/`not_applicable`. A retained environment diagnostic showed ObsPy
-1.4.2 installed, but the interpreter contained NumPy 2.5.3 instead of requested 1.26.4,
-`pip check` found pandas 2.1.4 incompatible with that NumPy, and Setuptools 84 lacked
-`pkg_resources`, causing ObsPy import failure. b2 therefore treats requested-versus-
-observed environment agreement as part of timing acceptance and changes a broken
-requested comparator dependency from `not_applicable` to environment/build failure.
+The latest retained report record shows `asv publish --no-pull --config asv.conf.json`
+returned 0, produced `.asv/html/index.html`, and retained 127 HTML files. It binds the
+rebuild to a 1,020-file source-evidence preservation set with SHA-256
+`0191a194284511b1271c8d1f376cf954e20ea2ffbe142edccc59e1b8cdeb5d9b`.
 
-The corrected b2 reference profile has now been rerun successfully, and fresh b2
-standalone, pytest-benchmark, and Python 3.11–3.14 Tox evidence is retained. The first
-normalized release-check output after that run is not accepted because its b2 candidate
-rows came from the `reference-comparison` environment rather than the required
-`release-history` profile. b3 fixes that provenance defect and adds retained report-
-rebuild records. `REQ-PERF-017` therefore remains open only until a post-b3 same-profile
-release check, report rebuild, and final parity review are retained and accepted.
+Corrected b2 reference evidence independently verifies the requested reference
+environment, including NumPy 1.26.4, pandas 2.1.4, ObsPy 1.4.2, and Setuptools 81.0.0,
+with a clean dependency check and finite ObsPy/source timings. Fresh b2 predecessor
+standalone, pytest-benchmark, and Tox evidence supplied the final compatibility/reference
+comparison surface. b3 changed benchmark evidence selection and report provenance, not
+runtime lookup behavior or benchmark timing semantics, so those predecessor timings do
+not require repetition solely for the b3 version label.
 
-## Why the predecessor harness remains
+## Failure-state interpretation
 
-ASV solved revision/environment/history/reporting problems, but a migration is not
-successful if it drops semantic cases, independent comparators, throughput metrics,
-or failure-state meaning. The isolated a9 review identified correctness,
-comparability, throughput-gate, and failure-state defects in the ASV evidence path.
-Those source defects are addressed in a10, but source repair is not equivalent to a
-successful real ASV parity run.
+`REQ-PERF-009` requires result states to remain distinguishable. It does not require
+operators to damage real benchmark environments merely to manufacture every rare state.
+Repository integration fixtures cover `build_unavailable`, `correctness_failed`,
+`execution_failed`, and incompatible-version normalization. Retained operational evidence
+contains genuine historical `not_applicable` states and the environment-integrity failure
+that led to the b2 reference-profile correction. This combination satisfies the state-
+discrimination part of the migration review.
 
-Do not remove the predecessor paths until a review demonstrates:
+## Authority after migration
 
-1. semantic correctness sensitivity against deliberately wrong but in-range output;
-2. compatible stored benchmark-version mapping across retained history;
-3. distinct not-applicable, environment/build, correctness, and execution states;
-4. throughput-gate parity with the predecessor comparator;
-5. case/metric coverage from the table above; and
-6. report/result retention sufficient to reproduce the accepted decisions.
+`REQ-PERF-017` is satisfied. ASV plus the project-owned campaign/evidence/regression
+layers are the primary benchmark-evidence path for the `0.4` line. Use
+`python -m benchmarks.campaign check` for the project release-performance gate and
+`python -m benchmarks.release_workflow report` for reproducible static-report rebuilds.
 
-## Authoritative commands during migration
-
-Run the predecessor standalone report when release-performance evidence is required:
-
-```bash
-uv run --locked --group benchmark python -m benchmarks.run_benchmark \
-  --output benchmark-standalone.json
-```
-
-Run the predecessor pytest-benchmark suite when case-level timing/detail is required:
-
-```bash
-uv run --locked --group benchmark pytest benchmarks \
-  --benchmark-only --benchmark-json=benchmark.json
-```
-
-Run the supported-Python predecessor matrix when cross-interpreter evidence is
-required:
-
-```bash
-uv run --locked --group matrix --group benchmark tox run \
-  -e benchmark-py311,benchmark-py312,benchmark-py313,benchmark-py314,benchmark-report
-```
-
-ASV campaigns should also be run and retained during migration. Their purpose is to
-close the replacement evidence, not to erase the predecessor evidence prematurely.
+Keep the predecessor standalone timer, `pytest-benchmark` suite, Tox benchmark matrix,
+and custom reducers runnable while they remain useful for compatibility checks,
+investigation, and historical provenance. They no longer define a second authoritative
+release-performance decision path. Retiring any predecessor surface is a separate
+maintenance decision; migration acceptance does not require immediate deletion.
