@@ -220,8 +220,10 @@ Dependency versions belong to the selected ASV environment profile.
 
 Generated `.asv/` state is benchmark evidence/derived output and remains outside the
 source tree. Preserve `.asv/results`, `.asv/feregion-state`, relevant
-`.asv/feregion-runs`, and `.asv/feregion-environments` together when retaining
-migration evidence. Create a machine-readable handoff with:
+`.asv/feregion-runs`, `.asv/feregion-environments`, and `.asv/feregion-reports`
+together when retaining migration evidence. The release check accepts only result
+environments permitted by the selected campaign profile; same-case rows from another
+profile are not interchangeable. Create a machine-readable handoff with:
 
 ```bash
 uv run --locked --group benchmark python -m benchmarks.evidence_bundle

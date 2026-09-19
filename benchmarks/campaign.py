@@ -13,6 +13,7 @@ import tomllib
 from collections.abc import Sequence
 from dataclasses import asdict, dataclass, replace
 from datetime import UTC, datetime
+from itertools import product
 from pathlib import Path
 from typing import Any
 
@@ -84,6 +85,38 @@ ASV_INSTALL_COMMAND = [
     "in-dir={env_dir} python -m pip install --no-deps --force-reinstall {wheel_file}",
 ]
 REFERENCE_CONSTRAINTS = Path("benchmarks/constraints/reference-comparison.txt")
+
+
+def expected_environment_names(profile_name: str) -> tuple[str, ...]:
+    """Return the ASV environment names allowed by one maintained profile.
+
+    The project release gate uses this explicit profile identity when reading retained
+    ASV results. This prevents a benchmark result from another campaign profile from
+    being relabeled as release-comparison evidence merely because commit, case, and
+    load size happen to match.
+    """
+
+    profile = PROFILE_CONFIG[profile_name]
+    environments: set[str] = set()
+
+    def add_environment(python: str, requirements: dict[str, str]) -> None:
+        parts = ["uv", f"py{python}"]
+        parts.extend(f"{name}{requirements[name]}" for name in sorted(requirements))
+        environments.add("-".join(parts))
+
+    matrix = profile.get("matrix", {}).get("req", {})
+    names = list(matrix)
+    values = [value if isinstance(value, list) else [value] for value in matrix.values()]
+    for python in profile["pythons"]:
+        combinations = product(*values) if values else [()]
+        for combination in combinations:
+            add_environment(python, dict(zip(names, combination, strict=True)))
+
+    for include in profile.get("include", []):
+        add_environment(str(include["python"]), dict(include.get("req", {})))
+
+    return tuple(sorted(environments))
+
 
 _REVISION_META_CHARS = re.compile(r"(?:\.\.|@\{|[\s~^:?*\[\\])")
 _HEX_COMMIT = re.compile(r"^[0-9A-Fa-f]{7,40}$")
@@ -388,6 +421,7 @@ def check_release_campaign(
         cases=campaign.cases,
         load_sizes=campaign.load_sizes,
         machine=machine,
+        environments=expected_environment_names(campaign.environment_profile),
     )
     evidence_path = output or (
         repository / "dist" / "benchmarks" / f"{campaign.campaign_id}-evidence.json"

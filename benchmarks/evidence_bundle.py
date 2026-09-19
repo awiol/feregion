@@ -93,6 +93,13 @@ def collect_evidence_files() -> list[EvidenceFile]:
             "asv-environments",
         )
     )
+    files.extend(
+        _files_under(
+            PROJECT_ROOT / ".asv" / "feregion-reports",
+            "asv/feregion-reports",
+            "asv-reports",
+        )
+    )
 
     env_root = PROJECT_ROOT / ".asv" / "env"
     if env_root.is_dir():
@@ -175,6 +182,7 @@ def build_manifest(files: Iterable[EvidenceFile]) -> dict[str, object]:
         "asv-state",
         "asv-runs",
         "asv-environments",
+        "asv-reports",
         "normalized-evidence",
         "predecessor-json",
         "predecessor-tox",

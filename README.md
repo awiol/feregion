@@ -348,7 +348,7 @@ predecessor harnesses have run:
 uv run --locked --group benchmark python -m benchmarks.evidence_bundle
 ```
 
-The archive preserves raw ASV result/state/run/environment evidence, available
+The archive preserves raw ASV result/state/run/environment/report evidence, available
 predecessor outputs, normalized evidence, campaign/configuration files, and a hashed
 manifest. Rebuildable `.asv/html` is excluded.
 
@@ -372,7 +372,7 @@ The predecessor `pytest-benchmark`, standalone timer, Tox Python benchmark
 matrix, and raw-release comparator remain runnable and authoritative during the
 migration. `docs/benchmark-migration-parity.md` records which predecessor cases and
 metrics are implemented in ASV and which real parity evidence remains before ASV may
-be promoted to the primary benchmark source. The b1 source retains the a10-restored
+be promoted to the primary benchmark source. The b3 source retains the a10-restored
 direct ObsPy/source comparators, seismic names, pandas in-place,
 split-vector/caller-stacking diagnostics, and derived operations-per-second evidence.
 

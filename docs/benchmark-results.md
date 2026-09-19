@@ -2,7 +2,7 @@
 
 ## Purpose and evidence status
 
-This document records benchmark observations available during `0.4.0b2` preparation on
+This document records benchmark observations available during `0.4.0b3` preparation on
 2026-09-19. It is an **observational snapshot**, not a universal performance guarantee
 and not a substitute for retained machine-readable evidence.
 
@@ -30,6 +30,38 @@ records requested dependency profiles, but it did not prove that the interpreter
 those exact distributions. The b1 ObsPy investigation demonstrated one concrete profile
 drift, so dependency-profile measurements below are labeled as ASV-recorded profiles
 until rerun under b2 preflight.
+
+## Verified b2 reference and predecessor evidence acquired after the b2 source handoff
+
+A later b2 machine-readable benchmark handoff supplied on 2026-09-19 has SHA-256
+`1493d084d1253a5f3dacaaf45b2a4c7962aae9cc378f0e319498ef0157aa1640` and identifies
+commit `796b00b4c7fe91b03d74a38245a2a27a2cdd7d78` (`0.4.0b2`). It contains ASV
+results/state/run/environment evidence, normalized evidence, fresh predecessor standalone
+and pytest-benchmark JSON, and Python 3.11–3.14 Tox benchmark results.
+
+The corrected b2 `reference-comparison` environment passed integrity checks with CPython
+3.12, NumPy 1.26.4, pandas 2.1.4, ObsPy 1.4.2, and Setuptools 81.0.0. `pip check` passed
+and `obspy.geodetics.FlinnEngdahl` imported successfully. Representative scalar medians
+were 4.680 µs for feregion, 3.000 µs for ObsPy, and 1.620 µs for the pinned source
+scanner. On this host and exact profile, ObsPy was about 1.56× faster than feregion for
+the scalar call. This is a scalar comparison, not a batch-performance ordering.
+
+For the same verified profile, feregion batch medians were about 53.981 µs, 68.811 µs,
+178.163 µs, and 1.269 ms at 100, 1k, 10k, and 100k points; the pinned source scanner
+measured about 176.273 µs, 1.667 ms, 16.429 ms, and 166.447 ms. The corresponding
+feregion/source speedups are approximately 3.27×, 24.2×, 92.2×, and 131×.
+
+The fresh predecessor evidence is now current to b2 rather than historical `0.3.0a1`
+only. The standalone report identifies `feregion 0.4.0b2` on CPython 3.14.6 / NumPy
+2.5.2, pytest-benchmark identifies commit `796b00b4...`, and the Tox preservation set
+contains Python 3.11, 3.12, 3.13, and 3.14 result files plus the cross-Python report.
+
+The first normalized `release-compare` evidence generated after these runs is **not
+accepted as release-gate evidence**. Its a9 baseline rows use the fixed release-history
+environment, but its b2 candidate rows were collected from the ObsPy reference
+environment. b3 makes normalized evidence environment-profile-aware so a campaign cannot
+relabel same-case timings from another profile. A post-b3 release-comparison rerun is
+therefore still required.
 
 ## Campaign coverage observed for b1
 
@@ -223,10 +255,12 @@ that predate seismic interfaces. The b1 ObsPy `not_applicable` record is **not a
 as genuine capability absence** after environment investigation; b2 treats failure of an
 explicitly requested comparator dependency as environment/build unavailability instead.
 
-No real retained b1 example establishes every declared failure state. Controlled real
-examples of `build_unavailable`, `correctness_failed`, `execution_failed`, and
-`incompatible` remain useful migration-closure evidence even though fixture coverage
-already verifies the normalization taxonomy.
+The project does not require deliberate corruption of real benchmark environments merely
+to manufacture every rare state. `REQ-PERF-009` requires the states to remain
+distinguishable. Controlled integration fixtures verify `build_unavailable`,
+`correctness_failed`, `execution_failed`, and incompatible-version normalization, while
+real evidence supplies genuine historical `not_applicable` and environment-integrity
+failures. b3 records this as the migration-closure interpretation.
 
 ## Resource and reporting limitations
 
@@ -244,10 +278,11 @@ can be handed off without relying on derived HTML.
 
 ## Current interpretation
 
-The b1 evidence materially strengthens ASV case coverage: current numeric, history,
-dependency, supported-Python, pinned-source reference, and diagnostic campaigns have all
-executed. It does **not** close `REQ-PERF-017`. The direct ObsPy reference environment
-must be rerun after b2 correction, fresh predecessor evidence must be reconciled against
-ASV, and remaining failure-state/report-rebuild evidence must stay explicit. Until that
-review closes, the predecessor harness remains the performance-evidence authority and ASV
-remains supplementary migration evidence.
+The available evidence now covers current numeric/history/dependency/supported-Python
+ASV campaigns, verified direct ObsPy/source comparison, restored diagnostics, fresh b2
+standalone/pytest-benchmark evidence, and the Python 3.11–3.14 predecessor Tox matrix.
+`REQ-PERF-017` remains open only because the normalized b2 release-check artifact crossed
+environment-profile boundaries and no retained report-rebuild record existed. b3 fixes
+both harness defects; after a post-b3 same-profile release check and report rebuild are
+retained and reviewed, the remaining work is the final benchmark-authority decision, not
+additional broad measurement collection.

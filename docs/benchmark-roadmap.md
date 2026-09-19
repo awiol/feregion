@@ -11,21 +11,24 @@ in that interval.
 
 ## Migration closure
 
-1. Rerun the corrected b2 `reference-comparison` profile and require a finite direct
-   ObsPy result plus a passing retained environment-integrity record. b1 reference and
-   diagnostic execution is observed, but the b1 ObsPy environment was invalid.
-2. Reconcile predecessor and ASV case/metric parity using
-   `benchmark-migration-parity.md`, including operations-per-second, direct ObsPy/source
-   comparators, pandas in-place, and internal diagnostics.
-3. Complete real failure-state evidence. `correctness_passed` and genuine historical
-   `not_applicable` are observed; b2 can now retain environment/build failure directly.
-   Controlled `correctness_failed`, `execution_failed`, and incompatible-version evidence
-   remains useful migration-closure material.
-4. Verify the corrected throughput gate against the predecessor release comparator on
-   the same retained baseline/candidate evidence.
-5. Only after reviewed parity closure, decide whether ASV becomes the primary benchmark
-   authority and which predecessor paths may be retired. Do not remove them merely
-   because equivalent source code exists.
+1. **Closed for measurement collection:** the corrected b2 `reference-comparison`
+   profile produced a finite direct ObsPy result under a passing retained environment-
+   integrity record.
+2. **Evidence collected; review remains:** fresh b2 standalone, pytest-benchmark, and
+   Python 3.11–3.14 Tox evidence is retained alongside ASV comparator/diagnostic cases.
+   Complete the final like-for-like parity review after the corrected release check.
+3. **Contract clarification implemented in b3:** rare failure states need not be induced
+   destructively in real benchmark environments. `REQ-PERF-009` requires distinct
+   classification; controlled integration fixtures verify correctness/build/execution/
+   incompatible paths, while genuine historical `not_applicable` and real environment-
+   integrity failures provide observed operational examples.
+4. **Post-b3 rerun required:** rerun `release-compare` and `campaign check`. b3 rejects
+   the earlier normalized file because its b2 candidate rows came from the ObsPy
+   reference profile rather than the fixed release-history environment.
+5. **Post-b3 report replay required:** rebuild the static report so b3 retains a
+   `.asv/feregion-reports` record tied to the exact source-evidence digest. After the
+   release gate, parity review, and report record are accepted, decide whether ASV
+   becomes the primary benchmark authority and which predecessor paths may be retired.
 
 ## Reporting and interpretation
 

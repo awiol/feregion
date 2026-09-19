@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.0b3 — 2026-09-19
+
+- Bind normalized campaign evidence to the campaign's declared ASV environment profile. A release check can no longer relabel same-case timings from `reference-comparison` or another profile as `release-compare` evidence.
+- Retain local ASV report-rebuild records under `.asv/feregion-reports/`, including the report command outcome, source-evidence content digest, and resulting HTML presence/count; include these records in machine-readable evidence handoffs.
+- Reconcile the post-b2 benchmark evidence: the corrected reference profile is verified and produces a finite direct ObsPy result, fresh b2 standalone/pytest-benchmark/Tox evidence is retained, and the earlier normalized release-check output is rejected because its candidate rows came from the reference environment rather than the release-history profile.
+- Clarify migration closure: `REQ-PERF-009` requires failure states to remain distinguishable, not deliberate corruption of every real benchmark environment. Existing controlled integration fixtures cover rare failure-state normalization; genuine historical `not_applicable` and real environment-integrity evidence remain preserved.
+- Keep `REQ-PERF-017` open until b3 is applied and a clean same-profile `release-compare` check plus retained report-rebuild record are produced and reviewed.
+
 ## 0.4.0b2 — 2026-09-19
 
 - Add `python -m benchmarks.evidence_bundle` as the human-operator command for a machine-readable benchmark handoff. The ZIP preserves raw ASV results, setup state, revision-run records, environment-integrity records, normalized evidence, predecessor benchmark outputs, campaign configuration, and repository identity while excluding rebuildable `.asv/html`.

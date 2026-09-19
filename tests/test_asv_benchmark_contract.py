@@ -21,6 +21,7 @@ from benchmarks.campaign import (
     benchmark_regex,
     build_asv_config,
     check_release_campaign,
+    expected_environment_names,
     resolve_revision,
 )
 from benchmarks.evidence import EvidenceRecord, normalize_asv_result
@@ -656,12 +657,13 @@ def _write_asv_result(
     values: list[float],
     samples: list[list[float]],
     loads: list[int],
+    environment: str = "uv-py3.12-numpy1.26.4-pandas2.1.4",
 ) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     payload = {
         "version": 2,
         "commit_hash": commit,
-        "env_name": "uv-py3.12-numpy1.26.4-pandas2.1.4",
+        "env_name": environment,
         "result_columns": ["result", "params", "version", "samples"],
         "results": {
             "benchmarks.TimeGeographicLookupNumbers.time_lookup_geographic_numbers": [
@@ -780,6 +782,70 @@ def test_check_release_campaign_consumes_retained_results_and_writes_evidence(
     payload = json.loads(evidence_path.read_text(encoding="utf-8"))
     assert payload["schema_version"] == 2
     assert len(payload["records"]) == 6
+
+
+def test_release_profile_environment_identity_matches_asv_naming() -> None:
+    """The release gate must bind retained results to its fixed ASV profile."""
+
+    assert expected_environment_names("release-history") == ("uv-py3.12-numpy1.26.4-pandas2.1.4",)
+    assert expected_environment_names("reference-comparison") == (
+        "uv-py3.12-numpy1.26.4-obspy1.4.2-pandas2.1.4-setuptools81.0.0",
+    )
+
+
+def test_release_check_rejects_same_case_results_from_another_environment_profile(
+    tmp_path: Path,
+) -> None:
+    """Reference-profile timings must not be relabeled as release-gate evidence."""
+
+    base = "a" * 40
+    cand = "b" * 40
+    results = tmp_path / ".asv" / "results"
+    loads = [10_000, 20_000, 50_000]
+    _write_asv_result(
+        results / "host" / "base.json",
+        commit=base,
+        values=[1.0, 2.0, 5.0],
+        samples=[[1.0], [2.0], [5.0]],
+        loads=loads,
+    )
+    _write_asv_result(
+        results / "host" / "candidate-reference.json",
+        commit=cand,
+        values=[0.8, 1.6, 4.0],
+        samples=[[0.8], [1.6], [4.0]],
+        loads=loads,
+        environment=("uv-py3.12-numpy1.26.4-obspy1.4.2-pandas2.1.4-setuptools81.0.0"),
+    )
+    campaign = Campaign(
+        "release-compare",
+        "test",
+        ("base", "cand"),
+        ("lookup_geographic_numbers",),
+        tuple(loads),
+        2,
+        1,
+        "release-history",
+        True,
+    )
+    resolved = (
+        campaign_module.ResolvedRevision("base", base),
+        campaign_module.ResolvedRevision("cand", cand),
+    )
+
+    decision, evidence_path = check_release_campaign(
+        campaign,
+        resolved_revisions=resolved,
+        repository=tmp_path,
+    )
+
+    assert decision.complete is False
+    payload = json.loads(evidence_path.read_text(encoding="utf-8"))
+    assert {record["revision"] for record in payload["records"]} == {base}
+    assert all(
+        record["environment"] == "uv-py3.12-numpy1.26.4-pandas2.1.4"
+        for record in payload["records"]
+    )
 
 
 def test_release_gate_requires_maintained_adjacent_loads_and_complete_required_set() -> None:
@@ -1007,6 +1073,31 @@ def test_release_workflow_rebuilds_report_when_project_gate_triggers(
     )
     assert status == 1
     assert commands[-1] == ["asv", "publish", "--no-pull", "--config", "asv.conf.json"]
+
+
+def test_release_workflow_records_report_rebuild_against_retained_evidence(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A successful local report build must retain its source-evidence identity."""
+
+    monkeypatch.setattr(release_workflow, "_PROJECT_ROOT", tmp_path)
+    results = tmp_path / ".asv" / "results" / "host"
+    results.mkdir(parents=True)
+    (results / "result.json").write_text("{}", encoding="utf-8")
+    html = tmp_path / ".asv" / "html"
+    html.mkdir(parents=True)
+    (html / "index.html").write_text("report", encoding="utf-8")
+    monkeypatch.setattr(release_workflow, "_run", lambda command: 0)
+
+    assert release_workflow.build_report() == 0
+
+    records = list((tmp_path / ".asv" / "feregion-reports").glob("report-*.json"))
+    assert len(records) == 1
+    payload = json.loads(records[0].read_text(encoding="utf-8"))
+    assert payload["returncode"] == 0
+    assert payload["html_index_exists"] is True
+    assert payload["source_evidence"]["file_count"] == 1
+    assert len(payload["source_evidence"]["sha256"]) == 64
 
 
 def test_release_workflow_publication_requires_explicit_push(

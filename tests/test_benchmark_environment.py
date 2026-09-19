@@ -153,6 +153,8 @@ def test_evidence_bundle_collects_machine_readable_preservation_set_without_html
     (tmp_path / ".asv" / "feregion-runs" / "run.json").write_text("{}", encoding="utf-8")
     (tmp_path / ".asv" / "feregion-environments").mkdir(parents=True)
     (tmp_path / ".asv" / "feregion-environments" / "env.json").write_text("{}", encoding="utf-8")
+    (tmp_path / ".asv" / "feregion-reports").mkdir(parents=True)
+    (tmp_path / ".asv" / "feregion-reports" / "report.json").write_text("{}", encoding="utf-8")
     (tmp_path / ".asv" / "html").mkdir(parents=True)
     (tmp_path / ".asv" / "html" / "index.html").write_text("derived", encoding="utf-8")
     (tmp_path / "benchmarks" / "campaigns").mkdir(parents=True)
@@ -166,7 +168,7 @@ def test_evidence_bundle_collects_machine_readable_preservation_set_without_html
     (tmp_path / "benchmark-standalone.json").write_text("{}", encoding="utf-8")
     (tmp_path / "asv.conf.json").write_text("{}", encoding="utf-8")
     (tmp_path / "pyproject.toml").write_text(
-        '[project]\nname="feregion"\nversion="0.4.0b2"\n', encoding="utf-8"
+        '[project]\nname="feregion"\nversion="0.4.0b3"\n', encoding="utf-8"
     )
     monkeypatch.setattr(evidence_bundle, "_git_output", lambda args: None)
 
@@ -177,9 +179,11 @@ def test_evidence_bundle_collects_machine_readable_preservation_set_without_html
 
     assert "asv/results/host/result.json" in names
     assert "asv/feregion-environments/env.json" in names
+    assert "asv/feregion-reports/report.json" in names
     assert "predecessor/benchmark-standalone.json" in names
     assert "config/constraints/reference-comparison.txt" in names
     assert not any(name.startswith("asv/html/") for name in names)
     assert payload["derived_html_included"] is False
     assert manifest["families"]["asv-results"]["present"] is True
+    assert manifest["families"]["asv-reports"]["present"] is True
     assert manifest["families"]["predecessor-tox"]["present"] is False

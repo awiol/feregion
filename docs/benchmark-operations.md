@@ -148,7 +148,11 @@ Exit status is:
 - `1`: the comparison is complete and the project regression trigger is crossed;
 - `2`: evidence is incomplete or ambiguous.
 
-The command writes normalized evidence under `dist/benchmarks/` by default. If retained results contain more than one comparable machine, select one explicitly:
+The command writes normalized evidence under `dist/benchmarks/` by default. b3 binds
+normalization to the campaign's declared environment profile: same-case results from
+another profile are ignored rather than relabeled with the current campaign identity.
+If the required profile has no candidate result, the release check is incomplete. If
+retained results contain more than one comparable machine, select one explicitly:
 
 ```bash
 uv run --locked --group benchmark \
@@ -308,10 +312,10 @@ uv run --locked --group benchmark \
 Inspect the project summary, benchmark descriptions, scaling views, revision/tag history, environment selectors, missing/skipped values, and native Regressions page before publication.
 
 Do not delete `.asv/results` merely because a report was built. During migration,
-preserve `.asv/results`, `.asv/feregion-state`, `.asv/feregion-runs`, and
-`.asv/feregion-environments` together. The sidecars retain correctness, failure-state,
-and requested-versus-observed environment meaning that raw ASV timing JSON does not
-encode by itself.
+preserve `.asv/results`, `.asv/feregion-state`, `.asv/feregion-runs`,
+`.asv/feregion-environments`, and `.asv/feregion-reports` together. The sidecars retain
+correctness, failure-state, requested-versus-observed environment meaning, and local
+report-rebuild provenance that raw ASV timing JSON does not encode by itself.
 
 Create one machine-readable handoff without derived HTML with:
 
@@ -322,9 +326,11 @@ uv run --locked --group benchmark python -m benchmarks.evidence_bundle
 The command writes a timestamped ZIP under `dist/benchmarks/` by default. Use
 `--output PATH.zip` when another destination is required. The archive contains a JSON
 manifest with SHA-256 values and present/missing evidence-family status, available raw
-ASV results/state/run/environment records, normalized evidence, predecessor benchmark
-outputs, campaign definitions, configuration, and repository identity. Missing optional
-evidence families remain explicit and do not prevent creating a partial handoff.
+ASV results/state/run/environment/report records, normalized evidence, predecessor
+benchmark outputs, campaign definitions, configuration, and repository identity. Missing
+optional evidence families remain explicit and do not prevent creating a partial handoff.
+Generated `.asv/html` remains excluded because the retained report record proves the
+local rebuild outcome without treating derived HTML as authoritative evidence.
 
 ## 12. Publish to GitHub Pages
 

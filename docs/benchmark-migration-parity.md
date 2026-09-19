@@ -3,7 +3,7 @@
 ## Purpose
 
 This document prevents the ASV migration from silently reducing benchmark coverage.
-It compares the predecessor benchmark roles with the `0.4.0b2` ASV migration
+It compares the predecessor benchmark roles with the `0.4.0b3` ASV migration
 candidate. The predecessor standalone timer, `pytest-benchmark` suite, Tox Python
 matrix, and release comparator remain the current authoritative benchmark path until
 `REQ-PERF-017` is closed by reviewed real-run parity evidence.
@@ -14,15 +14,15 @@ host or accepted as replacement evidence.
 
 ## Case and metric parity
 
-| Predecessor role | Predecessor surface | b2 ASV status | Migration note |
+| Predecessor role | Predecessor surface | b3 ASV status | Migration note |
 |---|---|---|---|
 | Scalar geographic number | standalone + pytest-benchmark | implemented | Source-table semantic setup added. |
 | Scalar geographic `Region` | standalone + pytest-benchmark | implemented | Number and name are checked against source tables. |
 | Scalar geographic number→name | standalone + pytest-benchmark | implemented | Uses source-derived number/name oracle. |
-| Direct ObsPy scalar baseline | standalone + pytest-benchmark | implemented; corrected profile pending rerun | b1 executed the case but the requested environment was inconsistent and ObsPy import failed; b2 makes this an environment failure rather than `not_applicable`. |
-| Direct pinned-source scalar baseline | standalone | implemented and measured in b1 | Raw b1 timing exists, but its reference environment failed integrity and must be replaced by a b2-verified rerun before profile-specific parity acceptance. |
+| Direct ObsPy scalar baseline | standalone + pytest-benchmark | implemented and measured under verified b2 profile | b2 retained a valid ObsPy 1.4.2 environment and finite scalar timing; final parity review remains tied to the post-b3 release check. |
+| Direct pinned-source scalar baseline | standalone | implemented and measured under verified b2 profile | The corrected b2 reference run replaces invalid b1 profile-specific evidence. |
 | Public geographic batch lookup | standalone + pytest-benchmark | implemented | Full maintained 1-2-5 grid available. |
-| Direct pinned-source batch-equivalent scan | standalone + pytest-benchmark | implemented and measured through 100k | Raw b1 timing exists; corrected b2 environment verification is required before profile-specific parity acceptance. |
+| Direct pinned-source batch-equivalent scan | standalone + pytest-benchmark | implemented and measured through 100k under verified b2 profile | The corrected b2 reference run replaces invalid b1 profile-specific evidence. |
 | Candidate/source speedup | standalone derived metric | derivable, not a separate timer | Compare the candidate and source-reference cases on identical loads/environment. |
 | Seismic batch lookup | standalone + pytest-benchmark | implemented | Source geographic lookup + project crosswalk is the correctness oracle. |
 | Geographic→seismic crosswalk | standalone + pytest-benchmark | implemented | Crosswalk oracle is checked outside timing. |
@@ -62,10 +62,13 @@ ObsPy result was `NaN`/`not_applicable`. A retained environment diagnostic showe
 observed environment agreement as part of timing acceptance and changes a broken
 requested comparator dependency from `not_applicable` to environment/build failure.
 
-`REQ-PERF-017` remains open. The corrected b2 reference profile must be rerun, fresh
-predecessor evidence must be reconciled with ASV, remaining failure-state examples and
-report-regeneration evidence should be retained, and benchmark authority remains with the
-predecessor path until that review explicitly closes migration parity.
+The corrected b2 reference profile has now been rerun successfully, and fresh b2
+standalone, pytest-benchmark, and Python 3.11–3.14 Tox evidence is retained. The first
+normalized release-check output after that run is not accepted because its b2 candidate
+rows came from the `reference-comparison` environment rather than the required
+`release-history` profile. b3 fixes that provenance defect and adds retained report-
+rebuild records. `REQ-PERF-017` therefore remains open only until a post-b3 same-profile
+release check, report rebuild, and final parity review are retained and accepted.
 
 ## Why the predecessor harness remains
 

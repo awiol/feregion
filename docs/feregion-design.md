@@ -267,9 +267,11 @@ alpha. The `0.4` target does not authorize unrelated runtime lookup features or
 performance optimizations. Measurements may identify such work, but adoption of
 that work requires its own compatibility/scope decision. Implementation status,
 maturity, and verification status remain separate; maintainer-host ASV current/history,
-dependency, supported-Python, pinned-source reference, and diagnostic execution is now
-observed. The b1 direct ObsPy environment was invalid, and complete corrected-reference,
-failure-state, predecessor-reconciliation, and site-rebuild parity evidence remains open.
+dependency, supported-Python, pinned-source reference, diagnostic, and corrected b2
+ObsPy execution is now observed. Fresh b2 predecessor/Tox evidence is also retained. b3
+binds normalized evidence to the campaign environment profile and retains report-rebuild
+provenance; only the post-b3 release-gate/report replay and final parity/authority review
+remain open.
 
 Routine benchmark semantics continue to cover in-process scalar, batch,
 name-conversion, hierarchy, and pandas interfaces. CLI and GeoJSON timing remain

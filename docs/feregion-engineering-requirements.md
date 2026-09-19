@@ -498,6 +498,10 @@ absence may be `not_applicable` only when the selected profile or historical pac
 revision does not require/provide that capability; failure of an explicitly requested
 comparator dependency must not be converted into `not_applicable`.
 
+**REQ-PERF-030** — Normalized evidence for a campaign must be collected only from ASV environments permitted by that campaign's resolved environment profile. A retained result with the same revision, case, and load but a different environment profile must not be relabeled with the current campaign identity or used by its release decision. If the required profile has no candidate result, the evidence must remain incomplete.
+
+**REQ-PERF-031** — A local static-report rebuild used as migration evidence must retain a machine-readable rebuild record. The record must identify the report command outcome, the retained source-evidence content identity used for the rebuild, and whether generated report output was observed. Report-rebuild records must be included in benchmark evidence handoffs; generated HTML remains rebuildable derived output and is excluded by default.
+
 ## Packaging, development environment, and license
 
 **REQ-PKG-001** — The package must require Python 3.11 or newer. Automated

@@ -43,13 +43,15 @@ standalone/pytest-benchmark harness. A historical predecessor result for `feregi
 507.1k ObsPy lookups/s on the same host. That historical scalar result does not imply a
 batch-performance ordering.
 
-The b1 ASV `reference-comparison` campaign did execute, but its direct ObsPy result is
-not valid comparative evidence. Environment investigation found that ASV requested
-ObsPy 1.4.2 / NumPy 1.26.4 / pandas 2.1.4, while the actual interpreter contained
-NumPy 2.5.3 and Setuptools 84.0.0; ObsPy 1.4.2 then failed to import because
-`pkg_resources` was unavailable. b2 adds environment-integrity preflight and repairs the
-reference profile. Until that corrected campaign is rerun, this document does not quote
-a **current** feregion-versus-ObsPy speed ratio.
+The corrected b2 ASV `reference-comparison` campaign has now run under a verified
+CPython 3.12 / NumPy 1.26.4 / pandas 2.1.4 / ObsPy 1.4.2 / Setuptools 81.0.0
+environment with a clean dependency check. Median scalar timings on the Ryzen 5 3600
+host were about 4.680 µs for `feregion.lookup_geographic_number()` and 3.000 µs for
+ObsPy `FlinnEngdahl.get_number()`, so ObsPy was about 1.56× faster for that scalar
+operation. This does not describe feregion's vectorized batch path: the same verified
+reference campaign measured feregion about 131× faster than the scalar pinned-source
+scanner at 100k points. Use the scalar ObsPy ratio only for scalar workloads and the
+batch evidence for batch workloads.
 
 Do not choose feregion solely because of an unsupported speed claim. Choose it for
 its dedicated interfaces and measured batch behavior; use direct comparator evidence

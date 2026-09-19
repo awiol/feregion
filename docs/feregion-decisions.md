@@ -1237,3 +1237,11 @@ changed rationale as historical fact.
 - **Review trigger:** ASV changes its environment installation contract, ObsPy no longer
   requires the compatibility pin, environment metadata schema changes, or another
   evidence family becomes necessary for replay or review.
+
+
+## `DEC-061` — Bind normalized evidence to campaign profiles and retain report-rebuild proof
+
+- **Context:** Post-b2 normalized `release-compare` evidence exposed a provenance defect: b2 had not been measured in the fixed release-history environment, so the collector accepted same-case b2 rows from the ObsPy `reference-comparison` environment and relabeled them with the release campaign identity. Separately, successful static-site rebuilds were not retained as machine-readable evidence.
+- **Decision:** Filter normalized evidence by the ASV environment identities resolved from the campaign's declared profile before assigning campaign identity or applying project release logic. A missing required-profile result remains incomplete. Retain every local `asv publish` rebuild outcome under `.asv/feregion-reports/` with a digest over the retained result/state/run/environment source set and include those records in benchmark handoffs. Do not deliberately corrupt real environments solely to manufacture every rare failure state: `REQ-PERF-009` requires the states to remain distinguishable, which is verified by controlled integration fixtures plus genuine observed applicability/environment failures.
+- **Consequence:** Release decisions cannot silently cross environment-profile boundaries, report regeneration becomes auditable without preserving derived HTML, and migration closure no longer depends on contaminating authoritative result stores with synthetic failures.
+- **Review trigger:** Campaign profiles gain nontrivial environment-variable naming semantics, ASV changes environment naming, evidence collection gains native campaign provenance, or report publication semantics change.

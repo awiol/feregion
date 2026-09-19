@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
+import json
 import subprocess
 import sys
 from collections.abc import Sequence
+from datetime import UTC, datetime
 from pathlib import Path
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -23,6 +26,68 @@ _REFRESH_CAMPAIGNS = (
     "reference-comparison.toml",
     "diagnostics.toml",
 )
+
+
+def _evidence_snapshot() -> dict[str, object]:
+    """Return a content identity for retained evidence used to rebuild a report.
+
+    The digest covers relative paths and bytes from the raw ASV results and project
+    state/run/environment sidecars. It intentionally excludes generated HTML.
+    """
+
+    roots = (
+        _PROJECT_ROOT / ".asv" / "results",
+        _PROJECT_ROOT / ".asv" / "feregion-state",
+        _PROJECT_ROOT / ".asv" / "feregion-runs",
+        _PROJECT_ROOT / ".asv" / "feregion-environments",
+    )
+    digest = hashlib.sha256()
+    count = 0
+    for root in roots:
+        if not root.is_dir():
+            continue
+        for path in sorted(item for item in root.rglob("*") if item.is_file()):
+            relative = path.relative_to(_PROJECT_ROOT).as_posix().encode("utf-8")
+            digest.update(len(relative).to_bytes(8, "big"))
+            digest.update(relative)
+            data = path.read_bytes()
+            digest.update(len(data).to_bytes(8, "big"))
+            digest.update(data)
+            count += 1
+    return {"file_count": count, "sha256": digest.hexdigest()}
+
+
+def _record_report_rebuild(*, returncode: int, started_at: datetime) -> Path | None:
+    """Retain one report-rebuild result when benchmark evidence exists.
+
+    The record proves only the local ASV report-build action and resulting local HTML
+    state. External publication remains a separate operation.
+    """
+
+    results_dir = _PROJECT_ROOT / ".asv" / "results"
+    if not results_dir.is_dir():
+        return None
+    recorded_at = datetime.now(UTC)
+    html_root = _PROJECT_ROOT / ".asv" / "html"
+    html_files = (
+        [item for item in html_root.rglob("*") if item.is_file()] if html_root.is_dir() else []
+    )
+    payload = {
+        "schema_version": 1,
+        "action": "asv-report-rebuild",
+        "command": ["asv", "publish", "--no-pull", "--config", "asv.conf.json"],
+        "started_at_utc": started_at.isoformat(),
+        "recorded_at_utc": recorded_at.isoformat(),
+        "returncode": returncode,
+        "source_evidence": _evidence_snapshot(),
+        "html_index_exists": (html_root / "index.html").is_file(),
+        "html_file_count": len(html_files),
+    }
+    stamp = recorded_at.strftime("%Y%m%dT%H%M%SZ")
+    path = _PROJECT_ROOT / ".asv" / "feregion-reports" / f"report-{stamp}.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return path
 
 
 def _run(command: Sequence[str]) -> int:
@@ -95,9 +160,12 @@ def refresh(
 
 
 def build_report() -> int:
-    """Rebuild the complete native ASV site from all retained result evidence."""
+    """Rebuild the ASV site and retain a machine-readable local rebuild record."""
 
-    return _run(["asv", "publish", "--no-pull", "--config", "asv.conf.json"])
+    started_at = datetime.now(UTC)
+    status = _run(["asv", "publish", "--no-pull", "--config", "asv.conf.json"])
+    _record_report_rebuild(returncode=status, started_at=started_at)
+    return status
 
 
 def preview() -> int:

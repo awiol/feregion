@@ -410,6 +410,7 @@ def collect_asv_evidence(
     cases: Sequence[str],
     load_sizes: Sequence[int],
     machine: str | None = None,
+    environments: Sequence[str] | None = None,
 ) -> list[EvidenceRecord]:
     """Collect normalized evidence for selected commits from retained ASV results.
 
@@ -421,6 +422,7 @@ def collect_asv_evidence(
     selected_commits = {revision.commit for revision in revisions}
     selected_cases = set(cases)
     selected_loads = set(load_sizes)
+    selected_environments = set(environments) if environments is not None else None
     records: list[EvidenceRecord] = []
     if not results_dir.is_dir():
         return records
@@ -436,9 +438,11 @@ def collect_asv_evidence(
         commit = payload.get("commit_hash")
         if commit not in selected_commits or not isinstance(payload.get("results"), dict):
             continue
-        commits_with_results.add(commit)
         environment_value = payload.get("env_name")
         environment = str(environment_value) if environment_value is not None else None
+        if selected_environments is not None and environment not in selected_environments:
+            continue
+        commits_with_results.add(commit)
         result_machine = path.parent.name
         for benchmark_name in payload["results"]:
             case_id = _case_for_benchmark_name(benchmark_name)
