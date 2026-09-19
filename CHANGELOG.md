@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.0b5 — 2026-09-19
+
+- Address isolated b4 benchmark/documentation review findings FEREGION-001 through FEREGION-006 without changing runtime lookup behavior or benchmark timing semantics.
+- Replace the stale `v0.4.0a9` routine release baseline with the explicitly accepted prior candidate `v0.4.0b4`, recorded in `benchmarks/release-baseline.toml`; repository tests require `release-compare.toml` to stay synchronized with that baseline policy.
+- Retain one content-addressed effective campaign plan for every benchmark run under `.asv/feregion-plans/`, including resolved revisions, effective repetitions/rounds, sample and append policy, machine/comparability policy, requested report steps, source-config hash, and operator ASV/asv-runner identity. Revision-run records link to the plan digest.
+- Populate normalized evidence with the operator ASV identity from retained run records and the observed `asv-runner` identity from benchmark-environment verification when available; include plan records plus the release-baseline source in machine-readable evidence handoffs. Historical records that predate the new provenance schema may keep null tool identities.
+- Reconcile maintained benchmark-authority status across requirements, design, quality assurance, traceability, README, migration-parity, and roadmap documentation; give the migration-authority decision the unique ID `DEC-062` and add repository checks for decision-ID uniqueness and authority-state synchronization.
+- Make the ASV-installed CI job execute the focused benchmark contract pytest module so the direct ASV parser oracle cannot silently skip there. CI now plans the `smoke` campaign instead of requiring locally maintained historical tags merely to validate the benchmark source contract; historical tag availability remains an operator/repository-state requirement for historical campaigns.
+
 ## 0.4.0b4 — 2026-09-19
 
 - Close `REQ-PERF-017` from the reviewed post-b3 benchmark-evidence checkpoint. The retained normalized `release-compare` evidence contains all seven required loads for both `0.4.0a9` and b3 under the same `uv-py3.12-numpy1.26.4-pandas2.1.4` environment, and the project throughput gate is complete with no trigger.

@@ -7,6 +7,7 @@ import json
 import math
 from collections.abc import Iterable, Sequence
 from dataclasses import asdict, dataclass
+from hashlib import sha256
 from pathlib import Path
 from typing import Any, Literal, Protocol
 
@@ -386,20 +387,64 @@ def _version_mapping(
     )
 
 
+def _run_record(
+    results_dir: Path,
+    *,
+    campaign_id: str,
+    commit: str,
+) -> dict[str, Any] | None:
+    """Return one retained campaign-run record when available."""
+
+    path = results_dir.parent / "feregion-runs" / campaign_id / f"{commit}.json"
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (FileNotFoundError, OSError, json.JSONDecodeError):
+        return None
+    return payload if isinstance(payload, dict) else None
+
+
 def _run_failure_record(
     results_dir: Path,
     *,
     campaign_id: str,
     commit: str,
 ) -> dict[str, Any] | None:
-    path = results_dir.parent / "feregion-runs" / campaign_id / f"{commit}.json"
+    """Return a retained nonzero run record when benchmark JSON was not written."""
+
+    payload = _run_record(results_dir, campaign_id=campaign_id, commit=commit)
+    if payload is not None and payload.get("returncode") not in (None, 0):
+        return payload
+    return None
+
+
+def _tool_identity(run_record: dict[str, Any] | None) -> tuple[str | None, str | None]:
+    """Extract exact ASV tool identities from one retained run record."""
+
+    if run_record is None:
+        return None, None
+    asv = run_record.get("asv_version")
+    runner = run_record.get("asv_runner_version")
+    return (str(asv) if asv is not None else None, str(runner) if runner is not None else None)
+
+
+def _environment_runner_version(
+    results_dir: Path,
+    *,
+    commit: str,
+    environment: str | None,
+) -> str | None:
+    """Return the asv-runner version observed inside one retained ASV environment."""
+
+    if environment is None:
+        return None
+    digest = sha256(environment.encode("utf-8")).hexdigest()[:16]
+    path = results_dir.parent / "feregion-environments" / commit / f"{digest}.json"
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
     except (FileNotFoundError, OSError, json.JSONDecodeError):
         return None
-    if isinstance(payload, dict) and payload.get("returncode") not in (None, 0):
-        return payload
-    return None
+    value = payload.get("asv_runner_version") if isinstance(payload, dict) else None
+    return str(value) if value is not None else None
 
 
 def collect_asv_evidence(
@@ -444,6 +489,12 @@ def collect_asv_evidence(
             continue
         commits_with_results.add(commit)
         result_machine = path.parent.name
+        run_record = _run_record(results_dir, campaign_id=campaign_id, commit=commit)
+        asv_version, run_runner_version = _tool_identity(run_record)
+        environment_runner_version = _environment_runner_version(
+            results_dir, commit=commit, environment=environment
+        )
+        asv_runner_version = environment_runner_version or run_runner_version
         for benchmark_name in payload["results"]:
             case_id = _case_for_benchmark_name(benchmark_name)
             if case_id is None or case_id not in selected_cases:
@@ -485,6 +536,8 @@ def collect_asv_evidence(
                             state_override=state_override,
                             state_reason=reason,
                             source_result=str(path),
+                            asv_version=asv_version,
+                            asv_runner_version=asv_runner_version,
                         )
                     )
             else:
@@ -512,6 +565,8 @@ def collect_asv_evidence(
                         state_override=state_override,
                         state_reason=reason,
                         source_result=str(path),
+                        asv_version=asv_version,
+                        asv_runner_version=asv_runner_version,
                     )
                 )
 
@@ -525,6 +580,7 @@ def collect_asv_evidence(
         )
         if failed_run is None:
             continue
+        asv_version, asv_runner_version = _tool_identity(failed_run)
         reason = (
             "ASV revision run failed before retaining benchmark-level results; "
             "the retained run record does not identify a narrower build/setup phase"
@@ -554,6 +610,8 @@ def collect_asv_evidence(
                         environment=None,
                         campaign_id=campaign_id,
                         reason=reason,
+                        asv_version=asv_version,
+                        asv_runner_version=asv_runner_version,
                     )
                 )
     return records

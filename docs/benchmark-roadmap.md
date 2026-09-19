@@ -2,6 +2,8 @@
 
 ## Status
 
+The ASV-derived path is the primary benchmark authority; the 0.4 migration is closed.
+
 This document records **planned or investigatory work**, not implemented requirements.
 The `0.4` ASV migration is complete: the reviewed post-b3 evidence satisfies
 `REQ-PERF-017`, and ASV plus the project-owned semantic/evidence/gate layers are now the
@@ -27,13 +29,13 @@ requirement.
 
 ## Evidence and provenance
 
-5. Extend campaign-run records with ASV/asv-runner version, start/end timestamps, and
-   references/hashes for result files updated by the run.
+5. Add run start/end timestamps and direct references/hashes for result files updated by
+   the run. Current run/environment evidence retains ASV identity and the observed asv-runner identity when installed.
 6. Improve multi-machine evidence handling without combining incomparable hosts into a
    release decision.
 7. Define the durable retention/location policy for evidence handoff archives and the
-   preservation-set source directories. The handoff command exports results, state, run,
-   environment, report, normalized, predecessor, and configuration evidence; repository
+   preservation-set source directories. The handoff command exports results, state, run, plan, environment, report,
+   normalized, predecessor, and configuration evidence; repository
    policy still needs to define where long-lived archives are stored and pruned.
 
 ## Benchmark coverage and investigation

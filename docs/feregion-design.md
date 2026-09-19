@@ -4,7 +4,9 @@
 |---|---|
 | Behavioral contract series | `0.2` |
 | Status | Current beta design |
-| Implemented target | `0.4` benchmark-system source implemented; migration-parity evidence remains incomplete |
+| Implemented target | `0.4` benchmark-system source implemented; migration closed and ASV authority promoted |
+
+The ASV-derived path is the primary benchmark authority; the 0.4 migration is closed.
 
 ## 1. Design result
 
@@ -271,7 +273,7 @@ dependency, supported-Python, pinned-source reference, diagnostic, and corrected
 ObsPy execution is now observed. Fresh b2 predecessor/Tox evidence is also retained. b3
 binds normalized evidence to the campaign environment profile and retains report-rebuild
 provenance. Reviewed post-b3 release-gate and report-replay evidence satisfies
-`REQ-PERF-017`; `DEC-061` establishes the ASV-derived path as primary benchmark
+`REQ-PERF-017`; `DEC-062` establishes the ASV-derived path as primary benchmark
 authority.
 
 Routine benchmark semantics continue to cover in-process scalar, batch,
@@ -392,6 +394,9 @@ the requested profile name.
 
 A campaign is the operator-facing unit of work. A small human-editable TOML file
 selects benchmark intent without embedding timing or environment implementation.
+The routine release campaign is additionally bound to the accepted prior candidate recorded
+in `benchmarks/release-baseline.toml`; a repository contract test requires the campaign's
+first revision to match that explicit baseline source.
 The campaign schema contains, at minimum:
 
 ```text
@@ -418,9 +423,12 @@ report    build the static benchmark report from retained results
 
 These are responsibility names, not a promise that the final CLI subcommands use
 these exact spellings. `plan` is read-only and exposes the exact execution set
-before measurement begins. The campaign layer may produce a bounded ASV
-configuration from maintained project profiles, but it must not become a second
-benchmark runner. External GitHub Pages or other hosting publication is separate
+before measurement begins. Every `run` invocation retains the effective plan as a
+content-addressed record under `.asv/feregion-plans/`. The retained plan includes
+resolved commits, effective timing controls, sample/append policy,
+machine/comparability policy, requested report steps, source-config identity, and operator-environment ASV/asv-runner versions known before execution. Revision-run records link to the plan digest; environment records capture the `asv-runner` version actually installed in the benchmark environment that executes timed code. The campaign
+layer may produce a bounded ASV configuration from maintained project profiles, but it
+must not become a second benchmark runner. External GitHub Pages or other hosting publication is separate
 from `report`; publication requires separate authorization and post-action state
 verification.
 
@@ -448,7 +456,7 @@ outside authoritative campaign revision identity.
 The initial implementation target is ASV `0.6.6`, the latest released version
 verified during this design review. The repository dependency may use a reviewed
 `0.6.x` compatibility range, but authoritative campaign evidence records the
-exact ASV and asv-runner versions that executed the run. A future ASV minor line
+exact operator ASV version and, when available, the observed benchmark-environment `asv-runner` version that executed the benchmark code. A future ASV minor line
 requires compatibility review before it becomes an authoritative benchmark
 backend.
 
@@ -652,13 +660,15 @@ resolved campaign identity
 ```
 
 The normalized record preserves traceability back to the retained ASV result and
-samples. It also preserves the stored ASV benchmark-version identity, mapped project
+samples. The ASV identity is inherited from the retained campaign-run record rather than
+injected only by tests; the `asv-runner` identity is taken from the retained benchmark-environment verification when available, with the run record as a compatibility fallback for older evidence. It also preserves the stored ASV benchmark-version identity, mapped project
 case version, declared operation count, derived operations per second, and explicit
 correctness state. Unknown benchmark versions are incompatible, not silently assigned
 the current case version. ASV setup sidecars under `.asv/feregion-state/` distinguish
 correctness failure, oracle/environment unavailability, not-applicable capability,
 and execution failure; revision-run records under `.asv/feregion-runs/` retain failures
-that can occur before benchmark JSON exists. A revision-level nonzero ASV run without
+that can occur before benchmark JSON exists and bind each revision to the retained
+effective plan plus ASV identity and the observed environment asv-runner identity when installed. A revision-level nonzero ASV run without
 phase-specific evidence is classified conservatively as execution failure rather than
 inferred to be a build failure. Parsing of ASV-specific formats remains isolated behind
 the adapter.

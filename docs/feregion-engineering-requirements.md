@@ -5,6 +5,8 @@
 | Status | Current beta engineering contract |
 | Current target | `0.4.0` benchmark-system beta stabilization; ASV migration accepted and primary benchmark authority established |
 
+The ASV-derived path is the primary benchmark authority; the 0.4 migration is closed.
+
 This document uses the normative profile defined by `feregion-requirements.md`.
 
 ## Governing guidance for the 0.4 benchmark target

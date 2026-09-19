@@ -199,7 +199,8 @@ ASV benchmark setup writes retained sidecars under `.asv/feregion-state/`. The
 normalized evidence adapter uses them to distinguish correctness failure,
 environment/oracle unavailability, explicit not-applicable capability, execution
 failure, and measured results. Campaign execution records revision-level run status
-under `.asv/feregion-runs/`. b2 also verifies requested-versus-installed dependency
+under `.asv/feregion-runs/`. Each run also retains a content-addressed effective plan
+under `.asv/feregion-plans/` and links the run record to that plan. b2 also verifies requested-versus-installed dependency
 versions, requested imports, and `pip check` before timing and retains the result under
 `.asv/feregion-environments/`. A broken explicitly requested comparator dependency is
 environment/build failure, not `not_applicable`.
@@ -221,7 +222,7 @@ Dependency versions belong to the selected ASV environment profile.
 
 Generated `.asv/` state is benchmark evidence/derived output and remains outside the
 source tree. Preserve `.asv/results`, `.asv/feregion-state`, relevant
-`.asv/feregion-runs`, `.asv/feregion-environments`, and `.asv/feregion-reports`
+`.asv/feregion-runs`, `.asv/feregion-plans`, `.asv/feregion-environments`, and `.asv/feregion-reports`
 together when retaining migration evidence. The release check accepts only result
 environments permitted by the selected campaign profile; same-case rows from another
 profile are not interchangeable. Create a machine-readable handoff with:

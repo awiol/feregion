@@ -363,3 +363,47 @@ def test_readme_region_example_matches_public_runtime_representation() -> None:
     readme = (PROJECT_ROOT / "README.md").read_text(encoding="utf-8")
     expected = f"# {feregion.lookup_region(12.0, 48.0)!r}"
     assert expected in readme
+
+
+def test_benchmark_authority_state_is_semantically_synchronized() -> None:
+    """Maintained benchmark documents must expose one current authority state."""
+
+    canonical = (
+        "The ASV-derived path is the primary benchmark authority; the 0.4 migration is closed."
+    )
+    paths = [
+        PROJECT_ROOT / "README.md",
+        DOCS / "feregion-engineering-requirements.md",
+        DOCS / "feregion-design.md",
+        DOCS / "feregion-quality-assurance.md",
+        DOCS / "feregion-verification-traceability.md",
+        DOCS / "benchmark-migration-parity.md",
+        DOCS / "benchmark-roadmap.md",
+    ]
+    for path in paths:
+        text = path.read_text(encoding="utf-8")
+        assert canonical in text, path
+        assert "migration authority not yet promoted" not in text, path
+        stale_predecessor = (
+            "predecessor performance authority retained while "
+            "ASV migration evidence remains incomplete"
+        )
+        assert stale_predecessor not in text, path
+        assert "migration-parity evidence remains incomplete" not in text, path
+
+
+def test_decision_ids_are_unique_and_all_references_resolve() -> None:
+    """Stable decision identifiers must name exactly one decision ledger entry."""
+
+    decisions_path = DOCS / "feregion-decisions.md"
+    decisions = decisions_path.read_text(encoding="utf-8")
+    headings = re.findall(r"^## `?(DEC-\d{3})`?", decisions, flags=re.MULTILINE)
+    assert headings
+    assert len(headings) == len(set(headings))
+    known = set(headings)
+
+    paths = [PROJECT_ROOT / "README.md", *sorted(DOCS.glob("*.md"))]
+    referenced: set[str] = set()
+    for path in paths:
+        referenced.update(re.findall(r"\bDEC-\d{3}\b", path.read_text(encoding="utf-8")))
+    assert referenced <= known

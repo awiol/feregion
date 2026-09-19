@@ -1246,7 +1246,7 @@ changed rationale as historical fact.
 - **Consequence:** Release decisions cannot silently cross environment-profile boundaries, report regeneration becomes auditable without preserving derived HTML, and migration closure no longer depends on contaminating authoritative result stores with synthetic failures.
 - **Review trigger:** Campaign profiles gain nontrivial environment-variable naming semantics, ASV changes environment naming, evidence collection gains native campaign provenance, or report publication semantics change.
 
-## `DEC-061` — Complete the `0.4` benchmark migration and promote ASV authority
+## `DEC-062` — Complete the `0.4` benchmark migration and promote ASV authority
 
 - **Context:** The reviewed post-b3 evidence handoff, SHA-256
   `087990a7aff4e7c2efaaba4a7bbd0445f4a1edcd2fb4fae8c3776341209848a3`, binds the
@@ -1283,3 +1283,25 @@ changed rationale as historical fact.
 - **Review trigger:** A material benchmark semantic/schema change, loss of ASV support,
   evidence that the accepted migration comparison was invalid, or a later requirement to
   replace the primary benchmark infrastructure.
+
+## `DEC-063` — Retain effective benchmark plans and use the previous accepted candidate baseline
+
+- **Context:** The isolated b4 review found that the maintained routine release campaign still
+  named `v0.4.0a9` even though the governing requirement and operator guidance define a
+  previous-accepted-candidate comparison. It also found that authoritative evidence did not
+  retain the full effective campaign contract or exact ASV tool identities.
+- **Decision:** Maintain `benchmarks/release-baseline.toml` as the explicit source for the
+  accepted prior release-performance candidate and require `release-compare.toml` to match it.
+  For the b5 iteration the accepted prior candidate is `v0.4.0b4`. Every campaign run must
+  retain one content-addressed effective plan under `.asv/feregion-plans/`, including resolved
+  commits, effective repetitions/rounds, sample and append policy, machine/comparability policy,
+  requested report steps, source-config hash, and operator-environment ASV/asv-runner identities known before execution. Revision-run records must link to that plan; environment evidence must retain the `asv-runner` actually installed for timed execution; normalized evidence must combine those retained identities without inventing missing historical values.
+- **Rationale:** A release gate can only be interpreted if its baseline and effective execution
+  contract are reconstructible from retained evidence. Mutable campaign source and ASV
+  environment names alone are insufficient provenance.
+- **Consequence:** Routine release comparisons cannot silently retain an obsolete baseline, and
+  benchmark handoffs can reconstruct the exact run contract without relying on the later source
+  tree. Historical records that predate this schema can retain null tool identities.
+- **Review trigger:** The baseline-selection policy changes, campaign/report semantics change, or
+  ASV exposes a stronger native immutable-run-contract mechanism that can replace the project
+  sidecar.

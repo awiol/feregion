@@ -14,3 +14,5 @@ repetitions = 7
 rounds = 5
 environment_profile = "reference-comparison"
 record_samples = true
+machine_policy = "same-machine-environment-case-version"
+report_steps = []

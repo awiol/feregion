@@ -303,6 +303,6 @@ configuration without relying on derived HTML.
 The accepted evidence covers current/history/dependency/supported-Python ASV campaigns,
 verified direct ObsPy/source comparison, restored diagnostics, fresh predecessor
 standalone/pytest-benchmark/Tox evidence, a complete same-profile release gate, and a
-content-addressed report rebuild. `REQ-PERF-017` is satisfied and `DEC-061` promotes the
+content-addressed report rebuild. `REQ-PERF-017` is satisfied and `DEC-062` promotes the
 ASV-derived path to primary benchmark authority. Remaining high-load resource attribution,
 reporting UX, and archive-retention questions are non-blocking roadmap work.

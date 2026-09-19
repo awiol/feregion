@@ -3,7 +3,9 @@
 | Field | Value |
 |---|---|
 | Status | Current beta quality contract |
-| Current target | `0.4` benchmark-system beta stabilization; predecessor performance authority retained while ASV migration evidence remains incomplete |
+| Current target | `0.4` benchmark-system beta stabilization; ASV migration closed and primary benchmark authority established |
+
+The ASV-derived path is the primary benchmark authority; the 0.4 migration is closed.
 
 ## Purpose
 
@@ -73,7 +75,7 @@ execution is now observed, including real diagnostic and pinned-source reference
 Corrected b2 direct ObsPy/reference execution and fresh predecessor/Tox evidence are
 retained. b3 fixes cross-profile normalized-evidence contamination and adds retained
 report-rebuild proof. Reviewed post-b3 same-profile release-check and report-rebuild
-evidence satisfy `REQ-PERF-017`; `DEC-061` therefore promotes the ASV-derived path to
+evidence satisfy `REQ-PERF-017`; `DEC-062` therefore promotes the ASV-derived path to
 primary benchmark authority. This migration decision remains separate from unrelated
 release-validation and publication gates.
 

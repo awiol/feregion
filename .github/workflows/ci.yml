@@ -86,16 +86,21 @@ jobs:
         with:
           persist-credentials: false
           fetch-depth: 0
+          fetch-tags: true
       - name: Install uv
         uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
       - name: Install Python
         run: uv python install "$UV_PYTHON"
       - name: Install benchmark tooling
         run: uv sync --locked --group benchmark
-      - name: Validate project-owned campaign plan
+      - name: Run benchmark contract tests with ASV installed
+        run: >-
+          uv run --locked --group benchmark pytest -q
+          tests/test_asv_benchmark_contract.py
+      - name: Validate project-owned current campaign plan
         run: >-
           uv run --locked --group benchmark python -m benchmarks.campaign plan
-          benchmarks/campaigns/release-history.toml
+          benchmarks/campaigns/smoke.toml
       - name: Validate ASV benchmark suite
         run: uv run --locked --group benchmark asv check
 

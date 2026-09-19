@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
 import subprocess
+import tomllib
 from pathlib import Path
 
 import pytest
@@ -84,7 +86,9 @@ def test_campaign_parses_and_resolves_plan(tmp_path: Path) -> None:
         "repetitions = 7\n"
         "rounds = 4\n"
         "environment_profile = 'release-history'\n"
-        "record_samples = true\n",
+        "record_samples = true\n"
+        "machine_policy = 'same-machine-environment-case-version'\n"
+        "report_steps = ['asv-site']\n",
         encoding="utf-8",
     )
     campaign = Campaign.from_toml(path)
@@ -104,6 +108,10 @@ def test_campaign_parses_and_resolves_plan(tmp_path: Path) -> None:
     subprocess.run(["git", "tag", "v0.2.0b1"], cwd=repository, check=True)
     plan = campaign.plan(repository=repository)
     assert plan["repetitions"] == 7
+    assert plan["machine_policy"] == "same-machine-environment-case-version"
+    assert plan["report_steps"] == ("asv-site",)
+    assert plan["append_samples"] is False
+    assert set(plan["tool_versions"]) == {"asv_version", "asv_runner_version"}
     assert plan["case_versions"] == {"lookup_geographic_numbers": 1}
     assert [item["requested"] for item in plan["resolved_revisions"]] == [
         "v0.3.0b1",
@@ -642,7 +650,10 @@ def test_predefined_campaigns_cover_operator_workflows() -> None:
     expected_head_cases = {case_id for case_id, case in CASES.items() if not case.diagnostic}
     assert set(head_full.cases) == expected_head_cases
     release_compare = parsed["release-compare.toml"]
-    assert release_compare.revisions == ("v0.4.0a9", "HEAD")
+    with (project_root / "benchmarks" / "release-baseline.toml").open("rb") as stream:
+        baseline = tomllib.load(stream)["baseline"]
+    assert baseline["policy"] == "previous-accepted-candidate"
+    assert release_compare.revisions == (baseline["revision"], "HEAD")
     assert max(release_compare.load_sizes) == 1_000_000
     dependency_matrix = parsed["dependency-matrix.toml"]
     assert {"pandas_lookup_numbers", "pandas_lookup_numbers_and_names"} <= set(
@@ -1267,6 +1278,132 @@ def test_source_oracle_pin_matches_repository_source_definition() -> None:
 
     assert source_oracle.OBSPY_REVISION == obspy_fe_source.OBSPY_REVISION
     assert source_oracle.SOURCE_SHA256 == obspy_fe_source.SOURCE_SHA256
+
+
+def test_effective_campaign_plan_is_content_addressed_and_linked_from_run_record(
+    tmp_path: Path,
+) -> None:
+    """Run evidence must retain the exact effective plan, overrides, and tool identities."""
+
+    repository = tmp_path / "repo"
+    first, second = _init_revision_repo(repository)
+    config = repository / "campaign.toml"
+    config.write_text(
+        "[campaign]\n"
+        "id='slice'\n"
+        "revisions=['base','HEAD']\n"
+        "cases=['lookup_geographic_numbers']\n"
+        "load_sizes=[10000]\n"
+        "repetitions=9\n"
+        "rounds=4\n"
+        "environment_profile='release-history'\n"
+        "record_samples=true\n"
+        "machine_policy='same-machine-environment-case-version'\n"
+        "report_steps=['asv-site']\n",
+        encoding="utf-8",
+    )
+    subprocess.run(["git", "tag", "base", first], cwd=repository, check=True)
+    campaign = Campaign.from_toml(config)
+    resolved = (
+        campaign_module.ResolvedRevision("base", first),
+        campaign_module.ResolvedRevision("HEAD", second),
+    )
+    tools = {"asv_version": "0.6.6", "asv_runner_version": "0.3.1"}
+    plan_path, digest = campaign_module._write_plan_record(
+        campaign,
+        repository=repository,
+        resolved_revisions=resolved,
+        source_config=config,
+        append_samples=True,
+        tool_versions=tools,
+    )
+    run_path = campaign_module._write_run_record(
+        campaign,
+        resolved[1],
+        repository=repository,
+        returncode=0,
+        append_samples=True,
+        plan_path=plan_path,
+        plan_sha256=digest,
+        tool_versions=tools,
+    )
+
+    plan_payload = json.loads(plan_path.read_text(encoding="utf-8"))
+    run_payload = json.loads(run_path.read_text(encoding="utf-8"))
+    assert plan_payload["plan_sha256"] == digest
+    assert plan_payload["plan"]["append_samples"] is True
+    assert plan_payload["plan"]["repetitions"] == 9
+    assert plan_payload["plan"]["rounds"] == 4
+    assert plan_payload["plan"]["machine_policy"] == "same-machine-environment-case-version"
+    assert plan_payload["plan"]["report_steps"] == ["asv-site"]
+    assert plan_payload["plan"]["tool_versions"] == tools
+    assert run_payload["plan_sha256"] == digest
+    assert run_payload["plan_path"] == plan_path.relative_to(repository).as_posix()
+    assert run_payload["append_samples"] is True
+    assert run_payload["asv_version"] == "0.6.6"
+    assert run_payload["asv_runner_version"] == "0.3.1"
+
+
+def test_collected_evidence_uses_tool_identity_from_retained_run_record(tmp_path: Path) -> None:
+    """Normalized evidence must inherit ASV/asv-runner identity from run evidence."""
+
+    from benchmarks.evidence import collect_asv_evidence
+
+    commit = "d" * 40
+    results = tmp_path / ".asv" / "results"
+    _write_asv_result(
+        results / "host" / "result.json",
+        commit=commit,
+        values=[0.001],
+        samples=[[0.001]],
+        loads=[10_000],
+    )
+    run_record = tmp_path / ".asv" / "feregion-runs" / "release" / f"{commit}.json"
+    run_record.parent.mkdir(parents=True)
+    run_record.write_text(
+        json.dumps(
+            {
+                "schema_version": 2,
+                "returncode": 0,
+                "commit": commit,
+                "asv_version": "0.6.6",
+                "asv_runner_version": "0.2.0",
+            }
+        ),
+        encoding="utf-8",
+    )
+    environment = "uv-py3.12-numpy1.26.4-pandas2.1.4"
+    environment_digest = hashlib.sha256(environment.encode("utf-8")).hexdigest()[:16]
+    environment_record = (
+        tmp_path / ".asv" / "feregion-environments" / commit / f"{environment_digest}.json"
+    )
+    environment_record.parent.mkdir(parents=True)
+    environment_record.write_text(
+        json.dumps({"asv_runner_version": "0.3.1", "environment": environment}),
+        encoding="utf-8",
+    )
+    records = collect_asv_evidence(
+        results,
+        campaign_id="release",
+        revisions=(campaign_module.ResolvedRevision("HEAD", commit),),
+        cases=("lookup_geographic_numbers",),
+        load_sizes=(10_000,),
+    )
+    assert len(records) == 1
+    assert records[0].asv_version == "0.6.6"
+    assert records[0].asv_runner_version == "0.3.1"
+
+
+def test_ci_runs_direct_asv_parser_contract_with_benchmark_dependencies() -> None:
+    """The ASV-installed CI job must execute the focused parser contract test."""
+
+    workflow = (Path(__file__).resolve().parents[1] / ".github" / "workflows" / "ci.yml").read_text(
+        encoding="utf-8"
+    )
+    assert "uv sync --locked --group benchmark" in workflow
+    assert "pytest -q" in workflow
+    assert "tests/test_asv_benchmark_contract.py" in workflow
+    assert "benchmarks/campaigns/smoke.toml" in workflow
 
 
 def test_publisher_payload_marks_asv_as_primary_after_migration(tmp_path: Path) -> None:

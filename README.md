@@ -307,6 +307,8 @@ uv run --locked pre-commit run --all-files
 
 ## Benchmarks
 
+The ASV-derived path is the primary benchmark authority; the 0.4 migration is closed.
+
 The `0.4` line contains the accepted ASV benchmark system with project-owned benchmark
 semantics, historical adapters, maintained campaigns, a 1-2-5 load grid through
 50 million points, normalized throughput evidence, a project-specific release gate,
@@ -353,6 +355,11 @@ predecessor outputs, normalized evidence, campaign/configuration files, and a ha
 manifest. Rebuildable `.asv/html` is excluded.
 
 Add `--history --repetitions 15 --rounds 7 --append-samples` when deliberately strengthening compatible historical/current evidence with more raw samples. Preview and publication remain separate commands; see the runbook before pushing external state.
+
+`benchmarks/release-baseline.toml` records the accepted prior candidate for the routine
+release gate. The release campaign is tested against that explicit baseline source, and
+each benchmark run retains a content-addressed effective plan with resolved commits and
+tool identity.
 
 For the routine previous-candidate versus `HEAD` decision, run the maintained
 release campaign and project gate:

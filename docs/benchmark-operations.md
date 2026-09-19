@@ -66,7 +66,7 @@ The repository maintains these canonical campaigns under `benchmarks/campaigns/`
 | `python-supported.toml` | Supported CPython versions on `HEAD` | Interpreter sensitivity/support checks |
 | `dependency-matrix.toml` | Sparse union of maintained NumPy and pandas sensitivity environments, including both pandas benchmark paths | Release refresh of dependency evidence without a full Cartesian product |
 
-`release-compare.toml` is intentionally versioned source. When a new benchmark candidate becomes the accepted comparison baseline, update its first revision to that candidate before issuing the next source candidate. Do not silently compare against whichever tag happens to be newest.
+`benchmarks/release-baseline.toml` records the explicitly accepted prior candidate for the routine release-performance gate. `release-compare.toml` must name the same first revision and `HEAD` second. A repository test enforces this synchronization. When a new candidate becomes the accepted baseline, update both files before issuing the next source candidate. Do not silently compare against whichever tag happens to be newest.
 
 The focused NumPy and pandas campaign files remain useful for targeted investigations. The release refresh workflow uses the sparse `dependency-matrix` campaign instead so it can populate the maintained union in one pass.
 
@@ -95,7 +95,33 @@ uv run --locked --group benchmark \
 
 `plan` does not benchmark anything. It validates cases/load sizes/profile names, resolves every requested Git identity to one immutable commit SHA, and prints the exact campaign contract. This catches missing tags and accidental Git range syntax before ASV creates environments or builds packages.
 
-For authoritative work, save or capture the resolved plan with the retained result evidence.
+For authoritative runs, the CLI automatically writes one content-addressed effective plan under `.asv/feregion-plans/` before timing begins. Revision-run records link to that plan, including effective timing overrides, sample-append mode, machine/comparability policy, report requests, source-config hash, and benchmark-tool identity.
+
+## 5a. Diagnose historical-tag visibility
+
+Historical and release-comparison campaigns require their named Git revisions to exist in
+the checkout. The CI benchmark-contract job validates source/tool integration with the
+`smoke` campaign and therefore does not depend on locally maintained historical tags. A
+workflow that actually runs historical campaigns still needs those tags on the remote it
+checks out.
+
+If a local tag push reports success but GitHub or another runner cannot resolve the tag,
+compare the fetch and push destinations instead of repeating the benchmark command:
+
+```bash
+git remote get-url --all origin
+git remote get-url --push --all origin
+git config --get-all remote.origin.pushurl || true
+git show-ref --tags | grep 'refs/tags/v0.4.0' || true
+git ls-remote --tags origin 'refs/tags/v0.4.0*'
+```
+
+A tag that is visible in `git show-ref` but absent from `git ls-remote` was not created on
+the remote queried by `origin`. If `git push` reports success while those commands refer to
+different URLs, inspect `remote.origin.pushurl` or another push target. A server-side tag
+rule normally rejects the push explicitly; do not treat a local `Everything up-to-date`
+message against a different push destination as proof that the public repository contains
+the tag.
 
 ## 6. Run the smoke campaign
 
@@ -314,7 +340,7 @@ Inspect the project summary, benchmark descriptions, scaling views, revision/tag
 
 Do not delete `.asv/results` merely because a report was built. During migration,
 preserve `.asv/results`, `.asv/feregion-state`, `.asv/feregion-runs`,
-`.asv/feregion-environments`, and `.asv/feregion-reports` together. The sidecars retain
+`.asv/feregion-plans`, `.asv/feregion-environments`, and `.asv/feregion-reports` together. The sidecars retain
 correctness, failure-state, requested-versus-observed environment meaning, and local
 report-rebuild provenance that raw ASV timing JSON does not encode by itself.
 
@@ -397,7 +423,7 @@ compatibility checks, investigation, and historical comparison.
 For a routine new alpha/beta candidate:
 
 1. Commit the candidate source. ASV benchmarks commits, not uncommitted working-tree edits.
-2. Update `release-compare.toml` so its first revision is the accepted prior benchmark baseline.
+2. Update `benchmarks/release-baseline.toml` and `release-compare.toml` so both name the accepted prior candidate as the release baseline.
 3. Update `release-history.toml` when the new candidate should become part of maintained backward-compatible history.
 4. Run `asv check` and a real `smoke` after benchmark/package integration changes.
 5. Run `python -m benchmarks.release_workflow refresh`; add `--history` for review/promotion or historical evidence.

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -13,6 +14,8 @@ import tomllib
 from collections.abc import Sequence
 from dataclasses import asdict, dataclass, replace
 from datetime import UTC, datetime
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version as distribution_version
 from itertools import product
 from pathlib import Path
 from typing import Any
@@ -85,6 +88,36 @@ ASV_INSTALL_COMMAND = [
     "in-dir={env_dir} python -m pip install --no-deps --force-reinstall {wheel_file}",
 ]
 REFERENCE_CONSTRAINTS = Path("benchmarks/constraints/reference-comparison.txt")
+DEFAULT_MACHINE_POLICY = "same-machine-environment-case-version"
+SUPPORTED_REPORT_STEPS = frozenset({"asv-site"})
+
+
+def benchmark_tool_versions() -> dict[str, str | None]:
+    """Return benchmark-tool identities installed in the operator environment.
+
+    ASV itself executes from this environment. ``asv-runner`` is also captured here as
+    pre-run provenance, but the environment preflight records the runner version that
+    actually executes inside each ASV benchmark environment. Missing distributions remain
+    explicit ``None`` values.
+    """
+
+    def installed(distribution: str) -> str | None:
+        try:
+            return distribution_version(distribution)
+        except PackageNotFoundError:
+            return None
+
+    return {"asv_version": installed("asv"), "asv_runner_version": installed("asv-runner")}
+
+
+def _sha256(path: Path) -> str:
+    """Return the SHA-256 digest of one file."""
+
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def expected_environment_names(profile_name: str) -> tuple[str, ...]:
@@ -191,6 +224,8 @@ class Campaign:
     rounds: int
     environment_profile: str
     record_samples: bool
+    machine_policy: str = DEFAULT_MACHINE_POLICY
+    report_steps: tuple[str, ...] = ()
 
     @classmethod
     def from_toml(cls, path: Path) -> Campaign:
@@ -209,6 +244,8 @@ class Campaign:
             rounds=int(config.get("rounds", 3)),
             environment_profile=str(config.get("environment_profile", "release-history")),
             record_samples=bool(config.get("record_samples", True)),
+            machine_policy=str(config.get("machine_policy", DEFAULT_MACHINE_POLICY)),
+            report_steps=tuple(str(value) for value in config.get("report_steps", ())),
         )
         campaign.validate()
         return campaign
@@ -232,14 +269,28 @@ class Campaign:
             raise ValueError("repetitions and rounds must be positive integers")
         if self.environment_profile not in PROFILE_CONFIG:
             raise ValueError(f"unknown environment profile: {self.environment_profile}")
+        if self.machine_policy != DEFAULT_MACHINE_POLICY:
+            raise ValueError(f"unsupported machine/comparability policy: {self.machine_policy}")
+        unknown_report_steps = sorted(set(self.report_steps) - SUPPORTED_REPORT_STEPS)
+        if unknown_report_steps:
+            raise ValueError(f"unsupported report steps: {', '.join(unknown_report_steps)}")
 
     def plan(
         self,
         *,
         repository: Path,
         resolved_revisions: Sequence[ResolvedRevision] | None = None,
+        append_samples: bool = False,
+        source_config: Path | None = None,
+        tool_versions: dict[str, str | None] | None = None,
     ) -> dict[str, Any]:
-        """Return an inspectable plan with immutable revision identities."""
+        """Return the effective, inspectable campaign contract.
+
+        The returned plan contains the immutable revision identities, effective timing
+        controls, comparability policy, requested report steps, run-time sample append
+        mode, source-config identity when supplied, and operator benchmark-tool versions
+        when installed. This is the content later retained as a content-addressed plan.
+        """
 
         resolved = (
             tuple(resolved_revisions)
@@ -250,6 +301,15 @@ class Campaign:
         result["profile"] = PROFILE_CONFIG[self.environment_profile]
         result["case_versions"] = {case: CASES[case].case_version for case in self.cases}
         result["resolved_revisions"] = [asdict(item) for item in resolved]
+        result["append_samples"] = append_samples
+        result["tool_versions"] = tool_versions or benchmark_tool_versions()
+        if source_config is not None:
+            source = source_config.resolve()
+            try:
+                source_name = source.relative_to(repository.resolve()).as_posix()
+            except ValueError:
+                source_name = str(source)
+            result["source_config"] = {"path": source_name, "sha256": _sha256(source)}
         return result
 
 
@@ -360,12 +420,74 @@ def _run_asv(
         config_path.unlink(missing_ok=True)
 
 
+def _write_plan_record(
+    campaign: Campaign,
+    *,
+    repository: Path,
+    resolved_revisions: Sequence[ResolvedRevision],
+    source_config: Path,
+    append_samples: bool,
+    tool_versions: dict[str, str | None],
+) -> tuple[Path, str]:
+    """Retain one immutable effective campaign plan and return its digest."""
+
+    plan = campaign.plan(
+        repository=repository,
+        resolved_revisions=resolved_revisions,
+        append_samples=append_samples,
+        source_config=source_config,
+        tool_versions=tool_versions,
+    )
+    canonical = json.dumps(plan, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    digest = hashlib.sha256(canonical).hexdigest()
+    path = (
+        repository.resolve() / ".asv" / "feregion-plans" / campaign.campaign_id / f"{digest}.json"
+    )
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {"schema_version": 1, "plan_sha256": digest, "plan": plan}
+    encoded = json.dumps(payload, indent=2, sort_keys=True) + "\n"
+    if path.exists() and path.read_text(encoding="utf-8") != encoded:
+        raise RuntimeError(f"content-addressed campaign plan changed unexpectedly: {path}")
+    path.write_text(encoded, encoding="utf-8")
+    return path, digest
+
+
+def _observed_runner_versions(
+    repository: Path,
+    commit: str,
+    *,
+    environments: Sequence[str],
+) -> tuple[str, ...]:
+    """Return runner versions observed for the campaign's expected environments."""
+
+    root = repository.resolve() / ".asv" / "feregion-environments" / commit
+    expected = set(environments)
+    versions: set[str] = set()
+    if not root.is_dir():
+        return ()
+    for path in sorted(root.glob("*.json")):
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if payload.get("environment") not in expected:
+            continue
+        value = payload.get("asv_runner_version")
+        if value is not None:
+            versions.add(str(value))
+    return tuple(sorted(versions))
+
+
 def _write_run_record(
     campaign: Campaign,
     revision: ResolvedRevision,
     *,
     repository: Path,
     returncode: int,
+    append_samples: bool,
+    plan_path: Path,
+    plan_sha256: str,
+    tool_versions: dict[str, str | None],
 ) -> Path:
     """Retain one revision-run outcome for failures that precede benchmark JSON."""
 
@@ -377,8 +499,14 @@ def _write_run_record(
         / f"{revision.commit}.json"
     )
     path.parent.mkdir(parents=True, exist_ok=True)
+    observed_runner_versions = _observed_runner_versions(
+        repository,
+        revision.commit,
+        environments=expected_environment_names(campaign.environment_profile),
+    )
+    observed_runner = observed_runner_versions[0] if len(observed_runner_versions) == 1 else None
     payload = {
-        "schema_version": 1,
+        "schema_version": 2,
         "campaign_id": campaign.campaign_id,
         "requested_revision": revision.requested,
         "commit": revision.commit,
@@ -387,6 +515,18 @@ def _write_run_record(
         "cases": list(campaign.cases),
         "load_sizes": list(campaign.load_sizes),
         "environment_profile": campaign.environment_profile,
+        "repetitions": campaign.repetitions,
+        "rounds": campaign.rounds,
+        "record_samples": campaign.record_samples,
+        "append_samples": append_samples,
+        "machine_policy": campaign.machine_policy,
+        "report_steps": list(campaign.report_steps),
+        "plan_path": plan_path.relative_to(repository.resolve()).as_posix(),
+        "plan_sha256": plan_sha256,
+        "asv_version": tool_versions.get("asv_version"),
+        "asv_runner_version": observed_runner or tool_versions.get("asv_runner_version"),
+        "operator_asv_runner_version": tool_versions.get("asv_runner_version"),
+        "observed_asv_runner_versions": list(observed_runner_versions),
     }
     path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return path
@@ -488,6 +628,17 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
         return 0
     if args.command == "run":
+        if args.append_samples and not campaign.record_samples:
+            raise SystemExit("--append-samples requires record_samples=true")
+        tool_versions = benchmark_tool_versions()
+        plan_path, plan_sha256 = _write_plan_record(
+            campaign,
+            repository=repository,
+            resolved_revisions=resolved_revisions,
+            source_config=args.config,
+            append_samples=args.append_samples,
+            tool_versions=tool_versions,
+        )
         for revision in resolved_revisions:
             command: list[str] = [
                 "run",
@@ -500,8 +651,6 @@ def main(argv: Sequence[str] | None = None) -> int:
             if campaign.record_samples:
                 command.append("--record-samples")
             if args.append_samples:
-                if not campaign.record_samples:
-                    raise SystemExit("--append-samples requires record_samples=true")
                 command.append("--append-samples")
             status = _run_asv(
                 campaign,
@@ -514,6 +663,10 @@ def main(argv: Sequence[str] | None = None) -> int:
                 revision,
                 repository=repository,
                 returncode=status,
+                append_samples=args.append_samples,
+                plan_path=plan_path,
+                plan_sha256=plan_sha256,
+                tool_versions=tool_versions,
             )
             if status != 0:
                 return status

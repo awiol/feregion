@@ -1,7 +1,7 @@
 [campaign]
 id = "release-compare"
 purpose = "Routine previous-candidate versus HEAD performance gate on the fixed release-history environment."
-revisions = ["v0.4.0a9", "HEAD"]
+revisions = ["v0.4.0b4", "HEAD"]
 cases = ["lookup_geographic_numbers"]
 load_sizes = [
   10000, 20000, 50000,
@@ -12,3 +12,5 @@ repetitions = 5
 rounds = 3
 environment_profile = "release-history"
 record_samples = true
+machine_policy = "same-machine-environment-case-version"
+report_steps = []

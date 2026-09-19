@@ -1,0 +1,4 @@
+[baseline]
+revision = "v0.4.0b4"
+policy = "previous-accepted-candidate"
+purpose = "Accepted prior source candidate for the routine release-performance gate."

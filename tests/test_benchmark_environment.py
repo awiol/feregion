@@ -74,7 +74,7 @@ def test_environment_preflight_rejects_declared_installed_version_drift(
         monkeypatch,
         requirements={"numpy": "1.26.4", "pandas": "2.1.4"},
     )
-    versions = {"numpy": "2.5.3", "pandas": "2.1.4"}
+    versions = {"numpy": "2.5.3", "pandas": "2.1.4", "asv-runner": "0.3.1"}
     monkeypatch.setattr(
         environment_module.importlib.metadata,
         "version",
@@ -97,6 +97,7 @@ def test_environment_preflight_rejects_declared_installed_version_drift(
     assert payload["requested"]["numpy"] == "1.26.4"
     assert payload["observed"]["numpy"] == "2.5.3"
     assert payload["pip_check_returncode"] == 1
+    assert payload["asv_runner_version"] == "0.3.1"
 
 
 def test_environment_preflight_retains_successful_observed_profile(
@@ -114,7 +115,7 @@ def test_environment_preflight_retains_successful_observed_profile(
     monkeypatch.setattr(
         environment_module.importlib.metadata,
         "version",
-        lambda name: requirements[name],
+        lambda name: "0.3.1" if name == "asv-runner" else requirements[name],
     )
     fake_obspy = SimpleNamespace(FlinnEngdahl=object)
 
@@ -136,6 +137,7 @@ def test_environment_preflight_retains_successful_observed_profile(
     assert report.valid is True
     assert report.requested == requirements
     assert report.observed == requirements
+    assert report.asv_runner_version == "0.3.1"
     assert report.imports["obspy.geodetics.FlinnEngdahl"] == "ok"
 
 
@@ -151,6 +153,8 @@ def test_evidence_bundle_collects_machine_readable_preservation_set_without_html
     (tmp_path / ".asv" / "feregion-state" / "state.json").write_text("{}", encoding="utf-8")
     (tmp_path / ".asv" / "feregion-runs").mkdir(parents=True)
     (tmp_path / ".asv" / "feregion-runs" / "run.json").write_text("{}", encoding="utf-8")
+    (tmp_path / ".asv" / "feregion-plans").mkdir(parents=True)
+    (tmp_path / ".asv" / "feregion-plans" / "plan.json").write_text("{}", encoding="utf-8")
     (tmp_path / ".asv" / "feregion-environments").mkdir(parents=True)
     (tmp_path / ".asv" / "feregion-environments" / "env.json").write_text("{}", encoding="utf-8")
     (tmp_path / ".asv" / "feregion-reports").mkdir(parents=True)
@@ -165,10 +169,13 @@ def test_evidence_bundle_collects_machine_readable_preservation_set_without_html
     (tmp_path / "benchmarks" / "constraints" / "reference-comparison.txt").write_text(
         "setuptools==81.0.0\n", encoding="utf-8"
     )
+    (tmp_path / "benchmarks" / "release-baseline.toml").write_text(
+        "[baseline]\nrevision='v0.4.0b4'\n", encoding="utf-8"
+    )
     (tmp_path / "benchmark-standalone.json").write_text("{}", encoding="utf-8")
     (tmp_path / "asv.conf.json").write_text("{}", encoding="utf-8")
     (tmp_path / "pyproject.toml").write_text(
-        '[project]\nname="feregion"\nversion="0.4.0b4"\n', encoding="utf-8"
+        '[project]\nname="feregion"\nversion="0.4.0b5"\n', encoding="utf-8"
     )
     monkeypatch.setattr(evidence_bundle, "_git_output", lambda args: None)
 
@@ -178,12 +185,15 @@ def test_evidence_bundle_collects_machine_readable_preservation_set_without_html
         payload = json.loads(archive.read("benchmark-evidence-manifest.json"))
 
     assert "asv/results/host/result.json" in names
+    assert "asv/feregion-plans/plan.json" in names
     assert "asv/feregion-environments/env.json" in names
     assert "asv/feregion-reports/report.json" in names
     assert "predecessor/benchmark-standalone.json" in names
     assert "config/constraints/reference-comparison.txt" in names
+    assert "config/release-baseline.toml" in names
     assert not any(name.startswith("asv/html/") for name in names)
     assert payload["derived_html_included"] is False
     assert manifest["families"]["asv-results"]["present"] is True
+    assert manifest["families"]["asv-plans"]["present"] is True
     assert manifest["families"]["asv-reports"]["present"] is True
     assert manifest["families"]["predecessor-tox"]["present"] is False

@@ -88,6 +88,13 @@ def collect_evidence_files() -> list[EvidenceFile]:
     )
     files.extend(
         _files_under(
+            PROJECT_ROOT / ".asv" / "feregion-plans",
+            "asv/feregion-plans",
+            "asv-plans",
+        )
+    )
+    files.extend(
+        _files_under(
             PROJECT_ROOT / ".asv" / "feregion-environments",
             "asv/feregion-environments",
             "asv-environments",
@@ -141,6 +148,13 @@ def collect_evidence_files() -> list[EvidenceFile]:
             "config",
         )
     )
+    files.extend(
+        _optional_file(
+            PROJECT_ROOT / "benchmarks" / "release-baseline.toml",
+            "config/release-baseline.toml",
+            "config",
+        )
+    )
     files.extend(_optional_file(PROJECT_ROOT / "pyproject.toml", "config/pyproject.toml", "config"))
     files.extend(_optional_file(PROJECT_ROOT / "uv.lock", "config/uv.lock", "config"))
 
@@ -181,6 +195,7 @@ def build_manifest(files: Iterable[EvidenceFile]) -> dict[str, object]:
         "asv-results",
         "asv-state",
         "asv-runs",
+        "asv-plans",
         "asv-environments",
         "asv-reports",
         "normalized-evidence",

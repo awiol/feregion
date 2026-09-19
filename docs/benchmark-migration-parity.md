@@ -2,6 +2,8 @@
 
 ## Purpose
 
+The ASV-derived path is the primary benchmark authority; the 0.4 migration is closed.
+
 This document records the completed migration from the predecessor benchmark harness to
 the `0.4` ASV benchmark system. The predecessor standalone timer, `pytest-benchmark`
 suite, Tox Python matrix, and release comparator remain runnable as compatibility,

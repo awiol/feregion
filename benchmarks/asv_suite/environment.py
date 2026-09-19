@@ -31,6 +31,8 @@ class EnvironmentVerification:
         requested: Requirement versions recorded by ASV for the environment.
         observed: Installed distribution versions observed in the running
             interpreter.
+        asv_runner_version: Exact asv-runner distribution version executing the benchmark
+            environment, when installed.
         imports: Import checks for requested benchmark dependencies.
         pip_check_returncode: Exit status from ``python -m pip check``.
         pip_check_output: Combined diagnostic output from ``pip check``.
@@ -43,6 +45,7 @@ class EnvironmentVerification:
     environment: str | None
     requested: dict[str, str]
     observed: dict[str, str | None]
+    asv_runner_version: str | None
     imports: dict[str, str]
     pip_check_returncode: int | None
     pip_check_output: str | None
@@ -189,6 +192,7 @@ def verify_benchmark_environment() -> EnvironmentVerification:
             environment=environment,
             requested={},
             observed={},
+            asv_runner_version=None,
             imports={},
             pip_check_returncode=None,
             pip_check_output=None,
@@ -213,6 +217,11 @@ def verify_benchmark_environment() -> EnvironmentVerification:
         if actual != expected:
             failures.append(f"{name} requested {expected}, observed {actual or 'not installed'}")
 
+    try:
+        asv_runner_version = importlib.metadata.version("asv-runner")
+    except importlib.metadata.PackageNotFoundError:
+        asv_runner_version = None
+
     imports, import_failures = _import_diagnostics(requested)
     failures.extend(import_failures)
     pip_returncode, pip_output = _pip_check()
@@ -225,6 +234,7 @@ def verify_benchmark_environment() -> EnvironmentVerification:
         environment=environment,
         requested=requested,
         observed=observed,
+        asv_runner_version=asv_runner_version,
         imports=imports,
         pip_check_returncode=pip_returncode,
         pip_check_output=pip_output,
