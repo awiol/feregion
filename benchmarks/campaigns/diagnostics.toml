@@ -1,6 +1,6 @@
 [campaign]
 id = "diagnostics"
-purpose = "Retain predecessor optimization and in-place pandas diagnostics while ASV migration remains incomplete."
+purpose = "Targeted split-vector, caller-stacking, and pandas in-place diagnostics for investigation."
 revisions = ["HEAD"]
 cases = [
   "internal_split_geographic_numbers",

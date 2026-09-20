@@ -195,145 +195,46 @@ could not run must remain an explicit verification limitation.
 
 ## Performance evidence
 
-### Performance evidence after the `0.4` ASV migration
-
 Reviewed post-b3 evidence satisfies `REQ-PERF-017`. ASV plus the project-owned
 campaign/evidence/regression layers are the primary performance-evidence path. The
 standalone benchmark runner, `pytest-benchmark`, Tox supported-Python benchmark matrix,
-and custom reducers remain runnable compatibility/reference tooling and retained
-provenance. See `docs/benchmark-migration-parity.md` for the accepted parity record.
+and custom reducers remain compatibility/reference tooling and retained historical
+provenance rather than a second release authority.
 
-Before timing the geographical coordinate candidate, current benchmark code
-compares its output with the source-table scanner. Direct batch comparisons use
-identical deterministic coordinates for candidate and baseline. Seismic paths
-verify coordinate-to-seismic results against geographical lookup followed by the
-crosswalk before timing; the hierarchy-only crosswalk is measured separately.
+Performance tests separate semantic correctness from timed work. Geographic cases check
+the maintained source-table oracle before timing. Seismic cases verify the geographical
+lookup plus crosswalk contract. Deterministic workloads and case-version identities keep
+stored results interpretable across revisions.
 
-Current reports retain workload, environment, repetitions, median duration,
-throughput, speedup, CPU model when discoverable, machine architecture, and
-logical CPU count. b2 additionally verifies the installed ASV dependency state against
-`asv-env-info.json`, imports requested benchmark dependencies, runs `pip check`, and
-retains the observed result under `.asv/feregion-environments/`. A requested dependency
-failure blocks accepted timing instead of becoming an optional capability skip. Generated
-benchmark JSON and reports are delivery artifacts and are not committed to source. CPU power/frequency policy is not measured by
-the current harness and must be controlled externally for a release ratio used as
-a gate.
+Authoritative campaign evidence retains the effective content-addressed plan, resolved
+commit identities, timing controls, raw-sample policy, comparability policy, benchmark
+tool identities, environment-integrity state, revision-run outcome, raw ASV samples, and
+normalized throughput evidence. Requested dependency/import failures block accepted
+timing rather than becoming optional-capability skips.
 
-Run the current supported-Python benchmark matrix after generating the local lock
-and fetching verified FE source tables:
+The release-performance gate requires one explicitly accepted prior candidate and the
+candidate revision in the same machine/environment/case-version context. The baseline is
+supplied at execution time and retained in the effective plan; it is not inferred from
+Git tag order and does not require a per-candidate source edit. The project trigger is a
+>25 percent throughput slowdown at two adjacent maintained loads of at least 10,000
+points. Incomplete or ambiguous evidence is a distinct outcome, not a passing comparison.
 
-```bash
-uv lock
-uv run --locked python -m tools.fetch_obspy_fe_data
-uv run --locked --group matrix --group benchmark tox run \
-  -e benchmark-py311,benchmark-py312,benchmark-py313,benchmark-py314,benchmark-report
-```
+Real benchmark integration is validated separately from ordinary unit tests. The
+ASV-equipped CI job executes the focused benchmark contract tests and `asv check`. Real
+smoke/release/promotion campaigns then validate Git resolution, historical package
+build/install, environment construction, correctness setup, timing, persistence, and
+report reconstruction on a benchmark host.
 
-The current release comparator remains the `0.3` gate path:
+The default release refresh is intentionally bounded. Full 2M-50M scaling,
+supported-runtime/dependency matrices, direct-reference comparison, backward-compatible
+history, and private-path diagnostics are selected only when the claim, change type, or
+promotion decision requires them. This follows the same proportional-verification rule
+used by the rest of the package: extra evidence is valuable when it can change a material
+decision, not merely because another candidate label exists.
 
-```bash
-uv run --locked --group benchmark python -m benchmarks.compare_releases \
-  --baseline baseline.json --candidate candidate.json --fail-on-trigger
-```
-
-It rejects recorded environment/workload drift and returns status 3 when the
->25 percent slowdown trigger is crossed at two adjacent batch sizes of at least
-10,000 points. Without a comparable accepted baseline, `QG-PERF` is incomplete.
-
-### Accepted `0.4` ASV-driven target
-
-The `0.4.0` target uses ASV for historical revision checkout, isolated benchmark
-environments, package build/install, timing, raw-sample retention, result history,
-comparison/exploration support, and static public reporting. Project code owns
-benchmark-case semantics, deterministic workloads, correctness oracles,
-historical-version adapters, campaign configuration, benchmark case/version
-identity, evidence normalization, and the release gate.
-
-The initial implementation is reviewed against ASV 0.6.6. The repository may
-use a compatible reviewed 0.6.x dependency range, but authoritative results must
-record exact ASV and asv-runner versions. ASV 0.6.6 documents an optional `uv`
-environment backend; the vertical slice must verify the chosen backend on this
-repository before the backend is treated as established project behavior.
-
-A benchmark case is valid only when its untimed setup verifies the installed
-revision against the declared oracle or invariant. The timed callable excludes
-oracle work. Each case has a project `case_id` and semantic `case_version`; ASV
-benchmark version identity or compatible aliases are mapped deliberately to that
-contract so source refactoring alone does not decide comparability. An unsupported
-historical capability becomes an explicit not-applicable state with a reason.
-Keep capability absence separate from environment/build unavailability,
-correctness failure, execution failure, and valid measurement; benchmark code
-must not emulate the feature and report the emulation as historical package
-performance. A revision-level ASV command failure without phase-specific
-evidence must remain a generic execution failure; tests must not relabel it as a build
-failure merely because no benchmark JSON was produced.
-
-The ASV process boundary uses subcommand-local `--config` and a temporary config in the repository root because ASV changes its working directory to the config directory. ASV discovery is limited to `benchmarks/asv_suite/`; retained predecessor pytest-benchmark modules are outside that package. Repository tests cover argv order, config location/lifetime, suite isolation, and exact partial-load filtering.
-
-The target campaign layer uses a small TOML configuration and a thin CLI with
-planning, running, comparing, and report-building responsibilities. Planning
-resolves exact package revisions, benchmark parameters, load sizes, environment
-profile, and timing controls before execution. Running delegates measurement to
-ASV. Comparison consumes normalized ASV-derived evidence. Reporting rebuilds the
-static history from retained results. External publication is a separate
-authorized workflow and verifies publication state after the action.
-
-Authoritative campaigns retain raw samples. The evidence adapter preserves
-traceability from normalized release/comparison records back to retained ASV
-results and samples. ASV's incidental result-file layout is not the project
-release-gate schema.
-
-### Initial environment profiles
-
-```text
-release-history:
-  CPython 3.12 + NumPy 1.26.4
-  pandas cases additionally use pandas 2.1.4
-
-python-supported:
-  CPython 3.11
-  CPython 3.12
-  CPython 3.13
-  CPython 3.14
-
-numpy-sensitivity:
-  CPython 3.12 + NumPy 1.26.4
-  CPython 3.12 + NumPy 2.0.2
-  CPython 3.12 + NumPy 2.2.6
-  CPython 3.12 + NumPy 2.5.2
-
-pandas-sensitivity:
-  CPython 3.12 + NumPy 1.26.4 + pandas 2.1.4
-  CPython 3.12 + NumPy 1.26.4 + pandas 2.2.3
-  CPython 3.12 + NumPy 1.26.4 + pandas 2.3.3
-  CPython 3.12 + NumPy 1.26.4 + pandas 3.0.5
-```
-
-These profiles answer different questions and are not combined into a full
-Cartesian product. Timed measurement is serial by default.
-
-### `0.4` migration acceptance
-
-The first implementation slice must cover `lookup_numbers` at `1`, `100`,
-`1_000`, `10_000`, `100_000`, and `1_000_000`; `0.3.0b1` plus at least one older
-revision that materially exercises the compatibility-adapter boundary; at least
-one dependency-sensitivity profile; raw-sample retention; normalized project
-evidence; the existing release-regression decision; and a static ASV site build
-from retained results.
-
-Run the predecessor and ASV slice under one controlled environment and compare:
-
-- semantic outputs and applicability decisions;
-- benchmark/load-size identity;
-- environment, workload, and tool metadata;
-- representative timing behavior without requiring identical samples; and
-- release-gate outcome for controlled synthetic and real comparison records.
-
-The reviewed post-b3 vertical slice passes and completes the migration. Predecessor
-timing/reporting paths remain available as compatibility/reference tooling and may be
-retired only through a separate maintenance decision. `pytest-benchmark` remains useful
-for predecessor-compatible investigation, while ordinary pytest tests benchmark
-semantics, adapters, campaign resolution, evidence normalization, and gate behavior.
+The maintained executable benchmark commands, prerequisites, scopes, evidence handling,
+report rebuild, and publication workflow are single-sourced in
+`docs/benchmark-operations.md`.
 
 ## Clean repository handoff
 
@@ -379,83 +280,35 @@ share one tox test definition instead of duplicating a direct pytest command.
 
 ### ASV campaign integration preflight
 
-Before a timed campaign, run the read-only plan and inspect its `resolved_revisions`:
-
-```bash
-uv run --locked --group benchmark python -m benchmarks.campaign plan benchmarks/campaigns/release-history.toml
-```
-
-Campaign revisions must be single identities such as `HEAD` or `v0.3.0b1`; range
-syntax is rejected. The resolved plan must contain one immutable commit SHA for each
-requested identity. The maintained and generated ASV configuration must use the
-project-only wheel build/install commands with `--no-deps`. The real-ASV smoke for
-a candidate should run one exact revision before a broader historical campaign and
-should retain stderr if discovery/build/install fails.
-
+Real campaign integration preflight belongs to the canonical benchmark runbook,
+`docs/benchmark-operations.md`. Tests here verify the underlying contract: revision
+selectors resolve to immutable commits, range-like selectors fail before ASV work,
+generated configuration preserves project-only wheel build/install behavior, and the
+ASV-equipped CI job exercises the parser/configuration boundary.
 
 ## Benchmark operator workflow
 
-The maintained benchmark runbook is `docs/benchmark-operations.md`. Benchmark
-verification should use the predefined campaigns rather than reconstructing ad hoc
-commands when an equivalent maintained campaign exists. The normal integration
-preflight is:
+The maintained executable benchmark runbook is `docs/benchmark-operations.md`. This
+file describes what benchmark verification establishes, not a second copy of operator
+commands.
 
-```bash
-uv run --locked --group benchmark asv check --config asv.conf.json
-uv run --locked --group benchmark python -m benchmarks.campaign plan benchmarks/campaigns/smoke.toml
-uv run --locked --group benchmark python -m benchmarks.campaign run benchmarks/campaigns/smoke.toml
-```
+The benchmark test strategy has four relevant layers:
 
-For routine benchmark evidence, the synchronized workflow plans and runs the
-release comparison, full `HEAD` suite, sparse dependency matrix, supported-Python
-matrix, direct ObsPy/source reference comparison, and diagnostic campaign. It applies
-the project ASV release check and rebuilds the complete ASV site. After accepted
-`REQ-PERF-017` migration evidence, this ASV-derived workflow is the primary
-release-performance path:
+1. unit/contract tests validate semantic cases, campaign parsing, evidence normalization,
+   environment-state interpretation, release-gate boundaries, and failure classification;
+2. the ASV-equipped CI job runs the focused benchmark contract tests and `asv check`, so
+   the direct ASV parser boundary is exercised without depending on historical tags;
+3. real smoke/release/promotion campaigns validate Git resolution, environment creation,
+   project build/install, oracle setup, timing, persistence, and report reconstruction;
+4. retained evidence binds exact revisions, effective plan, environment/tool identity,
+   correctness state, raw samples, and release decisions for later review.
 
-```bash
-uv run --locked --group benchmark python -m benchmarks.release_workflow refresh
-```
+Routine release evidence uses an operator-supplied accepted baseline rather than a
+source-controlled candidate label. The default release refresh is bounded; full-load,
+supported-runtime/dependency, reference, historical, and diagnostic evidence are run
+only when the claim or promotion decision requires them.
 
-A review/promotion evidence-strengthening run can include backward-compatible
-history and append more samples to compatible retained ASV result cells:
-
-```bash
-uv run --locked --group benchmark \
-  python -m benchmarks.release_workflow refresh \
-  --history --repetitions 15 --rounds 7 --append-samples
-```
-
-Canonical campaigns overlap at selected cells, so append mode can produce unequal
-sample counts. Raw samples and exact environment/revision identities remain the
-evidence; do not imply uniform precision across cells. `campaign check` consumes retained ASV result JSON and does not rerun measurements.
-The a10 evidence adapter first selects the requested parameter, then flattens only
-that parameter's nested repeat/round sample groups. It preserves the stored ASV
-benchmark-version identity, correctness state, operation count, and derived
-operations-per-second.
-
-Run the restored direct-reference and diagnostic ASV campaigns independently when
-reviewing migration parity:
-
-```bash
-uv run --locked --group benchmark python -m benchmarks.campaign run benchmarks/campaigns/reference-comparison.toml
-uv run --locked --group benchmark python -m benchmarks.campaign run benchmarks/campaigns/diagnostics.toml
-```
-
-The direct-reference campaign requires the verified pinned FE source cache and an
-ObsPy benchmark environment. Source/oracle work occurs in untimed setup.
-
-The local ASV plugin gives every benchmark a human-readable display/source
-description and adds an additive `feregion summary` page to the generated site.
-It does not replace ASV's native Grid/List/Graph/Regressions views or modify the
-installed ASV package. Rebuild and preview without timing work with:
-
-```bash
-uv run --locked --group benchmark python -m benchmarks.release_workflow report
-uv run --locked --group benchmark python -m benchmarks.release_workflow preview
-```
-
-The full `head-full` campaign spans the complete 1-2-5 grid through 50,000,000
-and requires a host with sufficient memory; resource failure at those sizes is
-not a valid performance result. External GitHub Pages publication is intentionally
-separate and requires an explicit push option as documented in the runbook.
+The full `head-full` campaign can reach 50,000,000 points and must be treated as a
+resource-sensitive performance investigation. Resource exhaustion is not a timing
+result. External publication remains separate from measurement and requires explicit
+authorization as described in the canonical runbook.

@@ -7,7 +7,6 @@ import json
 import os
 import re
 import subprocess
-import tomllib
 from pathlib import Path
 
 import pytest
@@ -18,6 +17,7 @@ from benchmarks.asv_suite.contracts import CASES, STANDARD_LOAD_SIZES, workload_
 from benchmarks.campaign import (
     ASV_BUILD_COMMAND,
     ASV_INSTALL_COMMAND,
+    EXPLICIT_BASELINE_MARKER,
     PROFILE_CONFIG,
     Campaign,
     benchmark_regex,
@@ -650,15 +650,51 @@ def test_predefined_campaigns_cover_operator_workflows() -> None:
     expected_head_cases = {case_id for case_id, case in CASES.items() if not case.diagnostic}
     assert set(head_full.cases) == expected_head_cases
     release_compare = parsed["release-compare.toml"]
-    with (project_root / "benchmarks" / "release-baseline.toml").open("rb") as stream:
-        baseline = tomllib.load(stream)["baseline"]
-    assert baseline["policy"] == "previous-accepted-candidate"
-    assert release_compare.revisions == (baseline["revision"], "HEAD")
+    assert release_compare.revisions == (EXPLICIT_BASELINE_MARKER, "HEAD")
+    assert not (project_root / "benchmarks" / "release-baseline.toml").exists()
     assert max(release_compare.load_sizes) == 1_000_000
     dependency_matrix = parsed["dependency-matrix.toml"]
     assert {"pandas_lookup_numbers", "pandas_lookup_numbers_and_names"} <= set(
         dependency_matrix.cases
     )
+
+
+def test_release_campaign_requires_explicit_baseline_and_binds_it() -> None:
+    """A release campaign must not infer or source-control the accepted prior candidate."""
+
+    campaign = Campaign(
+        "release-compare",
+        "test",
+        (EXPLICIT_BASELINE_MARKER, "HEAD"),
+        ("lookup_geographic_numbers",),
+        (10_000,),
+        2,
+        1,
+        "release-history",
+        True,
+    )
+    with pytest.raises(ValueError, match="requires an explicit --baseline"):
+        campaign.with_explicit_baseline(None)
+    bound = campaign.with_explicit_baseline("v0.4.0b5")
+    assert bound.revisions == ("v0.4.0b5", "HEAD")
+
+
+def test_non_release_campaign_rejects_unrelated_baseline() -> None:
+    """Baseline intent must not silently leak into a campaign that does not use it."""
+
+    campaign = Campaign(
+        "smoke",
+        "test",
+        ("HEAD",),
+        ("lookup_geographic_numbers",),
+        (10_000,),
+        2,
+        1,
+        "release-history",
+        True,
+    )
+    with pytest.raises(ValueError, match="does not accept --baseline"):
+        campaign.with_explicit_baseline("v0.4.0b5")
 
 
 def _write_asv_result(
@@ -882,8 +918,10 @@ def test_benchmark_operator_runbook_covers_rerun_and_publication_workflow() -> N
 
     project_root = Path(__file__).resolve().parents[1]
     text = (project_root / "docs" / "benchmark-operations.md").read_text(encoding="utf-8")
-    assert "python -m benchmarks.release_workflow refresh" in text
-    assert "--history --repetitions 15 --rounds 7 --append-samples" in text
+    assert "python -m benchmarks.release_workflow refresh --baseline" in text
+    assert "--scope promotion" in text
+    assert "--diagnostics" in text
+    assert "--history" in text
     assert "python -m benchmarks.campaign check" in text
     assert "python -m benchmarks.release_workflow report" in text
     assert "python -m benchmarks.release_workflow preview" in text
@@ -895,7 +933,7 @@ def test_benchmark_operator_runbook_covers_rerun_and_publication_workflow() -> N
 def test_benchmark_supporting_documents_cover_evidence_choice_and_roadmap() -> None:
     """Retain the evidence summary, user choice guide, and future-work boundary.
 
-    These documents preserve the final-alpha benchmark evidence and planned-work context.
+    These documents preserve benchmark evidence, user-choice guidance, and planned-work context.
     """
 
     project_root = Path(__file__).resolve().parents[1]
@@ -1020,10 +1058,10 @@ def test_publisher_payload_links_parameterized_cases_to_scaling_view(tmp_path: P
     assert payload["revisions"][0]["tags"] == ["v1"]
 
 
-def test_release_workflow_refresh_uses_maintained_population_set(
+def test_release_workflow_default_scope_is_bounded_and_uses_explicit_baseline(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Release refresh must cover current/full/matrix/history roles through maintained campaigns."""
+    """Ordinary refresh runs only the bounded release gate and retains operator baseline intent."""
 
     commands: list[list[str]] = []
 
@@ -1033,24 +1071,59 @@ def test_release_workflow_refresh_uses_maintained_population_set(
 
     monkeypatch.setattr(release_workflow, "_run", fake_run)
     status = release_workflow.refresh(
+        baseline="v0.4.0b5",
+        scope="release",
         repetitions=15,
         rounds=7,
         append_samples=True,
-        include_history=True,
+        include_history=False,
+        include_diagnostics=False,
     )
     assert status == 0
     rendered = [" ".join(command) for command in commands]
-    assert any(
-        "head-full.toml --repetitions 15 --rounds 7 --append-samples" in item for item in rendered
+    assert sum("release-compare.toml" in item and " run " in f" {item} " for item in rendered) == 1
+    assert all("--baseline v0.4.0b5" in item for item in rendered if "release-compare.toml" in item)
+    assert not any("head-full.toml" in item for item in rendered)
+    assert not any("diagnostics.toml" in item for item in rendered)
+    assert not any("python-supported.toml" in item for item in rendered)
+    assert rendered[-1] == "asv publish --no-pull --config asv.conf.json"
+
+
+def test_release_workflow_promotion_scope_can_populate_broader_evidence(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Promotion scope preserves full/support/reference capabilities without making them default."""
+
+    commands: list[list[str]] = []
+    monkeypatch.setattr(
+        release_workflow,
+        "_run",
+        lambda command: commands.append(list(command)) or 0,
     )
-    assert any("dependency-matrix.toml" in item for item in rendered)
-    assert any("python-supported.toml" in item for item in rendered)
-    assert any("reference-comparison.toml" in item for item in rendered)
-    assert any("diagnostics.toml" in item for item in rendered)
-    assert any("release-history.toml" in item for item in rendered)
+    status = release_workflow.refresh(
+        baseline="v0.4.0b5",
+        scope="promotion",
+        repetitions=None,
+        rounds=None,
+        append_samples=False,
+        include_history=True,
+        include_diagnostics=True,
+    )
+    assert status == 0
+    rendered = [" ".join(command) for command in commands]
+    for filename in (
+        "smoke.toml",
+        "release-compare.toml",
+        "head-full.toml",
+        "dependency-matrix.toml",
+        "python-supported.toml",
+        "reference-comparison.toml",
+        "release-history.toml",
+        "diagnostics.toml",
+    ):
+        assert any(filename in item for item in rendered)
     assert not any("numpy-sensitivity.toml" in item for item in rendered)
     assert not any("pandas-sensitivity.toml" in item for item in rendered)
-    assert rendered[-1] == "asv publish --no-pull --config asv.conf.json"
 
 
 def test_source_manifest_includes_benchmark_assets_and_constraints() -> None:
@@ -1077,10 +1150,13 @@ def test_release_workflow_rebuilds_report_when_project_gate_triggers(
 
     monkeypatch.setattr(release_workflow, "_run", fake_run)
     status = release_workflow.refresh(
+        baseline="v0.4.0b5",
+        scope="release",
         repetitions=None,
         rounds=None,
         append_samples=False,
         include_history=False,
+        include_diagnostics=False,
     )
     assert status == 1
     assert commands[-1] == ["asv", "publish", "--no-pull", "--config", "asv.conf.json"]

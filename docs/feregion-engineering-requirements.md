@@ -420,11 +420,14 @@ intermediate measurements cannot create false adjacency.
 a fast current-candidate smoke; the full benchmark suite on `HEAD`; a routine
 previous-candidate-versus-`HEAD` release comparison; backward-compatible
 historical benchmarking; supported-Python sensitivity; NumPy sensitivity;
-pandas sensitivity; and the bounded dependency matrix. Maintained campaign files
-are operator interfaces: their purpose, expected cost, revision policy, and
-normal trigger must be documented. A human operations guide must explain the
-measurement lifecycle, what state each step creates, why each step exists, which
-evidence must be retained, how to rerun benchmarks on later iterations, and how
+pandas sensitivity; and the bounded dependency matrix. The routine release campaign
+must require the accepted prior candidate as an explicit execution input and must retain
+its resolved immutable identity; it must not infer the baseline from tag ordering or
+require a per-candidate source edit. Maintained campaign files are operator interfaces:
+their purpose, expected cost, revision policy, and normal trigger must be documented. A
+human operations guide must explain the measurement lifecycle, what state each step
+creates, why each step exists, which evidence must be retained, how to rerun benchmarks
+on later iterations, and how
 to distinguish benchmark execution, report generation, preview, and external
 publication.
 
@@ -453,9 +456,11 @@ workflow that can populate the current candidate's full suite, supported-Python
 profile, sparse dependency profile, routine release comparison, and optionally
 backward-compatible history; apply measurement repetition/round overrides;
 append compatible raw samples to retained ASV evidence; apply the project
-release check; and rebuild the complete retained-result report. Report preview
-and external publication must remain separate actions. An external GitHub Pages
-push must require an explicit operator option.
+release check; and rebuild the complete retained-result report. The ordinary default
+must run only the bounded release comparison; integration, promotion/full-scale,
+historical, reference, and diagnostic evidence must be selected explicitly when the
+change or decision requires them. Report preview and external publication must remain
+separate actions. An external GitHub Pages push must require an explicit operator option.
 
 **REQ-PERF-025** — Maintained documentation must explain the benchmark system,
 operator lifecycle, current observed evidence and its limitations, the choice

@@ -394,9 +394,11 @@ the requested profile name.
 
 A campaign is the operator-facing unit of work. A small human-editable TOML file
 selects benchmark intent without embedding timing or environment implementation.
-The routine release campaign is additionally bound to the accepted prior candidate recorded
-in `benchmarks/release-baseline.toml`; a repository contract test requires the campaign's
-first revision to match that explicit baseline source.
+The routine release campaign keeps a stable `__BASELINE__` placeholder. The accepted
+prior candidate is supplied explicitly at execution time, resolved to an immutable Git
+commit, and retained in the effective campaign plan. Advancing the accepted candidate
+therefore does not require a campaign-source edit and tag ordering is never used to infer
+release intent.
 The campaign schema contains, at minimum:
 
 ```text

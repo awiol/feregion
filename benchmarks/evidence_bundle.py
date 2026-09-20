@@ -148,13 +148,6 @@ def collect_evidence_files() -> list[EvidenceFile]:
             "config",
         )
     )
-    files.extend(
-        _optional_file(
-            PROJECT_ROOT / "benchmarks" / "release-baseline.toml",
-            "config/release-baseline.toml",
-            "config",
-        )
-    )
     files.extend(_optional_file(PROJECT_ROOT / "pyproject.toml", "config/pyproject.toml", "config"))
     files.extend(_optional_file(PROJECT_ROOT / "uv.lock", "config/uv.lock", "config"))
 

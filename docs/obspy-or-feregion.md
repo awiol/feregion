@@ -37,8 +37,8 @@ The retained b1 ASV evidence demonstrates current vectorized geographic and seis
 batch scaling through tens of millions of points on the measured Ryzen 5 3600 host.
 See `benchmark-results.md` for exact timings, campaign status, and limitations.
 
-The repository also retains a direct ObsPy comparator in the authoritative predecessor
-standalone/pytest-benchmark harness. A historical predecessor result for `feregion
+The repository also retains historical direct ObsPy comparator evidence from the
+predecessor standalone/pytest-benchmark harness. A historical predecessor result for `feregion
 0.3.0a1` measured the 10,000-call scalar loop at about 357.9k feregion lookups/s versus
 507.1k ObsPy lookups/s on the same host. That historical scalar result does not imply a
 batch-performance ordering.

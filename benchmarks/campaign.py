@@ -90,6 +90,7 @@ ASV_INSTALL_COMMAND = [
 REFERENCE_CONSTRAINTS = Path("benchmarks/constraints/reference-comparison.txt")
 DEFAULT_MACHINE_POLICY = "same-machine-environment-case-version"
 SUPPORTED_REPORT_STEPS = frozenset({"asv-site"})
+EXPLICIT_BASELINE_MARKER = "__BASELINE__"
 
 
 def benchmark_tool_versions() -> dict[str, str | None]:
@@ -249,6 +250,31 @@ class Campaign:
         )
         campaign.validate()
         return campaign
+
+    def with_explicit_baseline(self, baseline: str | None) -> Campaign:
+        """Bind a required release baseline supplied by the operator.
+
+        Campaign source may contain ``__BASELINE__`` only as a stable placeholder.
+        The placeholder never resolves implicitly: the operator must supply one Git
+        revision/commit identity, which is then retained in the effective plan before
+        timing starts. Campaigns without the placeholder reject an unrelated baseline
+        argument so release intent cannot silently leak into another campaign.
+        """
+
+        requires_baseline = EXPLICIT_BASELINE_MARKER in self.revisions
+        if requires_baseline and baseline is None:
+            raise ValueError(
+                f"campaign {self.campaign_id!r} requires an explicit --baseline revision"
+            )
+        if not requires_baseline and baseline is not None:
+            raise ValueError(f"campaign {self.campaign_id!r} does not accept --baseline")
+        if baseline is None:
+            return self
+        _validate_revision_identity(baseline)
+        revisions = tuple(
+            baseline if item == EXPLICIT_BASELINE_MARKER else item for item in self.revisions
+        )
+        return replace(self, revisions=revisions)
 
     def validate(self) -> None:
         """Reject campaign values that cannot map to the maintained contract."""
@@ -582,11 +608,21 @@ def check_release_campaign(
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     subparsers = parser.add_subparsers(dest="command", required=True)
-    for name in ("plan", "compare", "report"):
-        item = subparsers.add_parser(name)
+
+    def add_campaign_arguments(item: argparse.ArgumentParser) -> None:
         item.add_argument("config", type=Path)
+        item.add_argument(
+            "--baseline",
+            help=(
+                "explicit accepted prior candidate for a campaign whose source uses "
+                f"{EXPLICIT_BASELINE_MARKER!r}"
+            ),
+        )
+
+    for name in ("plan", "compare", "report"):
+        add_campaign_arguments(subparsers.add_parser(name))
     run = subparsers.add_parser("run")
-    run.add_argument("config", type=Path)
+    add_campaign_arguments(run)
     run.add_argument("--repetitions", type=int)
     run.add_argument("--rounds", type=int)
     run.add_argument(
@@ -595,7 +631,7 @@ def _parser() -> argparse.ArgumentParser:
         help="append raw samples to compatible retained ASV results",
     )
     check = subparsers.add_parser("check")
-    check.add_argument("config", type=Path)
+    add_campaign_arguments(check)
     check.add_argument("--machine")
     check.add_argument("--output", type=Path)
     return parser
@@ -606,6 +642,10 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     args = _parser().parse_args(argv)
     campaign = Campaign.from_toml(args.config)
+    try:
+        campaign = campaign.with_explicit_baseline(args.baseline)
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
     if args.command == "run":
         repetitions = args.repetitions if args.repetitions is not None else campaign.repetitions
         rounds = args.rounds if args.rounds is not None else campaign.rounds

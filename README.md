@@ -309,85 +309,25 @@ uv run --locked pre-commit run --all-files
 
 The ASV-derived path is the primary benchmark authority; the 0.4 migration is closed.
 
-The `0.4` line contains the accepted ASV benchmark system with project-owned benchmark
-semantics, historical adapters, maintained campaigns, a 1-2-5 load grid through
-50 million points, normalized throughput evidence, a project-specific release gate,
-and an additive feregion summary page. Reviewed post-b3 evidence satisfies
-`REQ-PERF-017`; ASV plus the project-owned evidence/gate layers are now the primary
-performance-evidence path. The predecessor standalone/pytest-benchmark/Tox tools remain
-runnable for compatibility, investigation, and historical provenance. The quick
-reference is `benchmarks/README.md`; the full human operator runbook and GitHub
-Pages publication procedure are in `docs/benchmark-operations.md`. Observed
-Python/NumPy/pandas/release evidence is summarized in `docs/benchmark-results.md`;
-`docs/obspy-or-feregion.md` gives bounded user-selection guidance;
-`docs/benchmark-migration-parity.md` records predecessor/ASV parity; planned harness
-work is recorded in `docs/benchmark-roadmap.md`.
+The `0.4` benchmark system owns stable semantic cases, historical adapters, a maintained
+1-2-5 load grid, environment/comparability checks, retained raw samples and provenance,
+and a project release-regression decision. ASV provides revision/environment mechanics,
+timing, history, and the derived static report.
 
-Install the locked benchmark environment and validate the ASV suite:
+Operational benchmark commands are intentionally single-sourced in
+`docs/benchmark-operations.md`. In particular, the routine release gate requires the
+accepted prior candidate explicitly at execution time; advancing a candidate no longer
+requires editing benchmark campaign source. The ordinary refresh is bounded, while
+integration, promotion, history, and diagnostics are selected only when the decision
+needs that evidence.
 
-```bash
-uv sync --locked --group benchmark
-uv run --locked --group benchmark asv check --config asv.conf.json
-```
+`benchmarks/README.md` describes benchmark architecture and contributor-facing semantics.
+`docs/benchmark-results.md` summarizes bounded observed evidence,
+`docs/obspy-or-feregion.md` gives user-selection guidance, and
+`docs/benchmark-migration-parity.md` preserves the completed migration record.
 
-Run the maintained smoke campaign before broader measurements:
-
-```bash
-uv run --locked --group benchmark python -m benchmarks.campaign plan benchmarks/campaigns/smoke.toml
-uv run --locked --group benchmark python -m benchmarks.campaign run benchmarks/campaigns/smoke.toml
-```
-
-For routine release preparation, populate the maintained current-release evidence, apply the project gate, and rebuild the complete report with:
-
-```bash
-uv run --locked --group benchmark python -m benchmarks.release_workflow refresh
-```
-
-Create a machine-readable benchmark-results handoff after the desired campaigns and
-predecessor harnesses have run:
-
-```bash
-uv run --locked --group benchmark python -m benchmarks.evidence_bundle
-```
-
-The archive preserves raw ASV result/state/run/environment/report evidence, available
-predecessor outputs, normalized evidence, campaign/configuration files, and a hashed
-manifest. Rebuildable `.asv/html` is excluded.
-
-Add `--history --repetitions 15 --rounds 7 --append-samples` when deliberately strengthening compatible historical/current evidence with more raw samples. Preview and publication remain separate commands; see the runbook before pushing external state.
-
-`benchmarks/release-baseline.toml` records the accepted prior candidate for the routine
-release gate. The release campaign is tested against that explicit baseline source, and
-each benchmark run retains a content-addressed effective plan with resolved commits and
-tool identity.
-
-For the routine previous-candidate versus `HEAD` decision, run the maintained
-release campaign and project gate:
-
-```bash
-uv run --locked --group benchmark python -m benchmarks.campaign run benchmarks/campaigns/release-compare.toml
-uv run --locked --group benchmark python -m benchmarks.campaign check benchmarks/campaigns/release-compare.toml
-```
-
-`head-full.toml` exercises every maintained benchmark case over the complete
-1-2-5 grid through 50,000,000 points and is intentionally high-memory and
-expensive. Use it only when the decision justifies the cost. The maintained
-release-history, Python, NumPy, pandas, and dependency-matrix campaigns provide
-other bounded operator workflows.
-
-Reviewed post-b3 evidence satisfies `REQ-PERF-017`; ASV plus the project-owned
-campaign/evidence/regression layers are the primary benchmark source. The predecessor
-`pytest-benchmark`, standalone timer, Tox Python benchmark matrix, and raw-release
-comparator remain runnable for compatibility checks, investigation, and historical
-provenance. `docs/benchmark-migration-parity.md` records the accepted parity review.
-
-`PERF-INV-001` is resolved for package-internal use. Controlled baseline/candidate
-measurements show material stacking, seismic revalidation, and peak-memory cost.
-The core therefore provides package-internal equal-length one-dimensional
-longitude/latitude paths used by pandas, and coordinate-to-seismic lookup trusts
-only geographical numbers produced by the same validated engine. The public
-`(n, 2)` NumPy contract remains unchanged. A public split-array API remains
-deferred until an external consumer need justifies another compatibility surface.
+The predecessor standalone/pytest-benchmark/Tox tools remain available for compatibility,
+investigation, and historical provenance; they are not co-equal release authority.
 
 ## Clean repository handoff
 

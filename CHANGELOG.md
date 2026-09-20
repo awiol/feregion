@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.0b6 — 2026-09-20
+
+- Remove per-candidate source churn from the routine release gate. `release-compare.toml` now keeps a stable `__BASELINE__` placeholder; `campaign plan/run/compare/check` require the accepted prior candidate explicitly with `--baseline`, resolve it to an immutable commit, and retain that identity in the existing content-addressed effective plan.
+- Remove `benchmarks/release-baseline.toml`. Machine-readable evidence handoffs preserve release-baseline intent through retained effective plans instead of copying a mutable candidate-selection file.
+- Make `benchmarks.release_workflow refresh` proportional. The default `release` scope runs only the bounded release comparison/check/report path; `integration` adds smoke; `promotion` adds full-HEAD, sparse dependency, supported-Python, and direct-reference evidence; backward-compatible history and diagnostics are explicit additions.
+- Make `docs/benchmark-operations.md` the single maintained executable benchmark runbook. Root/user/testing/benchmark architecture documents now link to that runbook rather than duplicating current ASV workflow commands, and remaining migration-era active instructions are removed.
+- Add `DEC-064` and update `REQ-PERF-021`/`REQ-PERF-024` to distinguish stable campaign configuration from explicit release-decision input and to require proportional evidence selection. Runtime lookup behavior, benchmark case semantics, timing bodies, environment profiles, normalized-evidence algorithms, and the release threshold are unchanged.
+
 ## 0.4.0b5 — 2026-09-19
 
 - Address isolated b4 benchmark/documentation review findings FEREGION-001 through FEREGION-006 without changing runtime lookup behavior or benchmark timing semantics.

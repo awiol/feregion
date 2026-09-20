@@ -16,7 +16,7 @@ tables because benchmark correctness is checked against the independent source
 scanner before timing:
 
 ```bash
-uv run python -m tools.fetch_obspy_fe_data
+uv run --locked python -m tools.fetch_obspy_fe_data
 ```
 
 Normalized ASV evidence retains both elapsed seconds and derived
@@ -58,17 +58,25 @@ The repository maintains these canonical campaigns under `benchmarks/campaigns/`
 | Campaign | Purpose | Normal use |
 | --- | --- | --- |
 | `smoke.toml` | Small `HEAD` integration run | First real-ASV check after benchmark-system or packaging changes |
-| `release-compare.toml` | Previous benchmark candidate versus `HEAD` on the fixed release environment | Routine bounded regression gate before a new candidate |
+| `release-compare.toml` | Explicit accepted baseline versus `HEAD` on the fixed release environment | Routine bounded regression gate before a new candidate |
 | `release-history.toml` | Backward-compatible history across representative package generations | Periodic/public history and adapter validation |
 | `head-full.toml` | Every maintained case over the complete 1-2-5 load grid on `HEAD` | High-confidence/full-scale runs; intentionally expensive |
 | `numpy-sensitivity.toml` | Selected NumPy versions on `HEAD` | Focused NumPy support/performance investigations |
 | `pandas-sensitivity.toml` | Selected pandas versions on `HEAD` | Focused pandas adapter investigations |
 | `python-supported.toml` | Supported CPython versions on `HEAD` | Interpreter sensitivity/support checks |
-| `dependency-matrix.toml` | Sparse union of maintained NumPy and pandas sensitivity environments, including both pandas benchmark paths | Release refresh of dependency evidence without a full Cartesian product |
+| `dependency-matrix.toml` | Sparse maintained NumPy/pandas union | Promotion/support evidence without a full Cartesian product |
+| `reference-comparison.toml` | Direct ObsPy and pinned-source comparison | Reference/oracle investigations and promotion evidence |
+| `diagnostics.toml` | Split-vector, caller-stacking, and pandas in-place diagnostics | Targeted investigation only |
 
-`benchmarks/release-baseline.toml` records the explicitly accepted prior candidate for the routine release-performance gate. `release-compare.toml` must name the same first revision and `HEAD` second. A repository test enforces this synchronization. When a new candidate becomes the accepted baseline, update both files before issuing the next source candidate. Do not silently compare against whichever tag happens to be newest.
+`release-compare.toml` intentionally contains the stable `__BASELINE__` placeholder.
+The operator must supply the accepted prior candidate with `--baseline`. The CLI resolves
+that identity to an immutable commit and retains it in the content-addressed effective
+plan before timing begins. The repository does not infer the baseline from tag ordering
+and does not require a source edit merely because a new candidate was accepted.
 
-The focused NumPy and pandas campaign files remain useful for targeted investigations. The release refresh workflow uses the sparse `dependency-matrix` campaign instead so it can populate the maintained union in one pass.
+The focused NumPy and pandas campaign files remain useful for targeted investigations.
+The promotion workflow uses the sparse `dependency-matrix` campaign instead so it can
+populate the maintained union in one pass.
 
 ## 4. Prepare one machine
 
@@ -143,30 +151,38 @@ find .asv/results -maxdepth 3 -type f -print
 
 ## 7. Routine candidate regression workflow
 
-Before running `release-compare.toml`, ensure its first revision is the accepted benchmark baseline and its second revision is `HEAD` (or another explicitly selected candidate identity).
+The routine release comparison requires an explicit accepted prior candidate. Use a tag
+when it is reliably available on the benchmark host, or use the exact accepted commit SHA.
+Do not let the harness guess the baseline from the newest tag.
 
 Plan and measure:
 
 ```bash
 uv run --locked --group benchmark \
-  python -m benchmarks.campaign plan benchmarks/campaigns/release-compare.toml
+  python -m benchmarks.campaign plan benchmarks/campaigns/release-compare.toml \
+  --baseline <accepted-prior-candidate>
 
 uv run --locked --group benchmark \
-  python -m benchmarks.campaign run benchmarks/campaigns/release-compare.toml
+  python -m benchmarks.campaign run benchmarks/campaigns/release-compare.toml \
+  --baseline <accepted-prior-candidate>
 ```
 
 ASV's generic comparison is useful for inspection:
 
 ```bash
 uv run --locked --group benchmark \
-  python -m benchmarks.campaign compare benchmarks/campaigns/release-compare.toml
+  python -m benchmarks.campaign compare benchmarks/campaigns/release-compare.toml \
+  --baseline <accepted-prior-candidate>
 ```
 
-The project release gate is separate. It reconstructs normalized evidence from retained `.asv/results` and applies the maintained >25% slowdown rule at two adjacent 1-2-5 load sizes of at least 10,000 points:
+The project release gate is separate. It reconstructs normalized evidence from retained
+`.asv/results` and applies the maintained >25% throughput-slowdown rule at two adjacent
+1-2-5 load sizes of at least 10,000 points:
 
 ```bash
 uv run --locked --group benchmark \
-  python -m benchmarks.campaign check benchmarks/campaigns/release-compare.toml
+  python -m benchmarks.campaign check benchmarks/campaigns/release-compare.toml \
+  --baseline <accepted-prior-candidate>
 ```
 
 Exit status is:
@@ -175,63 +191,76 @@ Exit status is:
 - `1`: the comparison is complete and the project regression trigger is crossed;
 - `2`: evidence is incomplete or ambiguous.
 
-The command writes normalized evidence under `dist/benchmarks/` by default. b3 binds
-normalization to the campaign's declared environment profile: same-case results from
-another profile are ignored rather than relabeled with the current campaign identity.
-If the required profile has no candidate result, the release check is incomplete. If
-retained results contain more than one comparable machine, select one explicitly:
+The command writes normalized evidence under `dist/benchmarks/` by default. Evidence is
+bound to the campaign's declared environment profile: same-case results from another
+profile are ignored rather than relabeled. If retained results contain more than one
+comparable machine, add `--machine <asv-machine-name>` to the `check` command.
+
+A project `check` result is not a causal explanation. Investigate a trigger before
+deciding whether it represents code, dependency, machine, or measurement change.
+
+## 8. Populate release evidence with one workflow
+
+`benchmarks.release_workflow` provides one synchronous entry point with proportional
+scopes. Every refresh requires the accepted prior candidate explicitly and always runs
+the bounded release gate, project check, and report rebuild.
+
+For an ordinary candidate whose change does not require broader benchmark evidence:
 
 ```bash
 uv run --locked --group benchmark \
-  python -m benchmarks.campaign check benchmarks/campaigns/release-compare.toml \
-  --machine <asv-machine-name>
+  python -m benchmarks.release_workflow refresh --baseline <accepted-prior-candidate>
 ```
 
-A project `check` result is not a causal explanation. Investigate a trigger before deciding whether it represents code, dependency, machine, or measurement change.
+The default `release` scope runs only `release-compare.toml`. It deliberately does not
+run the 2M-50M full grid, support matrices, reference comparison, or diagnostics.
 
-## 8. Populate a new release with one workflow
-
-For normal release preparation, the repository provides one synchronous wrapper that plans/runs the maintained current-candidate coverage, applies the project release check, and rebuilds the complete ASV report:
-
-```bash
-uv run --locked --group benchmark \
-  python -m benchmarks.release_workflow refresh
-```
-
-The default refresh covers:
-
-1. smoke/integration evidence;
-2. previous-candidate versus `HEAD` release comparison;
-3. the full `HEAD` benchmark suite and load grid;
-4. the sparse dependency matrix, including both pandas paths; and
-5. the supported-Python matrix;
-6. the direct ObsPy/pinned-source reference-comparison campaign; and
-7. migration diagnostics for pandas in-place, split-vector, and caller-stacking paths.
-
-Add backward-compatible history when the release or review needs historical evidence:
-
-```bash
-uv run --locked --group benchmark \
-  python -m benchmarks.release_workflow refresh --history
-```
-
-The wrapper deliberately does not publish externally. It rebuilds the report even when the project release check returns a regression trigger or incomplete-evidence status, because that report is needed for investigation; the workflow then returns the project-check status unless report generation itself fails.
-
-### Add more samples instead of replacing compatible retained samples
-
-For stronger repeated evidence on the same revision/environment/case/load cells, use measurement overrides plus ASV sample accumulation:
+For benchmark/package integration changes, add the real smoke path:
 
 ```bash
 uv run --locked --group benchmark \
   python -m benchmarks.release_workflow refresh \
-  --history --repetitions 15 --rounds 7 --append-samples
+  --baseline <accepted-prior-candidate> --scope integration
 ```
 
-`--repetitions` and `--rounds` override the campaign timing controls for that execution. `--append-samples` asks ASV to combine new raw samples with compatible existing results and recompute statistics instead of replacing those samples.
+For a promotion or other decision that requires the broader maintained portfolio:
 
-The canonical campaigns intentionally overlap at some current-release cells. When `--append-samples` is used, those shared cells can accumulate more samples than cells unique to one campaign. That is acceptable strengthening evidence but means sample counts are not uniform across the entire result database. Preserve the raw sample counts and do not imply equal precision everywhere.
+```bash
+uv run --locked --group benchmark \
+  python -m benchmarks.release_workflow refresh \
+  --baseline <accepted-prior-candidate> --scope promotion
+```
 
-Do not use `--append-samples` after changing the benchmark semantic contract, case version, workload definition, revision identity, or comparison environment. Such evidence is not automatically comparable merely because ASV can store it.
+`promotion` adds smoke, full `HEAD`, sparse dependency, supported-Python, and direct
+reference-comparison campaigns. Add backward-compatible history only when required:
+
+```bash
+uv run --locked --group benchmark \
+  python -m benchmarks.release_workflow refresh \
+  --baseline <accepted-prior-candidate> --scope promotion --history
+```
+
+Diagnostics are investigation evidence and are never implicit. Add `--diagnostics` only
+when the decision needs them.
+
+Measurement controls remain available for evidence strengthening:
+
+```bash
+uv run --locked --group benchmark \
+  python -m benchmarks.release_workflow refresh \
+  --baseline <accepted-prior-candidate> --scope promotion \
+  --repetitions 15 --rounds 7 --append-samples
+```
+
+`--repetitions` and `--rounds` override campaign timing controls for that execution.
+`--append-samples` combines new raw samples only with compatible retained cells. Do not
+append after changing benchmark semantics, workload definition, revision identity, or
+comparison environment.
+
+The wrapper never publishes externally. It rebuilds the report even when the project
+release check returns a regression trigger or incomplete-evidence status because the
+report is useful for investigation; the workflow then returns the project-check status
+unless report generation itself fails.
 
 ## 9. Backward-compatible historical benchmarking
 
@@ -273,7 +302,7 @@ uv run --locked --group benchmark python -m benchmarks.campaign run benchmarks/c
 
 The dependency matrix is a sparse union of the maintained NumPy and pandas sweeps. It is not a NumPy×pandas Cartesian product.
 
-## 10a. Restore comparator and diagnostic parity
+## 10a. Reference comparison and targeted diagnostics
 
 Run the current-revision direct comparator campaign when ObsPy-versus-feregion or
 source-scanner evidence matters:
@@ -292,7 +321,7 @@ common deterministic workloads. b2 verifies requested-versus-installed versions,
 required imports, and `pip check` before timing is accepted. A broken explicitly
 requested ObsPy environment is an environment/build failure, not `not_applicable`.
 
-Run migration diagnostics with:
+Run targeted diagnostics with:
 
 ```bash
 uv run --locked --group benchmark \
@@ -301,6 +330,46 @@ uv run --locked --group benchmark \
 
 These cases retain private split-vector, caller-stacking, and pandas in-place evidence.
 They are diagnostic contracts, not public runtime API.
+
+## 10b. Predecessor compatibility/reference tooling
+
+The predecessor benchmark stack is retained for compatibility checks, investigation, and
+historical provenance. It is not the primary release-performance authority. Run it only
+when that compatibility/reference evidence is needed.
+
+Prepare the verified source cache and benchmark dependencies:
+
+```bash
+uv run --locked python -m tools.fetch_obspy_fe_data
+uv sync --locked --group benchmark
+```
+
+Run the predecessor pytest-benchmark and standalone paths:
+
+```bash
+uv run --locked --group benchmark pytest benchmarks --benchmark-only \
+  --benchmark-json=benchmark.json
+uv run --locked --group benchmark python -m benchmarks.run_benchmark \
+  --output benchmark-standalone.json
+```
+
+Run its supported-Python compatibility matrix when required:
+
+```bash
+uv run --locked --group matrix --group benchmark tox run \
+  -e benchmark-py311,benchmark-py312,benchmark-py313,benchmark-py314,benchmark-report
+```
+
+A retained predecessor release comparison can be reconstructed from two compatible raw
+JSON records:
+
+```bash
+uv run --locked --group benchmark python -m benchmarks.compare_releases \
+  --baseline baseline.json --candidate candidate.json --fail-on-trigger
+```
+
+Do not use this compatibility path as a second release authority. Preserve its final
+machine-readable evidence when it materially supports investigation or historical review.
 
 ## 11. Rebuild and understand the report without rerunning measurements
 
@@ -338,7 +407,7 @@ uv run --locked --group benchmark \
 
 Inspect the project summary, benchmark descriptions, scaling views, revision/tag history, environment selectors, missing/skipped values, and native Regressions page before publication.
 
-Do not delete `.asv/results` merely because a report was built. During migration,
+Do not delete `.asv/results` merely because a report was built. For reproducibility,
 preserve `.asv/results`, `.asv/feregion-state`, `.asv/feregion-runs`,
 `.asv/feregion-plans`, `.asv/feregion-environments`, and `.asv/feregion-reports` together. The sidecars retain
 correctness, failure-state, requested-versus-observed environment meaning, and local
@@ -423,17 +492,18 @@ compatibility checks, investigation, and historical comparison.
 For a routine new alpha/beta candidate:
 
 1. Commit the candidate source. ASV benchmarks commits, not uncommitted working-tree edits.
-2. Update `benchmarks/release-baseline.toml` and `release-compare.toml` so both name the accepted prior candidate as the release baseline.
-3. Update `release-history.toml` when the new candidate should become part of maintained backward-compatible history.
+2. Identify the explicitly accepted prior candidate tag or exact commit; do not edit campaign source merely to advance the baseline.
+3. Update `release-history.toml` only when the candidate should become part of maintained historical coverage.
 4. Run `asv check` and a real `smoke` after benchmark/package integration changes.
-5. Run `python -m benchmarks.release_workflow refresh`; add `--history` for review/promotion or historical evidence.
-6. Use higher `--repetitions`/`--rounds` and `--append-samples` when strengthening compatible evidence rather than creating a fresh comparison basis.
+5. Run the bounded release refresh with `--baseline <accepted-prior-candidate>`; choose `--scope integration` or `--scope promotion` only when the decision needs broader evidence.
+6. Add `--history`, `--diagnostics`, or higher repetition/round counts only for a stated evidence need.
 7. Inspect `campaign check`; investigate any trigger or incomplete state.
-8. Preview the rebuilt site, including the feregion summary and ASV Regressions page.
-9. Publish only when authorized; verify the resulting external state.
-10. Retain resolved plans, normalized comparison evidence, and underlying ASV result history needed for the next iteration.
+8. Preview the rebuilt site when report presentation is part of the decision.
+9. Publish only when authorized; verify resulting external state.
+10. Retain effective plans, normalized comparison evidence, and underlying ASV result history needed for later review.
 
-A small documentation-only correction normally does not justify rerunning every large benchmark. A benchmark-contract change, hot-path implementation change, dependency-policy change, maturity promotion, or explicit evidence-strengthening exercise can justify broader campaigns. Select the least expensive campaign set that can support the claim being made.
+A small documentation-only correction normally does not justify a benchmark refresh at
+all. Select the least expensive evidence set that can support the claim being made.
 
 ## 15. ASV references used by this runbook
 

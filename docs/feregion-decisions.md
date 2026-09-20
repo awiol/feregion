@@ -1305,3 +1305,33 @@ changed rationale as historical fact.
 - **Review trigger:** The baseline-selection policy changes, campaign/report semantics change, or
   ASV exposes a stronger native immutable-run-contract mechanism that can replace the project
   sidecar.
+
+## `DEC-064` — Make release baselines explicit run inputs and scale refresh evidence by decision
+
+- **Context:** b5 repaired a stale release baseline by introducing a synchronized
+  `release-baseline.toml`, but this still required a source edit for every accepted
+  candidate. The extended review also showed that the normal refresh executed expensive
+  full-load, support-matrix, reference, and diagnostic campaigns even when an ordinary
+  candidate decision only needed the bounded release gate.
+- **Decision:** Keep `release-compare.toml` stable with a `__BASELINE__` placeholder.
+  Require the operator to supply the accepted prior candidate or exact commit explicitly
+  for release planning, measurement, comparison, and checking. Resolve and retain that
+  identity in the content-addressed effective plan. Remove the mutable baseline source
+  file. Make the release workflow proportional: the default `release` scope runs the
+  bounded gate; `integration` adds smoke; `promotion` adds full-load, supported-Python,
+  sparse dependency, and direct-reference evidence. History and diagnostics remain
+  explicit additions. `docs/benchmark-operations.md` is the single executable benchmark
+  runbook authority.
+- **Rationale:** Release intent is volatile decision state, not stable campaign source.
+  Explicit run input plus immutable retained provenance removes recurring source churn
+  while preserving auditability. Proportional scopes satisfy the complete evidence
+  capability without paying its cost for every candidate.
+- **Consequence:** Candidate acceptance no longer requires editing benchmark source;
+  missing release-baseline intent fails closed. Broad evidence remains available but is
+  not implicit. Other documentation may explain benchmark semantics but must link to the
+  runbook instead of maintaining duplicate executable workflow instructions.
+- **Supersedes:** `DEC-063` only for its source-controlled baseline mechanism. `DEC-063`
+  remains controlling for retained effective-plan and tool-identity provenance.
+- **Review trigger:** Baseline selection becomes safely derivable from an authorized
+  external release registry, campaign scope semantics change, or promotion evidence
+  requirements materially change.

@@ -169,9 +169,6 @@ def test_evidence_bundle_collects_machine_readable_preservation_set_without_html
     (tmp_path / "benchmarks" / "constraints" / "reference-comparison.txt").write_text(
         "setuptools==81.0.0\n", encoding="utf-8"
     )
-    (tmp_path / "benchmarks" / "release-baseline.toml").write_text(
-        "[baseline]\nrevision='v0.4.0b4'\n", encoding="utf-8"
-    )
     (tmp_path / "benchmark-standalone.json").write_text("{}", encoding="utf-8")
     (tmp_path / "asv.conf.json").write_text("{}", encoding="utf-8")
     (tmp_path / "pyproject.toml").write_text(
@@ -190,7 +187,6 @@ def test_evidence_bundle_collects_machine_readable_preservation_set_without_html
     assert "asv/feregion-reports/report.json" in names
     assert "predecessor/benchmark-standalone.json" in names
     assert "config/constraints/reference-comparison.txt" in names
-    assert "config/release-baseline.toml" in names
     assert not any(name.startswith("asv/html/") for name in names)
     assert payload["derived_html_included"] is False
     assert manifest["families"]["asv-results"]["present"] is True

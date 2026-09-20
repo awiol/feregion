@@ -14,18 +14,21 @@ from pathlib import Path
 _PROJECT_ROOT = Path(__file__).resolve().parents[1]
 _CAMPAIGN_ROOT = _PROJECT_ROOT / "benchmarks" / "campaigns"
 
-# This set covers every maintained benchmark case on HEAD, the supported Python
-# matrix, the sparse dependency matrix, and the routine release gate without
-# re-running the overlapping NumPy/pandas sensitivity campaign files separately.
-_REFRESH_CAMPAIGNS = (
-    "smoke.toml",
-    "release-compare.toml",
-    "head-full.toml",
-    "dependency-matrix.toml",
-    "python-supported.toml",
-    "reference-comparison.toml",
-    "diagnostics.toml",
-)
+# Refresh scopes are proportional to the release decision being supported.
+# The default release scope runs only the bounded candidate gate. Broader evidence
+# remains available explicitly rather than being coupled to every candidate label.
+_REFRESH_SCOPES: dict[str, tuple[str, ...]] = {
+    "release": ("release-compare.toml",),
+    "integration": ("smoke.toml", "release-compare.toml"),
+    "promotion": (
+        "smoke.toml",
+        "release-compare.toml",
+        "head-full.toml",
+        "dependency-matrix.toml",
+        "python-supported.toml",
+        "reference-comparison.toml",
+    ),
+}
 
 
 def _evidence_snapshot() -> dict[str, object]:
@@ -104,6 +107,7 @@ def _campaign_command(
     repetitions: int | None = None,
     rounds: int | None = None,
     append_samples: bool = False,
+    baseline: str | None = None,
 ) -> list[str]:
     """Build one campaign CLI command with optional measurement overrides."""
 
@@ -114,6 +118,12 @@ def _campaign_command(
         subcommand,
         str(_CAMPAIGN_ROOT / filename),
     ]
+    if filename == "release-compare.toml":
+        if baseline is None:
+            raise ValueError("release-compare requires an explicit baseline")
+        command.extend(["--baseline", baseline])
+    elif baseline is not None:
+        raise ValueError(f"{filename} does not accept a release baseline")
     if subcommand == "run":
         if repetitions is not None:
             command.extend(["--repetitions", str(repetitions)])
@@ -126,18 +136,38 @@ def _campaign_command(
 
 def refresh(
     *,
+    baseline: str,
+    scope: str,
     repetitions: int | None,
     rounds: int | None,
     append_samples: bool,
     include_history: bool,
+    include_diagnostics: bool,
 ) -> int:
-    """Populate current-release evidence, evaluate the gate, and rebuild the site."""
+    """Populate decision-relevant evidence, evaluate the gate, and rebuild the site.
 
-    campaigns = list(_REFRESH_CAMPAIGNS)
+    ``release`` is the bounded default. ``integration`` adds the smoke path, while
+    ``promotion`` adds full-load, supported-Python, dependency, and reference evidence.
+    Historical and diagnostic campaigns remain independent explicit additions.
+    """
+
+    try:
+        campaigns = list(_REFRESH_SCOPES[scope])
+    except KeyError as exc:
+        raise ValueError(f"unknown refresh scope: {scope}") from exc
+    if include_diagnostics:
+        campaigns.append("diagnostics.toml")
     if include_history:
         campaigns.append("release-history.toml")
     for filename in campaigns:
-        status = _run(_campaign_command("plan", filename))
+        campaign_baseline = baseline if filename == "release-compare.toml" else None
+        status = _run(
+            _campaign_command(
+                "plan",
+                filename,
+                baseline=campaign_baseline,
+            )
+        )
         if status != 0:
             return status
         status = _run(
@@ -147,12 +177,19 @@ def refresh(
                 repetitions=repetitions,
                 rounds=rounds,
                 append_samples=append_samples,
+                baseline=campaign_baseline,
             )
         )
         if status != 0:
             return status
 
-    check_status = _run(_campaign_command("check", "release-compare.toml"))
+    check_status = _run(
+        _campaign_command(
+            "check",
+            "release-compare.toml",
+            baseline=baseline,
+        )
+    )
     report_status = build_report()
     if report_status != 0:
         return report_status
@@ -188,6 +225,17 @@ def _parser() -> argparse.ArgumentParser:
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     refresh_parser = subparsers.add_parser("refresh")
+    refresh_parser.add_argument(
+        "--baseline",
+        required=True,
+        help="accepted prior candidate revision/commit for the routine release gate",
+    )
+    refresh_parser.add_argument(
+        "--scope",
+        choices=tuple(_REFRESH_SCOPES),
+        default="release",
+        help="evidence scope: bounded release gate, integration smoke, or promotion portfolio",
+    )
     refresh_parser.add_argument("--repetitions", type=int)
     refresh_parser.add_argument("--rounds", type=int)
     refresh_parser.add_argument(
@@ -199,6 +247,11 @@ def _parser() -> argparse.ArgumentParser:
         "--history",
         action="store_true",
         help="also rerun the maintained backward-compatible release-history campaign",
+    )
+    refresh_parser.add_argument(
+        "--diagnostics",
+        action="store_true",
+        help="also run targeted diagnostic cases; not part of ordinary release evidence",
     )
     subparsers.add_parser("report")
     subparsers.add_parser("preview")
@@ -221,10 +274,13 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.rounds is not None and args.rounds < 1:
             raise SystemExit("--rounds must be at least 1")
         return refresh(
+            baseline=args.baseline,
+            scope=args.scope,
             repetitions=args.repetitions,
             rounds=args.rounds,
             append_samples=args.append_samples,
             include_history=args.history,
+            include_diagnostics=args.diagnostics,
         )
     if args.command == "report":
         return build_report()
