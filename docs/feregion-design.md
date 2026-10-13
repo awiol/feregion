@@ -4,7 +4,7 @@
 |---|---|
 | Behavioral contract series | `0.2` |
 | Status | Current beta design |
-| Implemented target | `0.4` benchmark-system source implemented; migration closed and ASV authority promoted |
+| Implemented target | `0.5` current-contract optimization is substantially complete through `DEC-070`; `0.4` ASV authority retained |
 
 The ASV-derived path is the primary benchmark authority; the 0.4 migration is closed.
 
@@ -69,6 +69,17 @@ coordinate validation as geographical lookup and then index the packaged
 crosswalk. `geographic_to_seismic_number()` and its vector form expose the
 hierarchy directly without repeating coordinate lookup.
 
+
+
+### 2.2 0.5 measurement-first optimization investigation
+
+the initial `0.5` alpha checkpoint changes benchmark/investigation tooling and maintained planning state only. Runtime implementation and public interfaces remain byte-semantically unchanged from the `0.4.0b6` baseline. The investigation uses the accepted `0.4` ASV system for aggregate semantic cases and a bounded current-source mechanism probe for stage decomposition that ASV should not promote into long-lived public benchmark semantics.
+
+The mechanism probe distinguishes: matrix, caller-stacking, and split-vector coordinate paths; geographical-ID validation components and direct seismic crosswalk gathering; geographical/seismic name validation and direct Unicode table gathering; and pandas copy, coordinate extraction, lookup, name materialization, and column-assignment stages. Stage measurements are diagnostic observations. They are not release-regression gates and are not public API contracts.
+
+The first implementation alpha selects one bounded mechanism under `REQ-OPT-005`: for geographical vector operations, the engine-derived active-ID Boolean mask is sufficient validity evidence after construction has already proved that each active ID has a non-empty name. The vector validator therefore need not materialize `names[array]` merely to repeat that invariant. Arbitrary out-of-range and inactive IDs remain rejected.
+
+Public split/vector APIs, alternate public name representations, pandas name-column representation changes, and deprecation of the current `(n, 2)` batch interface remain separate proposals until direct comparative evidence establishes enough benefit to justify their compatibility or implementation cost. `DEC-068` resolves seismic-name validation by caching non-empty name-slot validity independently of crosswalk membership. `DEC-069` keeps pandas name columns in their existing object representation but avoids the redundant large fixed-width Unicode intermediate for IDs just produced by the selected engine. `DEC-070` closes the `0.5` public-shape gate: the matrix API remains supported and is not deprecated; an additive split-vector interface is deferred to a `0.6` design candidate because direct measurements show a material gap for separate-vector callers.
 
 ## 3. Runtime data lifecycle
 
@@ -885,6 +896,15 @@ The maintained contract set uses stable repository paths. Git history records
 contract revisions. Delivery manifests, checksum lists, raw benchmark results,
 verification logs, and per-iteration review reports remain outside the source
 tree.
+
+User-facing release history is maintained separately at the stable
+`docs/whats-new.md` path. Unlike the normative contract set, this document is an
+explanatory synthesis: one chapter covers each minor line, and exact-version
+subsections track every `CHANGELOG.md` release entry. Repository synchronization
+tests compare those structural identities so a new candidate or minor line cannot
+be issued without updating the guide. The guide may explain rationale, practical
+impact, migration/compatibility context, and supported examples, but it derives
+behavioral claims from the maintained contracts and retained evidence.
 
 For maintainer-to-agent handoff, `tools.export_repository` uses Git-tracked paths
 as the source boundary but reads their current working-tree bytes. This preserves

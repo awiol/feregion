@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
+import feregion
 from feregion.exceptions import (
     CoordinateRangeError,
     CoordinateTypeError,
@@ -252,6 +253,31 @@ def test_dataframe_wide_finite_out_of_range_preserves_core_error_precedence() ->
         warnings.simplefilter("error")
         with raises_exact(CoordinateRangeError):
             lookup_dataframe(frame)
+
+
+def test_dataframe_names_follow_explicit_engine_assets() -> None:
+    """Optimized pandas name gathering must use the selected engine's assets."""
+
+    packaged = feregion.get_default_lookup()
+    assert packaged.seismic_by_geographic is not None
+    assert packaged.seismic_names is not None
+    geographic_names = packaged.names.copy()
+    geographic_names[543] = "CUSTOM GERMANY"
+    seismic_names = packaged.seismic_names.copy()
+    seismic_names[36] = "CUSTOM NORTHWESTERN EUROPE"
+    engine = feregion.FlinnEngdahlLookup(
+        packaged.table,
+        geographic_names,
+        packaged.seismic_by_geographic,
+        seismic_names,
+    )
+    frame = pd.DataFrame({"longitude": [12.0], "latitude": [48.0]})
+
+    geographic = lookup_dataframe(frame, include_names=True, lookup=engine)
+    seismic = lookup_dataframe(frame, level="seismic", include_names=True, lookup=engine)
+
+    assert geographic["fe_region"].tolist() == ["CUSTOM GERMANY"]
+    assert seismic["fe_seismic_region"].tolist() == ["CUSTOM NORTHWESTERN EUROPE"]
 
 
 def test_dataframe_seismic_level_uses_level_specific_defaults() -> None:

@@ -67,6 +67,7 @@ The repository maintains these canonical campaigns under `benchmarks/campaigns/`
 | `dependency-matrix.toml` | Sparse maintained NumPy/pandas union | Promotion/support evidence without a full Cartesian product |
 | `reference-comparison.toml` | Direct ObsPy and pinned-source comparison | Reference/oracle investigations and promotion evidence |
 | `diagnostics.toml` | Split-vector, caller-stacking, and pandas in-place diagnostics | Targeted investigation only |
+| `optimization-diagnostics.toml` | Aggregate current-revision conversion/name/pandas/split context for the `0.5` investigation | Run before selecting or remeasuring a `0.5` optimization; not a release gate |
 
 `release-compare.toml` intentionally contains the stable `__BASELINE__` placeholder.
 The operator must supply the accepted prior candidate with `--baseline`. The CLI resolves
@@ -330,6 +331,18 @@ uv run --locked --group benchmark \
 
 These cases retain private split-vector, caller-stacking, and pandas in-place evidence.
 They are diagnostic contracts, not public runtime API.
+
+For the `0.5` mechanism investigation, retain aggregate ASV context with:
+
+```bash
+uv run --locked --group benchmark \
+  python -m benchmarks.campaign run benchmarks/campaigns/optimization-diagnostics.toml
+```
+
+Then use `benchmarks/optimization_probe.py` only for current-source stage decomposition.
+Its JSON is investigation evidence, not normalized release-gate evidence. The probe keeps
+input preparation outside each timed stage and labels the environment/package version in
+its output.
 
 ## 10b. Predecessor compatibility/reference tooling
 

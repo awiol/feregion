@@ -3,13 +3,13 @@
 | Field | Value |
 |---|---|
 | Status | Current beta engineering contract |
-| Current target | `0.4.0` benchmark-system beta stabilization; ASV migration accepted and primary benchmark authority established |
+| Current target | `0.5.0` evidence-backed optimization implementation; public contract unchanged |
 
 The ASV-derived path is the primary benchmark authority; the 0.4 migration is closed.
 
 This document uses the normative profile defined by `feregion-requirements.md`.
 
-## Governing guidance for the 0.4 benchmark target
+## Governing guidance and inherited benchmark authority
 
 The user-approved release-core decision dedicates `0.4.0` to benchmark-system
 work. `DEC-062` establishes ASV plus the project-owned campaign/evidence/regression
@@ -23,7 +23,7 @@ below adopts them.
 
 | Source | Exact version / date | Role in this target |
 |---|---|---|
-| User-approved project decision | 2026-09-17 | Select `0.4.0` as the benchmark-focused next minor target and keep the current `0.3` beta line for stabilization. |
+| User-approved project decision | 2026-09-20 | Select `0.5.0` as the measurement-first optimization investigation. Do not select an optimization or public API change until mechanism-level evidence supports it. |
 | *Working with complex problems and systems* | `0.5.0-alpha.1`, 2026-09-07 | Scope control, architecture selection, evidence roles, bounded investigation, and stop conditions. |
 | *Software Quality Guidelines — Integrated Operating Guide* | `0.4.0-alpha.4`, 2026-09-12 | Performance decision contracts, test oracles, compatibility, documentation consistency, review, and release evidence. |
 | *Versioned Source-Bundle Delivery Guidelines* | `0.4.0-alpha.1`, 2026-09-11 | Target/candidate separation, post-beta scope control, cohesion, patch-baseline identity, one-off handoff, and verification claims. |
@@ -538,6 +538,19 @@ comparator dependency must not be converted into `not_applicable`.
 **REQ-PERF-030** — Normalized evidence for a campaign must be collected only from ASV environments permitted by that campaign's resolved environment profile. A retained result with the same revision, case, and load but a different environment profile must not be relabeled with the current campaign identity or used by its release decision. If the required profile has no candidate result, the evidence must remain incomplete.
 
 **REQ-PERF-031** — A local static-report rebuild used as migration evidence must retain a machine-readable rebuild record. The record must identify the report command outcome, the retained source-evidence content identity used for the rebuild, and whether generated report output was observed. Report-rebuild records must be included in benchmark evidence handoffs; generated HTML remains rebuildable derived output and is excluded by default.
+
+
+## 0.5 optimization investigation
+
+**REQ-OPT-001** — the initial `0.5` alpha checkpoint must be a measurement-only optimization checkpoint. It may add diagnostic benchmark tooling, evidence records, requirements, decisions, and documentation, but it must not change runtime lookup, conversion, name, pandas, CLI, GeoJSON, or public API behavior.
+
+**REQ-OPT-002** — Before selecting an optimization for geographical-ID-to-seismic conversion, the project must measure the public operation separately from numeric bounds validation, historical-name-slot validation, active-geographical membership validation, and direct hierarchy crosswalk gathering on identical prevalidated inputs. The investigation must retain load size, raw repetitions, aggregate statistic, interpreter/dependency identity, and package revision.
+
+**REQ-OPT-003** — Before selecting an optimization for geographical or seismic name conversion, the project must separate identifier validation from direct Unicode name-table gathering and must report per-element cost. A result-materialization cost must not be described as avoidable validation overhead without discriminating evidence.
+
+**REQ-OPT-004** — pandas optimization investigation must separate DataFrame copy, coordinate extraction, split-vector numeric lookup, name materialization, and output-column assignment. Copy and in-place aggregate benchmarks remain required context; stage measurements are diagnostic and do not by themselves change the pandas result contract.
+
+**REQ-OPT-005** — a subsequent `0.5` alpha may implement an optimization only after the initial `0.5` alpha checkpoint evidence identifies a mechanism whose cost is material relative to the complete public operation and a bounded implementation can preserve current semantics. A new public interface, changed result representation, or deprecation requires a separate compatibility/design decision after direct old-versus-candidate interface measurements.
 
 ## Packaging, development environment, and license
 

@@ -90,6 +90,23 @@ every directory component between the repository boundary and each selected evid
 root without following symbolic links; specialized evidence families must use the same
 containment mechanism as generic recursive evidence discovery.
 
+**REQ-REPO-012** — The repository must maintain one stable cumulative user-facing
+release guide at `docs/whats-new.md`. The guide must contain exactly one chapter
+for every minor release line represented in `CHANGELOG.md`, and it must contain
+an exact-version subsection for every release candidate or release recorded in
+that changelog. Every newly issued candidate must update the guide in the same
+source change; a new minor line must add its chapter when that line is first
+issued. Each minor chapter must explain the line's purpose and practical impact,
+state material compatibility or migration implications, and include representative
+usage examples when a supported user or maintainer interface changed. Individual
+release subsections may be concise when a candidate is documentation-only or
+otherwise has no additional user-facing behavior, but they must still identify
+its role. Behavioral and performance claims in the guide must remain derived from
+the maintained contract and retained evidence, and measured results must preserve
+their stated limitations. The guide is explanatory user documentation: it must
+not override requirements, decisions, verification status, or `CHANGELOG.md`.
+`README.md` must link to the stable guide.
+
 ## Iterative delivery contract
 
 **REQ-DEL-001** — Each iterative source delivery must provide a complete

@@ -8,6 +8,11 @@ Normal lookup uses packaged processed data. Runtime lookup, names, hierarchy
 conversion, and GeoJSON generation do not require ObsPy, ISC network access, or
 another source service. pandas and Shapely remain optional interface dependencies.
 
+For the maintained user-oriented release history, including rationale, practical
+impact, compatibility notes, and usage examples for every minor line, see
+`docs/whats-new.md`. The guide is updated with every release candidate;
+`CHANGELOG.md` remains the concise release-by-release historical record.
+
 ## Install with uv
 
 Add the core package:
@@ -328,6 +333,8 @@ needs that evidence.
 
 The predecessor standalone/pytest-benchmark/Tox tools remain available for compatibility,
 investigation, and historical provenance; they are not co-equal release authority.
+
+The `0.5` line uses that benchmark authority for measurement-first runtime optimization. The alpha series identified and implemented bounded geographical validation, seismic validation, and pandas name-output improvements without changing the public contract. `DEC-070` keeps the `(n, 2)` matrix batch API supported and defers an additive public split-vector interface to `0.6`; the retained measurements and decision gates are recorded in `docs/optimization-investigation.md`.
 
 ## Clean repository handoff
 

@@ -3,6 +3,7 @@
 import numpy as np
 import pytest
 
+from feregion import get_default_lookup
 from feregion.core import FlinnEngdahlLookup
 from feregion.exceptions import RegionNumberError
 from tests.helpers import raises_exact
@@ -106,3 +107,15 @@ def test_numbers_to_names_rejects_empty_mapping_not_used_by_lookup_table() -> No
     engine = FlinnEngdahlLookup(table, names)
     with raises_exact(RegionNumberError):
         engine.numbers_to_names(np.array([2], dtype=np.uint16))
+
+
+def test_geographic_active_mask_remains_authoritative_for_vector_validity() -> None:
+    """An unused named storage slot remains invalid even when its name is populated."""
+
+    packaged = get_default_lookup()
+    names = packaged.names.copy()
+    names[172] = "HISTORICAL SLOT"
+    engine = FlinnEngdahlLookup(packaged.table, names)
+
+    with raises_exact(RegionNumberError):
+        engine.geographic_numbers_to_names(np.asarray([172], dtype=np.uint16))

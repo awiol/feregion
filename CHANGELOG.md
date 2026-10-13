@@ -1,5 +1,59 @@
 # Changelog
 
+## 0.5.0b5 — 2026-10-14
+
+- Carry the rebased `0.5.0b4` candidate forward with bounded Ruff formatting/import fixes and a strict-mypy typing correction in trusted pandas name gathering. Runtime behavior and public interfaces are unchanged.
+
+## 0.5.0b4 — 2026-10-14
+
+- Rebase the `0.5` line onto the exact committed `0.4.0b10` source so the 0.5 optimization and cumulative release-documentation work inherit the later 0.4 provenance, containment, evidence-integrity, review-closure, and formatting corrections instead of superseding them.
+- Preserve the `0.5.0b3` public/runtime optimization intent: geographical and seismic validation optimizations, pandas name-output optimization, the unchanged `(n, 2)` public matrix API, and the deferred additive `0.6` split-vector design candidate remain in force.
+- Resolve identifier collisions created by the parallel branches: retained `0.4.0b10` keeps `DEC-065` and `REQ-REPO-011`; the 0.5 decisions are renumbered from former `DEC-065..071` to `DEC-066..072`, and the cumulative What’s New requirement becomes `REQ-REPO-012`. `DEC-073` records this rebase and identifier reconciliation. Historical issued archives retain their original bytes and identifiers.
+- Extend the maintained cumulative `docs/whats-new.md` history with `0.4.0b7` through `0.4.0b10` and this rebased `0.5.0b4` candidate. No new public API, deprecation, FE-data change, or intended lookup-result change is introduced by the rebase itself.
+
+## 0.5.0b3 — 2026-10-12
+
+- Replace the one-off `docs/whats-new-0.5.md` page with the stable cumulative `docs/whats-new.md` user guide. The maintained guide now contains one chapter for every historical minor line (`0.1` through `0.5`), with exact candidate/release progression, rationale, practical impact, compatibility context, and representative usage examples derived from the repository history.
+- Add `REQ-REPO-012` and `DEC-072` to make the cumulative “What’s New” guide a permanent repository/release-maintenance obligation rather than an optional minor-line convention. Every future release candidate must update the guide, and every future minor line must add a chapter.
+- Strengthen repository synchronization tests so every version in `CHANGELOG.md` is represented in `docs/whats-new.md`, every changelog minor line has exactly one chapter, the current exact package version is present, and `README.md` exposes the stable guide. Update design, quality, and verification traceability for the new maintenance rule. Runtime behavior, public APIs, FE data, dependencies, benchmark semantics, and deprecation status are unchanged from `0.5.0b2`.
+
+## 0.5.0b2 — 2026-10-12
+
+- Add `docs/whats-new-0.5.md` as a user-facing narrative companion to the changelog. It explains why the `0.5` line exists, the practical impact and rationale of each alpha/beta candidate, retained single-host performance evidence with explicit limitations, upgrade guidance, and usage examples for the affected supported interfaces.
+- Link the new guide from the repository entry point and record the documentation-role decision in `DEC-071`: `CHANGELOG.md` remains the concise historical record, while minor-release “What’s New” guides may provide user-oriented rationale, examples, compatibility guidance, and measured-impact context without becoming a second normative contract.
+- Add repository regression coverage for “What’s New” discoverability and current-minor identity. This beta candidate intentionally changes no runtime behavior, public API, FE data, dependency contract, benchmark semantics, or deprecation status from `0.5.0b1`.
+
+## 0.5.0b1 — 2026-10-12
+
+- Close the measurement-first `0.5` alpha optimization scope after `DEC-067` through `DEC-069`: geographical-ID validation, seismic-name validation, and pandas name-output construction now have bounded evidence-backed implementations while preserving the existing public contract. No runtime behavior is intentionally changed from `0.5.0a4` in this beta transition.
+- Record `DEC-070` from fresh-process API-shape diagnostics at 100k, 1M, and 5M points. The existing public `(n, 2)` batch route remains supported and is not deprecated. Split-vector lookup remains package-internal in 0.5; an additive public split-vector interface is deferred to a separately designed `0.6` target because the measured gap is material but eliminating it inside the matrix API would require a full coordinate-sized temporary for only partial recovery.
+- Enter beta stabilization because intended `0.5` current-contract optimization work is substantially complete. Release-validation remains partial: the local Python 3.13 runtime suite/build evidence is current, while Ruff, mypy, ASV release comparison, supported-Python/dependency matrices, hosted CI, and independent source-oracle checks still require suitable environments.
+
+## 0.5.0a4 — 2026-10-12
+
+- Optimize pandas name-output construction under `DEC-069` without changing the public pandas representation: when geographical or seismic IDs were just produced by the selected engine, gather their names directly from that engine's small name table as an object array instead of first materializing a large fixed-width Unicode array and then asking pandas to convert it to its existing object column.
+- Preserve copy/in-place behavior, explicit custom-engine names, output values, column names, numeric dtypes, and the observed pandas name-column `object` representation. No core NumPy name-return contract changes.
+- In five fixed-CPU alternating `0.5.0a3`/candidate pairs at 1M rows, geographical name-output copy improves about 4.92x and seismic name-output copy about 6.20x; corresponding in-place-with-fresh-copy diagnostics improve about 5.23x and 5.88x. Numbers-only controls remain approximately flat. This is mechanism-specific single-host evidence, not formal release `QG-PERF` closure.
+
+## 0.5.0a3 — 2026-10-12
+
+- Implement the next bounded `0.5` optimization selected by `DEC-068`: cache a read-only seismic-name validity mask at engine construction and use it for vector seismic-ID name validation instead of gathering the Unicode name table merely to test for empty slots.
+- Preserve custom-engine semantics: a named seismic identifier remains queryable even when no geographical region references it, while an empty unreferenced name slot remains invalid. The validity relation therefore comes from the seismic name table, not the geographical-to-seismic crosswalk.
+- In five fixed-CPU alternating `0.5.0a2`/candidate pairs at 1M IDs, unchanged geographical matrix, geographical hierarchy conversion, and geographical-name controls remain approximately flat while seismic-name conversion improves by about 2.16x (median ~56.6 ms to ~26.2 ms). These are single-host mechanism diagnostics, not formal `QG-PERF` closure.
+
+## 0.5.0a2 — 2026-09-20
+
+- Implement the first evidence-backed `0.5` runtime optimization selected by `DEC-067`: when a trusted engine-derived active-geographical mask is available, vector region-ID validation uses bounds plus that Boolean mask instead of gathering the Unicode name table merely to re-prove that active IDs are named.
+- Preserve public signatures, result shapes/dtypes, active/inactive geographical-ID semantics, custom-engine construction invariants, coordinate ownership, and error classes. Seismic-name validation and pandas name-column representation remain unchanged.
+- On the controlled 1M-ID alternating comparison, the unchanged geographical matrix control is ~1.01x, public geographical-ID-to-seismic conversion improves ~7.63x, and geographical name conversion improves ~2.15x; untouched seismic-name conversion is ~1.00x. These are single-host optimization evidence, not universal performance guarantees.
+
+## 0.5.0a1 — 2026-09-20
+
+- Start the `0.5` line as a measurement-only runtime-optimization investigation from exact `0.4.0b6`; no lookup, conversion, pandas, CLI, GeoJSON, or public API behavior is intentionally changed.
+- Add a bounded mechanism probe that separates matrix/stack/split coordinate costs, public geographical-ID-to-seismic conversion from its validation and direct crosswalk stages, name validation from Unicode table gathering, and pandas copy/extraction/lookup/name/assignment stages.
+- Add a maintained `optimization-diagnostics` ASV campaign for aggregate current-revision context while keeping mechanism-stage timings diagnostic rather than release-gate semantics.
+- Record `DEC-066` and `REQ-OPT-001..005`: implementation in `0.5.0a2` remains unauthorized until retained a1 evidence identifies a material mechanism and a bounded semantic-preserving optimization. Public API redesign and deprecation remain separate later decisions.
+
 ## 0.4.0b10 — 2026-10-14
 
 - Integrate the b9 review closures and apply the two Ruff formatter corrections

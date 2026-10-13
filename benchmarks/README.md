@@ -57,6 +57,7 @@ timing, raw samples, retained history, and static reporting.
 - `dependency-matrix.toml` — bounded sparse NumPy/pandas union;
 - `reference-comparison.toml` — feregion/direct-ObsPy/pinned-source comparison; and
 - `diagnostics.toml` — targeted private-path diagnostics.
+- `optimization-diagnostics.toml` — current-revision aggregate context for the `0.5` mechanism investigation; stage decomposition remains in `optimization_probe.py`.
 
 The release campaign contains a stable `__BASELINE__` placeholder. The accepted prior
 candidate is supplied explicitly by the operator and resolved to one immutable commit in

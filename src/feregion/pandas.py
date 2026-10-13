@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any, Literal, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -120,13 +120,40 @@ def lookup_dataframe(
         geographic_numbers = engine._lookup_geographic_numbers_from_vectors(longitude, latitude)
         target[resolved_number_column] = geographic_numbers
         if include_names:
-            target[resolved_name_column] = engine.geographic_numbers_to_names(geographic_numbers)
+            target[resolved_name_column] = _trusted_name_values(
+                engine, geographic_numbers, level="geographic"
+            )
     else:
         seismic_numbers = engine._lookup_seismic_numbers_from_vectors(longitude, latitude)
         target[resolved_number_column] = seismic_numbers
         if include_names:
-            target[resolved_name_column] = engine.seismic_numbers_to_names(seismic_numbers)
+            target[resolved_name_column] = _trusted_name_values(
+                engine, seismic_numbers, level="seismic"
+            )
     return target
+
+
+def _trusted_name_values(
+    engine: FlinnEngdahlLookup,
+    numbers: npt.NDArray[Any],
+    *,
+    level: RegionLevel,
+) -> npt.NDArray[Any]:
+    """Gather pandas-ready object names for identifiers produced by ``engine``.
+
+    The caller must supply region numbers produced by the same engine lookup in
+    the current operation. Engine construction already proves that those active
+    geographical and seismic identifiers have names, so repeating public vector
+    validation and materializing a fixed-width Unicode result is unnecessary.
+    pandas stores the existing name columns as object dtype; gathering from a
+    small object name table preserves that representation directly.
+    """
+
+    if level == "geographic":
+        names = engine.names
+    else:
+        _, names = engine._require_seismic_data()
+    return cast(npt.NDArray[Any], np.asarray(names, dtype=object)[numbers])
 
 
 def _coordinate_values(series: pd.Series[Any]) -> npt.NDArray[Any]:

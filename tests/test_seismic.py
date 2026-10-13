@@ -123,6 +123,58 @@ def test_custom_engine_unused_named_identifier_remains_inactive() -> None:
         engine.geographic_to_seismic_number(172)
 
 
+def test_custom_engine_named_unreferenced_seismic_identifier_remains_queryable() -> None:
+    """Seismic-name validity comes from the name table, not crosswalk membership.
+
+    A custom engine may define a named seismic identifier that no geographical
+    region currently references. Both scalar and vector name lookup must preserve
+    that existing public behavior if vector validation uses a cached validity mask.
+    """
+
+    packaged = feregion.get_default_lookup()
+    assert packaged.seismic_by_geographic is not None
+    assert packaged.seismic_names is not None
+    seismic_names = np.concatenate(
+        (packaged.seismic_names, np.asarray(["UNREFERENCED SEISMIC REGION"]))
+    )
+    unreferenced = seismic_names.size - 1
+    assert unreferenced not in set(int(value) for value in packaged.seismic_by_geographic)
+
+    engine = FlinnEngdahlLookup(
+        packaged.table,
+        packaged.names,
+        packaged.seismic_by_geographic,
+        seismic_names,
+    )
+
+    assert engine.seismic_number_to_name(unreferenced) == "UNREFERENCED SEISMIC REGION"
+    np.testing.assert_array_equal(
+        engine.seismic_numbers_to_names(np.asarray([unreferenced], dtype=np.uint8)),
+        np.asarray(["UNREFERENCED SEISMIC REGION"]),
+    )
+
+
+def test_custom_engine_unnamed_unreferenced_seismic_identifier_remains_invalid() -> None:
+    """A cached seismic validity mask must keep empty custom name slots invalid."""
+
+    packaged = feregion.get_default_lookup()
+    assert packaged.seismic_by_geographic is not None
+    assert packaged.seismic_names is not None
+    seismic_names = np.concatenate((packaged.seismic_names, np.asarray([""])))
+    unnamed = seismic_names.size - 1
+    engine = FlinnEngdahlLookup(
+        packaged.table,
+        packaged.names,
+        packaged.seismic_by_geographic,
+        seismic_names,
+    )
+
+    with raises_exact(RegionNumberError):
+        engine.seismic_number_to_name(unnamed)
+    with raises_exact(RegionNumberError):
+        engine.seismic_numbers_to_names(np.asarray([unnamed], dtype=np.uint8))
+
+
 def test_custom_two_asset_engine_remains_geographical_only() -> None:
     """Existing explicit construction does not silently borrow unrelated hierarchy data."""
 

@@ -40,9 +40,10 @@ requirement.
 
 ## Benchmark coverage and investigation
 
-8. Investigate the pandas 3.0.5 divergence between numbers-only and
-   numbers-plus-names paths. Profile construction, assignment, and string/name handling
-   before proposing runtime changes.
+8. **Promoted into the `0.5.0a1` investigation:** decompose pandas construction,
+   assignment, numeric lookup, and string/name handling before proposing runtime changes.
+   `docs/optimization-investigation.md` records the first mechanism evidence; dependency
+   sensitivity remains a follow-up measurement rather than an implemented runtime change.
 9. Add bounded memory/resource evidence for the 10M, 20M, and 50M loads so missing
    high-load results can be classified rather than left unexplained.
 10. Add confidence intervals or another reviewable uncertainty summary after retained

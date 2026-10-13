@@ -61,6 +61,7 @@ class FlinnEngdahlLookup:
     seismic_by_geographic: npt.NDArray[np.uint8] | None = None
     seismic_names: npt.NDArray[np.str_] | None = None
     _active_geographic: npt.NDArray[np.bool_] = field(init=False, repr=False, compare=False)
+    _valid_seismic: npt.NDArray[np.bool_] | None = field(init=False, repr=False, compare=False)
 
     def __post_init__(self) -> None:
         """Validate data invariants and take ownership of immutable copies."""
@@ -94,6 +95,7 @@ class FlinnEngdahlLookup:
 
         owned_crosswalk: npt.NDArray[np.uint8] | None = None
         owned_seismic_names: npt.NDArray[np.str_] | None = None
+        valid_seismic: npt.NDArray[np.bool_] | None = None
         if crosswalk is not None and seismic_names is not None:
             crosswalk_array = np.asarray(crosswalk)
             seismic_name_array = np.asarray(seismic_names)
@@ -120,6 +122,8 @@ class FlinnEngdahlLookup:
             owned_crosswalk.setflags(write=False)
             owned_seismic_names = np.array(seismic_name_array, copy=True, order="C")
             owned_seismic_names.setflags(write=False)
+            valid_seismic = np.asarray(owned_seismic_names != "", dtype=np.bool_)
+            valid_seismic.setflags(write=False)
 
         owned_table = np.array(table, copy=True, order="C")
         owned_table.setflags(write=False)
@@ -130,6 +134,7 @@ class FlinnEngdahlLookup:
         object.__setattr__(self, "seismic_by_geographic", owned_crosswalk)
         object.__setattr__(self, "seismic_names", owned_seismic_names)
         object.__setattr__(self, "_active_geographic", active_geographic)
+        object.__setattr__(self, "_valid_seismic", valid_seismic)
 
     @property
     def has_seismic_data(self) -> bool:
@@ -491,7 +496,7 @@ class FlinnEngdahlLookup:
         """
 
         _, names = self._require_seismic_data()
-        return _numbers_to_names(numbers, names, "seismic")
+        return _numbers_to_names(numbers, names, "seismic", valid=self._valid_seismic)
 
     def _require_seismic_data(
         self,
@@ -570,8 +575,18 @@ def _integer_region_array(
     level: str,
     *,
     active: npt.NDArray[np.bool_] | None = None,
+    valid: npt.NDArray[np.bool_] | None = None,
 ) -> np.ndarray:
-    """Validate an integer region-number array without changing its shape."""
+    """Validate an integer region-number array without changing its shape.
+
+    ``active`` is the geographical membership relation and preserves the public
+    inactive-ID diagnostic. ``valid`` is a trusted generic validity relation
+    whose false entries remain unknown region numbers. At most one relation may
+    be supplied.
+    """
+
+    if active is not None and valid is not None:
+        raise ValueError("active and valid region masks are mutually exclusive")
 
     try:
         array = np.asarray(numbers)
@@ -583,10 +598,22 @@ def _integer_region_array(
         return array
     if np.any(array < 1) or np.any(array >= names.size):
         raise RegionNumberError(f"one or more Flinn-Engdahl {level} region numbers are unknown")
+    if active is not None:
+        # Engine construction already proves that every active geographical ID has
+        # a non-empty name. Rechecking ``names[array]`` would materialize a large
+        # Unicode array on every vector validation. The Boolean active mask is the
+        # authoritative validity relation for this trusted path.
+        if np.any(~active[array]):
+            raise RegionNumberError(
+                f"one or more Flinn-Engdahl {level} region numbers are inactive"
+            )
+        return array
+    if valid is not None:
+        if np.any(~valid[array]):
+            raise RegionNumberError(f"one or more Flinn-Engdahl {level} region numbers are unknown")
+        return array
     if np.any(names[array] == ""):
         raise RegionNumberError(f"one or more Flinn-Engdahl {level} region numbers are unknown")
-    if active is not None and np.any(~active[array]):
-        raise RegionNumberError(f"one or more Flinn-Engdahl {level} region numbers are inactive")
     return array
 
 
@@ -596,10 +623,11 @@ def _numbers_to_names(
     level: str,
     *,
     active: npt.NDArray[np.bool_] | None = None,
+    valid: npt.NDArray[np.bool_] | None = None,
 ) -> npt.NDArray[np.str_]:
     """Convert a validated region-number array through one name table."""
 
-    array = _integer_region_array(numbers, names, level, active=active)
+    array = _integer_region_array(numbers, names, level, active=active, valid=valid)
     if array.size == 0:
         return np.empty(array.shape, dtype=names.dtype)
     return cast(npt.NDArray[np.str_], np.asarray(names[array], dtype=names.dtype))

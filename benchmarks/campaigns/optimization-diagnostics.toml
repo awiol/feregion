@@ -1,0 +1,23 @@
+[campaign]
+id = "optimization-diagnostics"
+purpose = "0.5 mechanism-level investigation of conversion, naming, pandas, and split/stack costs"
+revisions = ["HEAD"]
+cases = [
+  "geographic_numbers_to_seismic_numbers",
+  "geographic_numbers_to_names",
+  "seismic_numbers_to_names",
+  "pandas_lookup_numbers",
+  "pandas_lookup_numbers_and_names",
+  "pandas_lookup_inplace_numbers",
+  "pandas_lookup_inplace_numbers_and_names",
+  "internal_split_geographic_numbers",
+  "internal_split_seismic_numbers",
+  "stack_plus_geographic_numbers",
+]
+load_sizes = [100000, 1000000]
+repetitions = 5
+rounds = 3
+environment_profile = "release-history"
+record_samples = true
+machine_policy = "same-machine-environment-case-version"
+report_steps = []

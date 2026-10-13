@@ -123,6 +123,39 @@ def test_current_contract_documents_use_stable_names_and_are_traceable() -> None
     assert all(trace_text.count(f"`{requirement_id}`") == 1 for requirement_id in requirement_ids)
 
 
+def test_cumulative_whats_new_covers_release_history() -> None:
+    """The stable user guide must cover every changelog minor line and exact release."""
+
+    relative = "docs/whats-new.md"
+    guide = PROJECT_ROOT / relative
+    assert guide.is_file()
+    assert relative in (PROJECT_ROOT / "README.md").read_text(encoding="utf-8")
+
+    text = guide.read_text(encoding="utf-8")
+    changelog = (PROJECT_ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+    versions = re.findall(r"^## (\d+\.\d+\.\S+) — ", changelog, flags=re.MULTILINE)
+    assert versions
+
+    expected_minors = {".".join(version.split(".")[:2]) for version in versions}
+    chapters = re.findall(r"^## (\d+\.\d+) — ", text, flags=re.MULTILINE)
+    expected_order = sorted(
+        expected_minors, key=lambda value: tuple(map(int, value.split("."))), reverse=True
+    )
+    assert chapters == expected_order
+    assert len(chapters) == len(set(chapters))
+
+    for version in versions:
+        assert text.count(f"### {version} — ") == 1
+
+    current_version = _pyproject()["project"]["version"]
+    current_minor = ".".join(current_version.split(".")[:2])
+    assert f"### {current_version} — " in text
+    assert f"The current minor line is `{current_minor}`." in text
+    assert "REQ-REPO-012" in (DOCS / "feregion-repository-delivery-requirements.md").read_text(
+        encoding="utf-8"
+    )
+
+
 def test_readme_lists_every_maintained_contract_document() -> None:
     """The repository entry point links every maintained contract by its stable path."""
 
@@ -425,4 +458,4 @@ def test_ai_provenance_metadata_and_sdist_contract() -> None:
     readme = (PROJECT_ROOT / "README.md").read_text(encoding="utf-8")
     assert "AI_PROVENANCE.md" in readme
     decisions = (DOCS / "feregion-decisions.md").read_text(encoding="utf-8")
-    assert decisions.count("`DEC-065`") == 1
+    assert decisions.count("## `DEC-065` — Separate AI development provenance") == 1

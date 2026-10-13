@@ -1359,3 +1359,118 @@ changed rationale as historical fact.
   contributors appear; the AI development process changes substantially; formal
   publication/citation identity emerges; warranties, indemnities, or institutional IP
   ownership become relevant; or material legal developments change the analysis.
+
+## `DEC-066` — Start 0.5 with mechanism measurement before runtime optimization
+
+- **Context:** The accepted `0.4` benchmark system shows that coordinate lookup is no longer the only or clearest performance opportunity. Recent evidence shows public geographical-ID-to-seismic conversion and name-heavy paths can cost substantially more than coordinate lookup, while pandas name-output cost is sensitive to representation and dependency behavior. Aggregate timings do not identify whether validation, Unicode materialization, pandas assignment, or another mechanism dominates.
+- **Decision:** Start `0.5.0` with a measurement-only alpha checkpoint. Preserve runtime and public API behavior. Add a bounded optimization investigation that decomposes geographical-ID validation/crosswalk gathering, geographical and seismic name validation/materialization, pandas stages, and matrix/stack/split coordinate paths. Retain the `0.4` ASV system as benchmark authority; use the mechanism probe only as diagnostic evidence. Do not authorize the first implementation alpha until the measurement-checkpoint evidence identifies a material mechanism and a bounded semantic-preserving change.
+- **Alternatives considered:** immediately optimize `_integer_region_array`; add a public split-array API first; replace Unicode name arrays; postpone all runtime work until another release.
+- **Rationale:** The measurement can distinguish several plausible mechanisms at low cost and can prevent an optimization from targeting unavoidable output materialization or pandas behavior. Existing evidence already makes another broad coordinate-kernel rewrite low priority.
+- **Compatibility consequence:** The measurement-only alpha checkpoint has no intended runtime/public compatibility change. A later public interface or deprecation requires a separate decision and migration plan.
+- **Review trigger:** measurement-checkpoint evidence is retained and reviewed; a proposed optimization changes public signatures, result representation, error semantics, or compatibility; or new measurements contradict the current hotspot diagnosis.
+
+
+## `DEC-067` — Replace redundant geographical name-slot validation with the trusted active mask
+
+- **Context:** The measurement checkpoint shows that public geographical-ID-to-seismic conversion spends almost all of its time in vector ID validation. At one million IDs, complete validation is about 55 ms, the Unicode `names[array] == ""` check about 51 ms, the active Boolean-mask check about 3.4 ms, and direct hierarchy gathering about 3.4 ms. Engine construction already rejects any table-used geographical ID whose name is empty and derives `_active_geographic` from exactly the IDs used by the table.
+- **Decision:** When `_integer_region_array()` receives the trusted active-geographical mask, use bounds plus that mask as the validity relation and do not gather the Unicode name table again. Keep the historical name-slot check for callers that do not have a trusted validity mask. Do not change public signatures, result representation, coordinate lookup, seismic-name validation, or pandas output representation in this change.
+- **Rationale/evidence:** A fixed-CPU alternating predecessor/candidate comparison at one million IDs keeps the unchanged matrix lookup control approximately flat while geographical-ID-to-seismic conversion improves by about 7.6x and geographical name conversion by about 2.15x. Untouched seismic-name conversion remains approximately flat. This discriminates the targeted mechanism from general host speed variation.
+- **Compatibility consequence:** Public success/failure categories remain unchanged. Inactive geographical IDs remain invalid even when a historical/custom name slot is populated. The optimization depends on the constructor invariant that every active geographical ID has a non-empty name.
+- **Review trigger:** Constructor active-ID/name invariants change; a custom-engine regression contradicts equivalent validity; candidate measurements fail to reproduce the mechanism; or a broader validity representation is proposed for seismic IDs.
+
+## `DEC-068` — Cache seismic-name validity independently of crosswalk membership
+
+- **Context:** On exact `0.5.0a2`, the 1M-ID seismic-name path still spends a material fraction of its time re-reading the fixed-width Unicode seismic-name table only to test whether selected slots are empty. A fixed-CPU diagnostic measured complete validation at about 31–38 ms, the Unicode empty-slot check at about 31–39 ms, a Boolean validity-mask check at about 1.4 ms, and unavoidable name gathering at about 23–26 ms. Custom engines may also define a named seismic identifier that no geographical region currently references.
+- **Decision:** At engine construction, derive a read-only seismic validity mask from non-empty seismic-name slots. Vector seismic-name validation must use bounds plus that mask. Do not derive validity from geographical-to-seismic crosswalk membership. Preserve the historical unknown-ID diagnostic for empty or out-of-range seismic slots. Scalar lookup and public signatures remain unchanged.
+- **Rationale/evidence:** A mutation that derived the mask only from crosswalk membership fails the custom-engine regression for a named unreferenced seismic ID. In five fixed-CPU alternating predecessor/candidate pairs at 1M IDs, unchanged geographical controls remain approximately flat while seismic-name conversion improves from a median of about 56.6 ms to about 26.2 ms, approximately 2.16x.
+- **Compatibility consequence:** Public result shapes, dtypes, values, exception classes, and custom-engine queryability remain unchanged. The default engine adds only a small internal Boolean mask. No pandas representation or public batch interface changes in this decision.
+- **Review trigger:** Seismic-name validity semantics change; seismic names become mutable; a public historical/unnamed-ID capability is added; or later evidence shows that the cached relation no longer matches scalar name-table validity.
+
+## `DEC-069` — Gather pandas names directly in the existing object representation
+
+- **Context:** After the core validation optimizations, 1M-row pandas name output remained dominated by conversion/assignment rather than coordinate lookup. On `0.5.0a3`, geographical names measured about 118 ms and seismic names about 143 ms for copy-return lookup, while numbers-only controls were about 13 ms. pandas stores the resulting name columns as `object`, but the adapter first asked the core API to materialize a large fixed-width Unicode result and then pandas converted it again. A diagnostic object-table gather produced identical values and observed column dtype with much lower cost.
+- **Decision:** For pandas operations only, when region numbers were produced by the same engine in the current lookup, gather names directly from that selected engine's small name table converted to object form. Do not call the public vector name-conversion path for those trusted engine-produced IDs. Keep the public core Unicode return contract unchanged. Keep the existing pandas name-column representation and copy/in-place behavior.
+- **Rationale/evidence:** Engine construction proves that every geographical ID produced by its table has a name and every seismic ID reachable through its active hierarchy has a name. The adapter already trusts same-engine split-vector lookup under earlier optimization decisions. Five fixed-CPU alternating predecessor/candidate pairs at 1M rows show about 4.92x improvement for geographical copy name output and 6.20x for seismic copy name output, with numbers-only controls approximately flat; copy/in-place values and observed object dtypes are unchanged.
+- **Compatibility consequence:** Public pandas signatures, values, output columns, copy/in-place semantics, selected-engine behavior, and core NumPy name-return representation are unchanged. This decision does not authorize a categorical/string-extension result representation.
+- **Review trigger:** pandas changes the assignment/result representation for object arrays; engine-produced ID/name invariants change; the adapter gains lazy/extension-array output; or supported-version evidence shows a compatibility difference.
+
+## `DEC-070` — Close 0.5 on the matrix API and defer an additive split-vector interface to 0.6
+
+- **Context:** After `0.5.0a4`, the remaining public coordinate-shape question was measured in fresh fixed-CPU processes at 100k, 1M, and 5M points. Pre-stacked geographical matrix lookup was about 1.35–1.52x slower than the internal split-vector path; caller stacking plus matrix lookup was about 1.47–1.68x slower. Seismic ratios were similar. At 5M points, geographical matrix/split medians were about 86.6/60.7 ms and caller-stack/split about 96.1/60.7 ms.
+- **Mechanism:** Stage probes show that C-order matrix columns are strided. At 5M points, validation on strided columns measured about 27.6 ms versus 16.0 ms on contiguous vectors, and validated lookup about 66.3 ms versus 60.4 ms. Copying/transposing the full coordinate matrix into contiguous vectors recovered only part of the gap while requiring an additional coordinate-sized temporary (about 80 MB for 5M float64 coordinate pairs).
+- **Decision:** Keep the supported public `(n, 2)` batch interface unchanged through `0.5`; do not deprecate it. Do not add a public split-vector interface during beta stabilization. Treat the existing-contract optimization scope as substantially complete after `DEC-067` through `DEC-069`. Open an additive split-vector API as a `0.6` design candidate, where naming, typing, shape/error semantics, broadcasting policy, compatibility, and direct matrix/split performance can be reviewed as one public-contract change.
+- **Rationale:** The remaining gap is material for callers that already own separate vectors, but the most direct matrix-only repair trades substantial temporary memory for partial speed recovery. The internal split path already serves package adapters such as pandas. A successor additive API can expose the demonstrated capability without silently changing the current matrix contract.
+- **Compatibility consequence:** `0.5` adds no new public coordinate interface and removes none. Existing generic and explicit matrix batch APIs remain supported. No deprecation is authorized by this decision.
+- **Review trigger:** A concrete external consumer requires split vectors, new evidence eliminates the gap without a material resource trade-off, or `0.6` public-interface design begins.
+
+## `DEC-071` — Keep user-oriented “What’s New” guides separate from the changelog and normative contracts
+
+- **Context:** The repository already preserves detailed candidate history in `CHANGELOG.md`
+  and normative behavior in maintained requirements/design/QA documents. The `0.5` line now
+  contains several evidence-backed internal optimizations whose user value, rationale,
+  compatibility consequences, and usage implications are difficult to understand from terse
+  change bullets alone. Expanding the changelog into long-form explanatory prose would weaken
+  its role as a concise historical record, while putting promotional or tutorial material into
+  normative contracts would mix information roles.
+- **Decision:** Add `docs/whats-new-0.5.md` as the user-facing narrative guide for the `0.5`
+  release line and link it from `README.md`. A “What’s New” guide may explain motivation,
+  practical impact, measured evidence with limitations, compatibility/migration implications,
+  release-by-release progression, and supported usage examples. It must derive behavioral
+  claims from the maintained contract and retained evidence. It does not create requirements,
+  override `CHANGELOG.md`, or redefine verification status. Future minor release lines may use
+  the same `docs/whats-new-X.Y.md` pattern when a narrative guide materially helps users.
+- **Alternatives considered:** Expand `CHANGELOG.md` into long-form release essays; put release
+  marketing/rationale in `README.md`; add version-specific prose to maintained normative
+  documents; or provide no narrative release documentation. The first three mix information
+  roles or create avoidable duplication, while the last leaves the measured value and upgrade
+  implications of a performance-focused release difficult to discover.
+- **Evidence/assumptions:** `0.5.0a1` through `0.5.0b1` already retain candidate-specific change
+  records, decisions, mechanism measurements, compatibility conclusions, and public examples.
+  The new guide can therefore synthesize existing project evidence without inventing new
+  product behavior or benchmark guarantees.
+- **Compatibility consequence:** Documentation only. Runtime behavior, public APIs, FE data,
+  dependencies, benchmark semantics, and deprecation status are unchanged. `CHANGELOG.md`
+  remains the concise candidate history, and maintained requirement/design/QA documents remain
+  authoritative for normative behavior.
+- **Review trigger:** The guide drifts from maintained contracts/evidence; users need generated
+  documentation navigation rather than repository Markdown; release-note maintenance becomes
+  duplicative; or a future release requires a different documentation information architecture.
+
+## `DEC-072` — Maintain one cumulative “What’s New” history across all minor lines
+
+- **Context:** `DEC-071` introduced `docs/whats-new-0.5.md` as an optional narrative
+  guide for one minor line. The project owner has now made that role permanent and
+  cumulative: users must be able to read one maintained release-history document that
+  covers all previous minor lines and is updated with every future release. A set of
+  optional per-minor files would permit historical gaps and would make maintenance
+  dependent on convention rather than the release contract.
+- **Decision:** Supersede the optional per-minor publication pattern from `DEC-071` with
+  one stable `docs/whats-new.md` document. Backfill one chapter for each historical
+  minor line in `CHANGELOG.md`; within each chapter retain an exact-version subsection
+  for every recorded candidate/release. Add `REQ-REPO-012`, README discovery,
+  verification traceability, and repository synchronization tests. Every future
+  candidate must update the same document, and every future minor line must add one new
+  chapter. Keep `CHANGELOG.md` as the concise historical source record and keep
+  requirements/decisions/QA authoritative for normative behavior.
+- **Rationale/evidence:** The cumulative structure gives users one durable discovery
+  surface for upgrade rationale, examples, compatibility context, and the evolution of
+  the package. Mechanical synchronization against `CHANGELOG.md` makes omission
+  detectable without treating the explanatory prose as an independent behavioral
+  authority. Historical chapters can synthesize the already-maintained changelog and
+  decision evidence without inventing retroactive product claims.
+- **Compatibility consequence:** Documentation/repository-maintenance contract only.
+  Runtime behavior, public APIs, FE data, dependency behavior, benchmark semantics, and
+  deprecation status are unchanged. The old `docs/whats-new-0.5.md` path is removed from
+  the maintained source in favor of the stable cumulative path.
+- **Review trigger:** The project adopts a generated documentation site or another
+  first-class release-history surface that can enforce equivalent historical coverage;
+  `CHANGELOG.md` changes its version-record role; or maintaining detailed historical
+  prose becomes materially misleading or disproportionate.
+
+## `DEC-073` — Rebase the 0.5 line onto committed 0.4.0b10 and preserve branch identifiers
+
+- **Context:** `0.5.0a1` through `0.5.0b3` developed from the earlier `0.4.0b6` semantic baseline while the `0.4` line independently advanced through `0.4.0b10`. The later 0.4 candidates add provenance, repository/evidence containment, delivery-manifest hardening, review-closure regressions, documentation corrections, and formatting fixes that the active 0.5 line must inherit. Parallel development also allocated `DEC-065` and `REQ-REPO-011` independently on both branches.
+- **Decision:** Make exact committed `0.4.0b10` the predecessor for the rebased 0.5 line and reapply the substantive 0.5 delta without discarding later 0.4 changes. Preserve the authoritative 0.4 identifiers: `DEC-065` remains the AI-development-provenance decision and `REQ-REPO-011` remains the repository/evidence containment requirement. Renumber the maintained 0.5 decision sequence to `DEC-066..072` and the cumulative What’s New requirement to `REQ-REPO-012`. Preserve previously issued 0.5 archives unchanged as historical evidence; their old identifiers describe those exact historical bytes.
+- **Compatibility consequence:** The rebase itself introduces no intended public API, FE lookup-result, CLI, data, dependency, or deprecation change. The 0.5 runtime optimizations and `DEC-070` decision to keep the matrix API supported remain substantive 0.5 behavior.
+- **Verification requirement:** Compare the rebased candidate against both exact `0.4.0b10` and exact `0.5.0b3`; run repository/contract and runtime regressions; verify identifier uniqueness and cumulative release-history coverage; and retain an exact `0.4.0b10`→rebased-0.5 patch/replay record.
+- **Review trigger:** A later accepted 0.4 predecessor supersedes `0.4.0b10`; rebase verification exposes a semantic conflict; or a future lineage change requires another identifier reconciliation.

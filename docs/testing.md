@@ -40,6 +40,22 @@ points, and license/provenance notices before installation. It then creates a
 new uv virtual environment without system site packages and installs wheel
 dependencies into that environment.
 
+## Release documentation maintenance
+
+Every issued candidate updates `CHANGELOG.md` and the cumulative
+`docs/whats-new.md` guide in the same source change. A candidate on an existing
+minor line adds one exact-version subsection under that minor chapter. The first
+candidate on a new minor line also adds the new chapter, including its purpose,
+practical impact, compatibility/migration context, and representative usage
+examples when an interface changes.
+
+Run the repository metadata tests before packaging. They verify that every exact
+version in `CHANGELOG.md` appears once in `docs/whats-new.md`, every changelog
+minor line has exactly one chapter, the current package version is represented,
+and README links the stable guide. These checks establish structural maintenance
+coverage; semantic review is still required to ensure that explanatory claims
+match the maintained contract and retained evidence.
+
 ## Test layers
 
 1. Core tests use synthetic tables and names to isolate coordinate behavior. Exhaustive grid-index tests use separate quadrant, latitude-index, and longitude-index probe tables so the expected index does not depend on real FE region equality.
@@ -55,8 +71,8 @@ dependencies into that environment.
    output, and publication behavior.
 6. GeoJSON tests verify geographical/seismic area-cell coverage, compact and
    explicit property selections, collection metadata, and the boundary limitation.
-7. Repository metadata tests detect version, dependency, contract-file, CI
-   matrix, and traceability drift.
+7. Repository metadata tests detect version, dependency, contract-file, cumulative
+   release-history, CI matrix, and traceability drift.
 8. Benchmark harnesses measure geographical and seismic scalar/batch paths,
    hierarchy conversion, name conversion, and pandas interfaces. Routine
    benchmarks exclude CLI and GeoJSON.
