@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.4.0b10 — 2026-10-14
+
+- Integrate the b9 review closures and apply the two Ruff formatter corrections
+  required by the repository gate. No additional runtime behavior change is intended.
+
+## 0.4.0b9 — 2026-10-13
+
+- Close isolated b8 review findings `FREG-ISR-001` through `FREG-ISR-003` in the
+  assurance tooling without changing lookup, public API, CLI, data, dependency, or
+  benchmark-timing semantics.
+- Route every retained-evidence family, including `.asv/env` and
+  `dist/benchmarks`, through one no-follow containment mechanism that validates parent
+  directory components and rejects symlinked evidence roots or nested symlink parents.
+- Define and enforce the maintained `feregion-delivery/v1` semantic manifest shape so
+  empty baseline identities, missing/malformed artifact hashes, weak provenance/state
+  records, malformed exclusions/limitations, and target-version mismatches fail closed.
+- Bind benchmark-evidence manifest sizes and SHA-256 values to the exact byte stream
+  written to each ZIP member, eliminating the hash/archive race under concurrent source
+  replacement.
+- Complete the public `regions_geojson()` exception documentation for seismic output
+  from geographic-only custom engines. Runtime behavior is unchanged.
+
 ## 0.4.0b8 — 2026-10-13
 
 - Apply the scoped Ruff formatting and lint corrections required to integrate b7,

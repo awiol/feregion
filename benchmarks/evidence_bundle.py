@@ -13,7 +13,7 @@ import sys
 import tempfile
 import tomllib
 import zipfile
-from collections.abc import Iterable, Iterator, Sequence
+from collections.abc import Callable, Iterable, Iterator, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -45,10 +45,58 @@ class EvidenceBundleError(RuntimeError):
     """Raised when retained evidence crosses the declared preservation boundary."""
 
 
+def _validate_directory_chain(directory: Path, containment_root: Path) -> bool:
+    """Validate one directory and every parent below the declared containment root.
+
+    ``Path.is_dir()`` and ordinary path opening follow symbolic links in parent
+    components. Evidence collection must instead fail when any component below
+    ``containment_root`` is a symlink or a non-directory. ``False`` means the
+    requested directory is simply absent; malformed existing paths raise.
+    """
+
+    try:
+        relative = directory.relative_to(containment_root)
+    except ValueError as exc:
+        raise EvidenceBundleError(
+            f"retained evidence path is outside the project boundary: {directory}"
+        ) from exc
+
+    current = containment_root
+    try:
+        root_stat = current.lstat()
+    except FileNotFoundError:
+        return False
+    if stat.S_ISLNK(root_stat.st_mode):
+        raise EvidenceBundleError(f"containment root must not be a symbolic link: {current}")
+    if not stat.S_ISDIR(root_stat.st_mode):
+        raise EvidenceBundleError(f"containment root is not a directory: {current}")
+
+    for component in relative.parts:
+        if component in {"", ".", ".."}:
+            raise EvidenceBundleError(f"unsafe retained evidence path component: {directory}")
+        current = current / component
+        try:
+            current_stat = current.lstat()
+        except FileNotFoundError:
+            return False
+        if stat.S_ISLNK(current_stat.st_mode):
+            raise EvidenceBundleError(
+                f"symbolic-link directory is not valid retained evidence: {current}"
+            )
+        if not stat.S_ISDIR(current_stat.st_mode):
+            raise EvidenceBundleError(f"evidence path is not a directory: {current}")
+    return True
+
+
 @contextlib.contextmanager
-def _regular_stream(path: Path) -> Iterator[tuple[BinaryIO, os.stat_result]]:
+def _regular_stream(
+    path: Path, *, containment_root: Path | None = None
+) -> Iterator[tuple[BinaryIO, os.stat_result]]:
     """Open one evidence file without intentionally following a leaf symlink."""
 
+    boundary = containment_root or path.parent
+    if not _validate_directory_chain(path.parent, boundary):
+        raise EvidenceBundleError(f"retained evidence path disappeared: {path}")
     flags = os.O_RDONLY | getattr(os, "O_BINARY", 0) | getattr(os, "O_NOFOLLOW", 0)
     try:
         descriptor = os.open(path, flags)
@@ -66,9 +114,18 @@ def _regular_stream(path: Path) -> Iterator[tuple[BinaryIO, os.stat_result]]:
             os.close(descriptor)
 
 
-def _regular_file(path: Path, archive_path: str, family: str) -> EvidenceFile:
+def _regular_file(
+    path: Path,
+    archive_path: str,
+    family: str,
+    *,
+    containment_root: Path | None = None,
+) -> EvidenceFile:
     """Classify one retained path without dereferencing symbolic links."""
 
+    boundary = containment_root or path.parent
+    if not _validate_directory_chain(path.parent, boundary):
+        raise EvidenceBundleError(f"retained evidence path disappeared: {path}")
     try:
         file_stat = path.lstat()
     except FileNotFoundError as exc:
@@ -80,17 +137,19 @@ def _regular_file(path: Path, archive_path: str, family: str) -> EvidenceFile:
     return EvidenceFile(path, archive_path, family)
 
 
-def _files_under(root: Path, archive_root: str, family: str) -> list[EvidenceFile]:
+def _files_under(
+    root: Path,
+    archive_root: str,
+    family: str,
+    *,
+    containment_root: Path | None = None,
+    include: Callable[[Path], bool] | None = None,
+) -> list[EvidenceFile]:
     """Return non-symlink regular files below one retained-evidence root."""
 
-    try:
-        root_stat = root.lstat()
-    except FileNotFoundError:
+    boundary = containment_root or root.parent
+    if not _validate_directory_chain(root, boundary):
         return []
-    if stat.S_ISLNK(root_stat.st_mode):
-        raise EvidenceBundleError(f"evidence root must not be a symbolic link: {root}")
-    if not stat.S_ISDIR(root_stat.st_mode):
-        raise EvidenceBundleError(f"evidence root is not a directory: {root}")
     files: list[EvidenceFile] = []
     for current, directory_names, file_names in os.walk(root, topdown=True, followlinks=False):
         current_path = Path(current)
@@ -106,26 +165,42 @@ def _files_under(root: Path, archive_root: str, family: str) -> list[EvidenceFil
         for file_name in file_names:
             path = current_path / file_name
             relative = path.relative_to(root).as_posix()
-            files.append(_regular_file(path, f"{archive_root}/{relative}", family))
+            evidence_file = _regular_file(
+                path,
+                f"{archive_root}/{relative}",
+                family,
+                containment_root=boundary,
+            )
+            if include is None or include(Path(relative)):
+                files.append(evidence_file)
     return sorted(files, key=lambda item: item.archive_path)
 
 
-def _optional_file(path: Path, archive_path: str, family: str) -> list[EvidenceFile]:
+def _optional_file(
+    path: Path,
+    archive_path: str,
+    family: str,
+    *,
+    containment_root: Path | None = None,
+) -> list[EvidenceFile]:
     """Return one regular evidence item when the source path exists."""
 
+    boundary = containment_root or path.parent
+    if not _validate_directory_chain(path.parent, boundary):
+        return []
     try:
         path.lstat()
     except FileNotFoundError:
         return []
-    return [_regular_file(path, archive_path, family)]
+    return [_regular_file(path, archive_path, family, containment_root=boundary)]
 
 
-def _regular_file_identity(path: Path) -> tuple[int, str]:
+def _regular_file_identity(path: Path, *, containment_root: Path | None = None) -> tuple[int, str]:
     """Return byte count and SHA-256 from one safely opened regular file."""
 
     digest = hashlib.sha256()
     count = 0
-    with _regular_stream(path) as (stream, _):
+    with _regular_stream(path, containment_root=containment_root) as (stream, _):
         for chunk in iter(lambda: stream.read(1024 * 1024), b""):
             count += len(chunk)
             digest.update(chunk)
@@ -149,12 +224,20 @@ def collect_evidence_files() -> list[EvidenceFile]:
     """Collect raw, normalized, predecessor, and configuration evidence files."""
 
     files: list[EvidenceFile] = []
-    files.extend(_files_under(PROJECT_ROOT / ".asv" / "results", "asv/results", "asv-results"))
+    files.extend(
+        _files_under(
+            PROJECT_ROOT / ".asv" / "results",
+            "asv/results",
+            "asv-results",
+            containment_root=PROJECT_ROOT,
+        )
+    )
     files.extend(
         _files_under(
             PROJECT_ROOT / ".asv" / "feregion-state",
             "asv/feregion-state",
             "asv-state",
+            containment_root=PROJECT_ROOT,
         )
     )
     files.extend(
@@ -162,6 +245,7 @@ def collect_evidence_files() -> list[EvidenceFile]:
             PROJECT_ROOT / ".asv" / "feregion-runs",
             "asv/feregion-runs",
             "asv-runs",
+            containment_root=PROJECT_ROOT,
         )
     )
     files.extend(
@@ -169,6 +253,7 @@ def collect_evidence_files() -> list[EvidenceFile]:
             PROJECT_ROOT / ".asv" / "feregion-plans",
             "asv/feregion-plans",
             "asv-plans",
+            containment_root=PROJECT_ROOT,
         )
     )
     files.extend(
@@ -176,6 +261,7 @@ def collect_evidence_files() -> list[EvidenceFile]:
             PROJECT_ROOT / ".asv" / "feregion-environments",
             "asv/feregion-environments",
             "asv-environments",
+            containment_root=PROJECT_ROOT,
         )
     )
     files.extend(
@@ -183,40 +269,65 @@ def collect_evidence_files() -> list[EvidenceFile]:
             PROJECT_ROOT / ".asv" / "feregion-reports",
             "asv/feregion-reports",
             "asv-reports",
+            containment_root=PROJECT_ROOT,
         )
     )
 
     env_root = PROJECT_ROOT / ".asv" / "env"
-    if env_root.is_dir():
-        for path in sorted(env_root.glob("*/asv-env-info.json")):
-            files.append(
-                EvidenceFile(
-                    path,
-                    f"asv/environment-metadata/{path.parent.name}/asv-env-info.json",
-                    "asv-environment-metadata",
-                )
-            )
+    files.extend(
+        _files_under(
+            env_root,
+            "asv/environment-metadata",
+            "asv-environment-metadata",
+            containment_root=PROJECT_ROOT,
+            include=lambda relative: (
+                len(relative.parts) == 2 and relative.name == "asv-env-info.json"
+            ),
+        )
+    )
 
     normalized_root = PROJECT_ROOT / "dist" / "benchmarks"
-    if normalized_root.is_dir():
-        for path in sorted(normalized_root.glob("*.json")):
-            files.append(EvidenceFile(path, f"normalized/{path.name}", "normalized-evidence"))
+    files.extend(
+        _files_under(
+            normalized_root,
+            "normalized",
+            "normalized-evidence",
+            containment_root=PROJECT_ROOT,
+            include=lambda relative: len(relative.parts) == 1 and relative.suffix == ".json",
+        )
+    )
     files.extend(
         _files_under(
             PROJECT_ROOT / ".tox" / "benchmark-results",
             "predecessor/tox-benchmark-results",
             "predecessor-tox",
+            containment_root=PROJECT_ROOT,
         )
     )
     for path in sorted(PROJECT_ROOT.glob("benchmark*.json")):
-        files.append(EvidenceFile(path, f"predecessor/{path.name}", "predecessor-json"))
+        files.append(
+            _regular_file(
+                path,
+                f"predecessor/{path.name}",
+                "predecessor-json",
+                containment_root=PROJECT_ROOT,
+            )
+        )
 
-    files.extend(_optional_file(PROJECT_ROOT / "asv.conf.json", "config/asv.conf.json", "config"))
+    files.extend(
+        _optional_file(
+            PROJECT_ROOT / "asv.conf.json",
+            "config/asv.conf.json",
+            "config",
+            containment_root=PROJECT_ROOT,
+        )
+    )
     files.extend(
         _files_under(
             PROJECT_ROOT / "benchmarks" / "campaigns",
             "config/campaigns",
             "config",
+            containment_root=PROJECT_ROOT,
         )
     )
     files.extend(
@@ -224,10 +335,25 @@ def collect_evidence_files() -> list[EvidenceFile]:
             PROJECT_ROOT / "benchmarks" / "constraints",
             "config/constraints",
             "config",
+            containment_root=PROJECT_ROOT,
         )
     )
-    files.extend(_optional_file(PROJECT_ROOT / "pyproject.toml", "config/pyproject.toml", "config"))
-    files.extend(_optional_file(PROJECT_ROOT / "uv.lock", "config/uv.lock", "config"))
+    files.extend(
+        _optional_file(
+            PROJECT_ROOT / "pyproject.toml",
+            "config/pyproject.toml",
+            "config",
+            containment_root=PROJECT_ROOT,
+        )
+    )
+    files.extend(
+        _optional_file(
+            PROJECT_ROOT / "uv.lock",
+            "config/uv.lock",
+            "config",
+            containment_root=PROJECT_ROOT,
+        )
+    )
 
     by_archive_path: dict[str, EvidenceFile] = {}
     for item in files:
@@ -239,27 +365,41 @@ def _project_version() -> str | None:
     """Return the package version from project metadata when available."""
 
     path = PROJECT_ROOT / "pyproject.toml"
-    if not path.is_file():
+    try:
+        path.lstat()
+    except FileNotFoundError:
         return None
-    with path.open("rb") as stream:
+    with _regular_stream(path, containment_root=PROJECT_ROOT) as (stream, _):
         return str(tomllib.load(stream)["project"]["version"])
 
 
-def build_manifest(files: Iterable[EvidenceFile]) -> dict[str, object]:
+def build_manifest(
+    files: Iterable[EvidenceFile],
+    *,
+    inventory: Sequence[dict[str, object]] | None = None,
+) -> dict[str, object]:
     """Build the machine-readable manifest for one handoff archive."""
 
-    inventory = []
+    selected = list(files)
+    if inventory is None:
+        inventory = []
+        for item in selected:
+            size, digest = _regular_file_identity(item.source, containment_root=PROJECT_ROOT)
+            inventory.append(
+                {
+                    "path": item.archive_path,
+                    "family": item.family,
+                    "size": size,
+                    "sha256": digest,
+                }
+            )
+    else:
+        inventory = list(inventory)
+        if [item.archive_path for item in selected] != [str(item["path"]) for item in inventory]:
+            raise EvidenceBundleError("manifest inventory does not match selected evidence files")
+
     families: dict[str, int] = {}
-    for item in files:
-        size, digest = _regular_file_identity(item.source)
-        inventory.append(
-            {
-                "path": item.archive_path,
-                "family": item.family,
-                "size": size,
-                "sha256": digest,
-            }
-        )
+    for item in selected:
         families[item.family] = families.get(item.family, 0) + 1
 
     expected = (
@@ -292,6 +432,27 @@ def build_manifest(files: Iterable[EvidenceFile]) -> dict[str, object]:
     }
 
 
+def _archive_evidence_file(archive: zipfile.ZipFile, item: EvidenceFile) -> dict[str, object]:
+    """Archive one file while hashing the exact byte stream written to the ZIP."""
+
+    digest = hashlib.sha256()
+    size = 0
+    with (
+        _regular_stream(item.source, containment_root=PROJECT_ROOT) as (source, _),
+        archive.open(item.archive_path, "w", force_zip64=True) as target,
+    ):
+        for chunk in iter(lambda: source.read(1024 * 1024), b""):
+            target.write(chunk)
+            digest.update(chunk)
+            size += len(chunk)
+    return {
+        "path": item.archive_path,
+        "family": item.family,
+        "size": size,
+        "sha256": digest.hexdigest(),
+    }
+
+
 def default_output_path() -> Path:
     """Return a timestamped default handoff path below ``dist/benchmarks``."""
 
@@ -306,7 +467,6 @@ def create_bundle(output: Path) -> tuple[Path, dict[str, object]]:
 
     output = output.resolve()
     files = [item for item in collect_evidence_files() if item.source.resolve() != output]
-    manifest = build_manifest(files)
     output.parent.mkdir(parents=True, exist_ok=True)
     descriptor, temporary_name = tempfile.mkstemp(
         prefix=f".{output.name}.", suffix=".tmp", dir=output.parent
@@ -317,13 +477,10 @@ def create_bundle(output: Path) -> tuple[Path, dict[str, object]]:
         with zipfile.ZipFile(
             temporary, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9
         ) as archive:
+            inventory: list[dict[str, object]] = []
             for item in files:
-                with (
-                    _regular_stream(item.source) as (source, _),
-                    archive.open(item.archive_path, "w", force_zip64=True) as target,
-                ):
-                    for chunk in iter(lambda: source.read(1024 * 1024), b""):
-                        target.write(chunk)
+                inventory.append(_archive_evidence_file(archive, item))
+            manifest = build_manifest(files, inventory=inventory)
             archive.writestr(
                 "benchmark-evidence-manifest.json",
                 json.dumps(manifest, indent=2, sort_keys=True) + "\n",

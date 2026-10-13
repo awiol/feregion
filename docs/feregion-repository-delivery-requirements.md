@@ -85,7 +85,10 @@ including broken symbolic links, and retained-evidence symbolic links or special
 must fail explicitly instead of being dereferenced or omitted as if absent. Project and
 version values used as archive identity components must be safe single path components,
 and every final ZIP member path must be relative, contain no parent traversal, and remain
-under the intended internal archive root.
+under the intended internal archive root. Retained-evidence collection must validate
+every directory component between the repository boundary and each selected evidence
+root without following symbolic links; specialized evidence families must use the same
+containment mechanism as generic recursive evidence discovery.
 
 ## Iterative delivery contract
 
@@ -99,6 +102,20 @@ version, patch status, source/archive hashes, generation provenance, review
 state, approval state, verification state, exclusions, and material
 limitations. Review, approval, and verification must remain separate from the
 alpha/beta/rc maturity identifier.
+
+For the maintained `feregion-delivery/v1` schema, `schema` must equal
+`feregion-delivery/v1` and `project` must equal `feregion`. `baseline` must be a
+non-empty object containing one valid project version (`version` or
+`declared_version`) plus at least one immutable SHA-256, Git commit, or Git tree
+identity. `target_version` must use the project's `MAJOR.MINOR.PATCH` form with an
+optional `aN`, `bN`, or `rcN` suffix. Each patch/review/approval/verification field
+must be an object with a non-empty lowercase hyphenated `state` token. `artifacts`
+must be a non-empty object whose records each contain a non-empty `role` and a valid
+lowercase SHA-256; at least one record must identify a source archive/handoff, and a
+non-omitted patch state must have a patch/replay artifact. `generation_provenance`
+must record non-empty `source` and `scope` values plus at least one generator/tool,
+command, exporter, or candidate-tree identity. `exclusions` and `limitations` must be
+JSON arrays containing only non-empty strings; an empty array is permitted.
 
 **REQ-DEL-003** — Generated benchmark results, verification logs, and
 per-iteration review evidence must be delivery-side artifacts, not repository

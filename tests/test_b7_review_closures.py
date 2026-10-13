@@ -394,14 +394,25 @@ def test_delivery_manifest_requires_explicit_states() -> None:
     """REQ-DEL-002 states cannot be inferred from companion prose."""
 
     valid = {
+        "schema": "feregion-delivery/v1",
+        "project": "feregion",
         "baseline": {"version": "0.4.0b6", "sha256": "a" * 64},
         "target_version": "0.4.0b7",
-        "patch_status": {"state": "verified"},
-        "artifacts": {"source": {"sha256": "b" * 64}},
-        "generation_provenance": {"tool": "delivery-builder", "version": "1"},
-        "review_state": "completed",
-        "approval_state": "not-requested",
-        "verification_state": "partial",
+        "patch_status": {"state": "not-applicable"},
+        "artifacts": {
+            "source.zip": {
+                "role": "source-recovery-authority",
+                "sha256": "b" * 64,
+            }
+        },
+        "generation_provenance": {
+            "source": "test fixture",
+            "scope": "delivery-manifest state regression",
+            "tool": "delivery-builder",
+        },
+        "review_state": {"state": "completed"},
+        "approval_state": {"state": "not-requested"},
+        "verification_state": {"state": "partial"},
         "exclusions": ["uv.lock"],
         "limitations": ["hosted CI not observed"],
     }

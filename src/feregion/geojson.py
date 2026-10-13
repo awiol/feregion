@@ -76,6 +76,8 @@ def regions_geojson(
         RegionLevelError: If ``level`` is unsupported.
         GeoJSONOptionError: If a property or label option is invalid.
         GeoJSONDependencyError: If Shapely is not installed.
+        SeismicDataUnavailableError: If seismic output is requested from an
+            explicit lookup engine without hierarchy data.
     """
 
     if level not in {"geographic", "seismic"}:

@@ -519,7 +519,10 @@ JSON/Tox evidence, campaign definitions, benchmark configuration, project metada
 and repository identity. It must include a manifest with file SHA-256 values and
 present/missing evidence-family status. Rebuildable `.asv/html` output must be excluded
 by default. Missing optional evidence families must remain explicit rather than making
-the handoff command fail when a campaign has not been run.
+the handoff command fail when a campaign has not been run. Every manifest size and
+SHA-256 must describe the exact byte stream written to the corresponding archive
+member; evidence capture must therefore hash while archiving or use an immutable
+snapshot that binds both operations to the same bytes.
 
 **REQ-PERF-029** — Before an ASV timing can be accepted, the benchmark environment must
 be checked against the dependency profile recorded in its ASV environment metadata.
