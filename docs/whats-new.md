@@ -25,7 +25,73 @@ practical context, examples, and upgrade guidance without silently creating a ne
 - Performance figures are retained only with their original scope. A single-host diagnostic
   is not converted here into a universal speed guarantee.
 
-The current minor line is `0.5`.
+The current minor line is `0.6`.
+
+## 0.6 — Separate-vector batch lookup
+
+`feregion 0.6` adds a supported path for callers that already store longitude and latitude in
+separate one-dimensional arrays. The existing `(n, 2)` matrix APIs remain supported and are
+not deprecated. Both paths use the same FE ownership kernel and preserve the same coordinate
+validation and scientific data.
+
+```python
+import numpy as np
+import feregion
+
+longitude = np.array([12.0, -60.0])
+latitude = np.array([48.0, -30.0])
+
+geographic = feregion.lookup_geographic_numbers_from_vectors(longitude, latitude)
+seismic = feregion.lookup_seismic_numbers_from_vectors(longitude, latitude)
+```
+
+The vectors must be one-dimensional and have identical shapes. The interface deliberately does
+not broadcast mismatched inputs. Empty vectors and non-contiguous one-dimensional NumPy views
+are supported. Geographical results use `uint16`; seismic results use `uint8`. This interface is
+most useful when separate coordinate vectors already exist: constructing or splitting a matrix
+solely to change API shape is not part of the performance claim.
+
+### Compatibility and evidence
+
+The change is additive. Matrix lookup, scalar lookup, compatibility aliases, pandas output, CLI,
+GeoJSON, FE assignments, names, and hierarchy remain supported as before. `DEC-074` requires
+predecessor-sensitive public-surface tests, exhaustive matrix/split semantic equivalence, and
+direct repeated public matrix/split measurements. The initial alpha can carry incomplete hosted
+release evidence, but beta promotion requires retained evidence that the split route still has a
+material advantage at a maintained large batch load or a design reassessment.
+
+### 0.6.0a5 — 2026-10-14
+
+`0.6.0a5` normalizes the cumulative split-vector implementation and its review closures onto exact committed `0.5.0b6`. It preserves the b6 benchmark-results documentation and all substantive a1–a4 0.6 work. `DEC-076` records the normalization; matrix lookup remains supported without deprecation. The candidate is benchmarked against the accepted 0.5 and historical 0.3 revisions.
+
+### 0.6.0a4 — 2026-10-14
+
+`0.6.0a4` rebases the split-vector line onto committed `0.5.0b5`, inheriting its later 0.4/0.5 provenance, delivery-hardening, review-closure, formatting, and typing corrections. The split API itself is unchanged from the pre-rebase 0.6 alphas. Current maintained identifiers are `DEC-074`, `REQ-TEST-024`, and `REQ-PERF-033`; `DEC-075` records the lineage rebase and identifier reconciliation. Historical a1-a3 artifacts keep their as-issued identifiers.
+
+### 0.6.0a3 — 2026-10-14
+
+- Make source-tree verification replayable across both documented direct-script and normal module execution by excluding interpreter-generated `__pycache__` directories from the tree-digest domain, reporting the path count, and allowing the delivery to assert the expected digest and denominator explicitly.
+- Align maintained engineering, design, quality, and traceability target metadata on the `0.6.0` release core and add a semantic synchronization test so a future stale minor-line target fails repository verification.
+- Retain exact fresh-extraction verification commands and results in delivery evidence. No lookup/API/FE-data behavior changes from `0.6.0a2`.
+
+### 0.6.0a2 — 2026-10-13
+
+- Close the first isolated alpha review without changing the accepted split-vector API contract.
+- Add direct exhaustive seismic split boundary evidence using synthetic probe engines whose
+  geographic-to-seismic identity mapping is constructed independently from the lookup path.
+- Retain the exact executable 100K/1M/5M public split benchmark procedure and its protocol
+  metadata so the decision-relevant measurements can be regenerated from source.
+- Correct current verification traceability and strengthen source-delivery integrity evidence by
+  making path-ordered tree-digest semantics executable and manifest exclusions explicit.
+
+### 0.6.0a1 — 2026-10-12
+
+- Expose geographical and seismic split-vector lookup at both engine and package-root levels.
+- Preserve equal-length one-dimensional/no-broadcast semantics from the established internal
+  kernel and keep the matrix API supported without deprecation.
+- Route pandas through the supported public engine methods after equivalence coverage.
+- Add contract, typing, exhaustive-boundary, predecessor-sensitivity, and direct performance
+  evidence requirements for the new public surface.
 
 ## 0.5 — Faster current-contract operations
 

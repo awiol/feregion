@@ -9,7 +9,7 @@ from ._default import get_default_lookup
 from .core import FlinnEngdahlLookup, ScalarCoordinate
 from .types import GeographicRegion, Region, SeismicRegion
 
-__version__ = "0.5.0b6"
+__version__ = "0.6.0a5"
 
 
 def lookup_geographic_number(longitude: ScalarCoordinate, latitude: ScalarCoordinate) -> int:
@@ -70,6 +70,30 @@ def lookup_geographic_numbers(coordinates: npt.ArrayLike) -> npt.NDArray[np.uint
     """
 
     return get_default_lookup().lookup_geographic_numbers(coordinates)
+
+
+def lookup_geographic_numbers_from_vectors(
+    longitude: npt.ArrayLike, latitude: npt.ArrayLike
+) -> npt.NDArray[np.uint16]:
+    """Return FE geographical-region numbers from separate coordinate vectors.
+
+    Args:
+        longitude: One-dimensional numeric longitude values in ``[-180, 180]``.
+        latitude: One-dimensional numeric latitude values in ``[-90, 90]`` with
+            the same shape as ``longitude``.
+
+    Returns:
+        A one-dimensional ``uint16`` array with the same length as the inputs.
+
+    Raises:
+        CoordinateShapeError: If either input is not one-dimensional or their
+            shapes differ. Broadcasting is not performed.
+        CoordinateTypeError: If either input dtype is not a supported real numeric type.
+        CoordinateValueError: If a coordinate is not finite.
+        CoordinateRangeError: If a coordinate is outside the supported range.
+    """
+
+    return get_default_lookup().lookup_geographic_numbers_from_vectors(longitude, latitude)
 
 
 def geographic_number_to_name(number: int) -> str:
@@ -202,6 +226,31 @@ def lookup_seismic_numbers(coordinates: npt.ArrayLike) -> npt.NDArray[np.uint8]:
     return get_default_lookup().lookup_seismic_numbers(coordinates)
 
 
+def lookup_seismic_numbers_from_vectors(
+    longitude: npt.ArrayLike, latitude: npt.ArrayLike
+) -> npt.NDArray[np.uint8]:
+    """Return FE seismic-region numbers from separate coordinate vectors.
+
+    Args:
+        longitude: One-dimensional numeric longitude values in ``[-180, 180]``.
+        latitude: One-dimensional numeric latitude values in ``[-90, 90]`` with
+            the same shape as ``longitude``.
+
+    Returns:
+        A one-dimensional ``uint8`` array with the same length as the inputs.
+
+    Raises:
+        CoordinateShapeError: If either input is not one-dimensional or their
+            shapes differ. Broadcasting is not performed.
+        CoordinateTypeError: If either input dtype is not a supported real numeric type.
+        CoordinateValueError: If a coordinate is not finite.
+        CoordinateRangeError: If a coordinate is outside the supported range.
+        SeismicDataUnavailableError: If the selected engine has no seismic hierarchy.
+    """
+
+    return get_default_lookup().lookup_seismic_numbers_from_vectors(longitude, latitude)
+
+
 def seismic_number_to_name(number: int) -> str:
     """Return the packaged name of one FE seismic region.
 
@@ -282,12 +331,14 @@ __all__ = [
     "get_default_lookup",
     "lookup_geographic_number",
     "lookup_geographic_numbers",
+    "lookup_geographic_numbers_from_vectors",
     "lookup_geographic_region",
     "lookup_number",
     "lookup_numbers",
     "lookup_region",
     "lookup_seismic_number",
     "lookup_seismic_numbers",
+    "lookup_seismic_numbers_from_vectors",
     "lookup_seismic_region",
     "number_to_name",
     "numbers_to_names",

@@ -60,6 +60,12 @@ coordinates = np.array(
 numbers = feregion.lookup_numbers(coordinates)
 # array([543, 133], dtype=uint16)
 
+# If longitude and latitude are already separate vectors, avoid stacking them.
+longitude = coordinates[:, 0].copy()
+latitude = coordinates[:, 1].copy()
+split_numbers = feregion.lookup_geographic_numbers_from_vectors(longitude, latitude)
+# array([543, 133], dtype=uint16)
+
 feregion.numbers_to_names(numbers)
 # array(['GERMANY', 'NORTHEASTERN ARGENTINA'], dtype='<U...')
 
@@ -77,7 +83,11 @@ A coordinate array always uses `[longitude, latitude]` column order. By package
 convention, these values are interpreted as WGS84 geographic degrees. The
 package does not transform coordinates between CRSs, and the WGS84 convention
 is separate from the historical FE degree-grid definition. Use batch lookup
-when throughput matters.
+when throughput matters. The matrix batch functions accept `(n, 2)` coordinate arrays.
+The additive split-vector functions accept separate equal-length one-dimensional longitude and
+latitude vectors and do not broadcast them; both forms remain supported. Split vectors are
+primarily useful when the caller already owns separate arrays rather than when an existing
+matrix would have to be split only for the call.
 
 Scalar lookup accepts Python integer/float values and NumPy integer/floating
 scalars. Boolean values are rejected at runtime. Direct geographical
@@ -334,7 +344,7 @@ needs that evidence.
 The predecessor standalone/pytest-benchmark/Tox tools remain available for compatibility,
 investigation, and historical provenance; they are not co-equal release authority.
 
-The `0.5` line uses that benchmark authority for measurement-first runtime optimization. The alpha series identified and implemented bounded geographical validation, seismic validation, and pandas name-output improvements without changing the public contract. `DEC-070` keeps the `(n, 2)` matrix batch API supported and defers an additive public split-vector interface to `0.6`; the retained measurements and decision gates are recorded in `docs/optimization-investigation.md`.
+The `0.5` line used that benchmark authority for measurement-first runtime optimization. Its alpha series identified and implemented bounded geographical validation, seismic validation, and pandas name-output improvements while preserving the existing public contract. `DEC-070` kept the `(n, 2)` matrix batch API supported and reserved an additive split-vector interface for successor design. `DEC-074` adopts that interface for `0.6` without deprecating the matrix route; `DEC-075` records the initial rebase onto `0.5.0b5`, and `DEC-076` records normalization onto committed `0.5.0b6`. The originating measurements remain recorded in `docs/optimization-investigation.md`, and current public split measurements are release evidence rather than a universal speed guarantee.
 
 ## Clean repository handoff
 

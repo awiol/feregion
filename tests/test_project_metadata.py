@@ -180,6 +180,33 @@ def test_maintained_contracts_do_not_embed_current_release_identity() -> None:
         assert version not in path.read_text(encoding="utf-8")
 
 
+def test_maintained_target_headers_match_package_release_core() -> None:
+    """Current contract headers must agree on the package major/minor target core."""
+
+    version = _pyproject()["project"]["version"]
+    match = re.fullmatch(r"(\d+)\.(\d+)\.\d+(?:a|b)\d+", version)
+    assert match is not None, "update target-core synchronization for a new release stage"
+    target_core = f"{match.group(1)}.{match.group(2)}.0"
+
+    declarations = {
+        "feregion-engineering-requirements.md": "Current target",
+        "feregion-design.md": "Implemented target",
+        "feregion-quality-assurance.md": "Current target",
+        "feregion-verification-traceability.md": "Current target",
+    }
+    for name, field in declarations.items():
+        text = (DOCS / name).read_text(encoding="utf-8")
+        table_match = re.search(
+            rf"^\| {re.escape(field)} \| (?P<value>.+) \|$",
+            text,
+            flags=re.MULTILINE,
+        )
+        assert table_match is not None, f"missing {field!r} in {name}"
+        assert f"`{target_core}`" in table_match.group("value"), (
+            f"{name} advertises {table_match.group('value')!r}; expected target core {target_core}"
+        )
+
+
 def test_pre_commit_is_in_uv_development_toolchain() -> None:
     """The commit-time runner is installed through the authoritative uv development group."""
 

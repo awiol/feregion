@@ -167,6 +167,28 @@ not narrow a valid extended-precision coordinate to `float64` before cell
 ownership is selected. For every supported numeric coordinate, scalar and batch
 lookup must produce the same geographical and seismic identifiers.
 
+**REQ-NP-011** — The package must provide additive public geographical and
+seismic split-vector batch lookup at both the `FlinnEngdahlLookup` method level
+and the top-level module level. Each split operation must accept longitude and
+latitude as separate one-dimensional real numeric `ArrayLike` values with
+identical shapes. The operation must not broadcast unequal or higher-dimensional
+inputs. The existing `(n, 2)` matrix batch interfaces must remain supported and
+must not be deprecated by this addition.
+
+**REQ-NP-012** — Public split-vector geographical lookup must return a
+one-dimensional `uint16` array and public split-vector seismic lookup must
+return a one-dimensional `uint8` array, each with the same length as its input
+vectors. Empty vectors must return empty arrays of those dtypes. Split lookup
+must not modify caller-owned vectors and must preserve validated source dtypes
+until FE cell ownership is selected.
+
+**REQ-NP-013** — Public split-vector lookup must preserve the established
+coordinate exception categories and FE ownership semantics of matrix lookup.
+Non-contiguous one-dimensional vectors must be supported. Explicit geographical-
+only engines must support geographical split lookup and must raise
+`SeismicDataUnavailableError` for seismic split lookup rather than borrowing
+packaged hierarchy data.
+
 ## pandas interface
 
 **REQ-PD-001** — The optional pandas adapter must accept configurable longitude

@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| Status | Current beta engineering contract |
-| Current target | `0.5.0` evidence-backed optimization implementation; public contract unchanged |
+| Status | Current alpha engineering contract |
+| Current target | `0.6.0` additive split-vector public interface under `DEC-074`; initially rebased onto `0.5.0b5` by `DEC-075`, then normalized onto committed `0.5.0b6` by `DEC-076`; matrix contract retained |
 
 The ASV-derived path is the primary benchmark authority; the 0.4 migration is closed.
 
@@ -236,6 +236,14 @@ algorithm. Independent probe tables must expose quadrant, latitude index, and
 longitude index so equal neighboring FE region numbers cannot mask an indexing
 defect. The corpus must cover `float16`, `float32`, and `float64`, plus
 `longdouble` when it provides greater precision than `float64`.
+
+**REQ-TEST-024** — Split-vector public-interface regressions must demonstrate
+predecessor sensitivity for the missing `0.6` surface and then verify matrix/split
+semantic equivalence. Coverage must include both FE levels, empty and non-
+contiguous one-dimensional inputs, unequal lengths, higher-dimensional inputs,
+unsupported dtypes, non-finite and out-of-range coordinates, explicit custom
+engines, geographical-only seismic failure, module-level routing, public typing,
+and exhaustive coordinate-index boundary ownership.
 
 **REQ-PERF-001** — The repository must contain automated benchmark cases for the
 implemented in-process lookup interfaces: scalar geographical and seismic number
@@ -538,6 +546,16 @@ comparator dependency must not be converted into `not_applicable`.
 **REQ-PERF-030** — Normalized evidence for a campaign must be collected only from ASV environments permitted by that campaign's resolved environment profile. A retained result with the same revision, case, and load but a different environment profile must not be relabeled with the current campaign identity or used by its release decision. If the required profile has no candidate result, the evidence must remain incomplete.
 
 **REQ-PERF-031** — A local static-report rebuild used as migration evidence must retain a machine-readable rebuild record. The record must identify the report command outcome, the retained source-evidence content identity used for the rebuild, and whether generated report output was observed. Report-rebuild records must be included in benchmark evidence handoffs; generated HTML remains rebuildable derived output and is excluded by default.
+
+**REQ-PERF-033** — The `0.6` split-vector public interface must be measured
+directly against the existing public `(n, 2)` matrix interface on identical
+coordinate values in one comparable environment, with repeated measurements and
+correctness checks before timing is accepted. Caller `column_stack` cost may be
+reported separately as context but must not be folded into the matrix operation's
+own timing. Before beta promotion, the retained evidence must still show a
+material split-vector advantage at a maintained large batch load; otherwise the
+public-interface rationale must be reassessed. This requirement does not weaken
+or replace the existing matrix-path release-regression gate.
 
 
 ## 0.5 optimization investigation

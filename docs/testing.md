@@ -274,6 +274,23 @@ handoff:
 uv run --locked python -m tools.export_repository --fail-on-untracked
 ```
 
+## Source-delivery tree verification
+
+The source-tree digest verifier supports both direct-script and module invocation. Python
+may create `__pycache__` while loading the module, so interpreter-generated cache
+directories are explicitly outside the digest domain and must not be present in the
+delivered source archive itself. Delivery evidence records the exact expected digest and
+file count. A fresh extraction can therefore be checked with either form:
+
+```bash
+python tools/source_tree_digest.py . --expect-sha256 <digest> --expect-files <count>
+python -m tools.source_tree_digest . --expect-sha256 <digest> --expect-files <count>
+```
+
+A successful check prints both the digest and the number of files in the digest domain.
+The source archive SHA-256 and archive inventory remain separate checks over the complete
+archive bytes, including any path that would be outside the tree-digest domain.
+
 ## Commit-time checks
 
 Install the development environment and hooks once:

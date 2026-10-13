@@ -3,8 +3,8 @@
 | Field | Value |
 |---|---|
 | Behavioral contract series | `0.2` |
-| Status | Current beta design |
-| Implemented target | `0.5` current-contract optimization is substantially complete through `DEC-070`; `0.4` ASV authority retained |
+| Status | Current alpha design |
+| Implemented target | `0.6.0` additive split-vector public interface through `DEC-074`; initially rebased onto `0.5.0b5` by `DEC-075`, then normalized onto committed `0.5.0b6` by `DEC-076`; matrix API retained; `0.4` ASV authority retained |
 
 The ASV-derived path is the primary benchmark authority; the 0.4 migration is closed.
 
@@ -79,7 +79,7 @@ The mechanism probe distinguishes: matrix, caller-stacking, and split-vector coo
 
 The first implementation alpha selects one bounded mechanism under `REQ-OPT-005`: for geographical vector operations, the engine-derived active-ID Boolean mask is sufficient validity evidence after construction has already proved that each active ID has a non-empty name. The vector validator therefore need not materialize `names[array]` merely to repeat that invariant. Arbitrary out-of-range and inactive IDs remain rejected.
 
-Public split/vector APIs, alternate public name representations, pandas name-column representation changes, and deprecation of the current `(n, 2)` batch interface remain separate proposals until direct comparative evidence establishes enough benefit to justify their compatibility or implementation cost. `DEC-068` resolves seismic-name validation by caching non-empty name-slot validity independently of crosswalk membership. `DEC-069` keeps pandas name columns in their existing object representation but avoids the redundant large fixed-width Unicode intermediate for IDs just produced by the selected engine. `DEC-070` closes the `0.5` public-shape gate: the matrix API remains supported and is not deprecated; an additive split-vector interface is deferred to a `0.6` design candidate because direct measurements show a material gap for separate-vector callers.
+During `0.5`, public split/vector APIs, alternate public name representations, pandas name-column representation changes, and deprecation of the current `(n, 2)` batch interface remained separate proposals pending direct comparative evidence. `DEC-068` resolves seismic-name validation by caching non-empty name-slot validity independently of crosswalk membership. `DEC-069` keeps pandas name columns in their existing object representation but avoids the redundant large fixed-width Unicode intermediate for IDs just produced by the selected engine. `DEC-070` closed the `0.5` public-shape gate while preserving the matrix API; `DEC-074` now adopts the additive split-vector interface for `0.6` while keeping matrix lookup supported and not deprecated. `DEC-075` initially rebased that interface onto committed `0.5.0b5`; `DEC-076` normalizes the active line onto committed `0.5.0b6`.
 
 ## 3. Runtime data lifecycle
 
@@ -790,21 +790,21 @@ pushing unless the operator explicitly supplies `--push`.
 
 ### 9.15 Existing optimization decisions
 
-**Resolved internal optimization `PERF-INV-001`:** controlled measurements on the
-accepted beta baseline show material stacking, hierarchy-revalidation, and
-peak-memory cost. The engine therefore has package-internal split-vector paths
-that accept equal-length one-dimensional longitude and latitude arrays without
-broadcasting. pandas uses those paths directly. Public matrix lookup and the
-internal split path converge on the same validated indexing kernel so the
-source-dtype boundary semantics remain identical. Coordinate-to-seismic lookup
-may apply the hierarchy crosswalk directly only to geographical numbers produced
-by that same engine. A public split-array API remains deferred.
+**Resolved optimization `PERF-INV-001`:** controlled measurements on the accepted
+0.5 beta baseline show material stacking, hierarchy-revalidation, and peak-memory
+cost. The engine retains private split-vector helpers for implementation and
+historical benchmark evidence. `DEC-074` exposes supported public wrappers with
+the same equal-length one-dimensional/no-broadcast contract, and pandas consumes
+the public engine methods. Matrix and split lookup converge on the same validated
+indexing kernel so source-dtype boundary semantics remain identical. Coordinate-
+to-seismic lookup may apply the hierarchy crosswalk directly only to geographical
+numbers produced by that same engine.
 
 The longitude/quadrant kernel uses mask-only antimeridian handling as part of the
-extended-precision correctness repair. This removes the prior full-size
-normalized-longitude temporary without changing the public batch shape contract.
-Further public split-array API changes remain deferred until an external consumer
-need or new benchmark evidence justifies the additional compatibility surface.
+extended-precision correctness repair. This removes the prior full-size normalized-
+longitude temporary without changing the matrix batch contract. Broadcasting,
+matrix deprecation, and alternative result representations remain separate future
+changes that require their own evidence and compatibility decisions.
 
 A Rust backend remains deferred. Current NumPy throughput does not establish a
 need for another runtime backend.
@@ -918,7 +918,39 @@ name and version come from `pyproject.toml` and the date is the current UTC date
 `--output` path remains available for workflows that need another destination.
 The archive's internal repository root remains the stable `feregion/` path.
 
-## 12. Compatibility and residual limits
+
+## 12. Additive split-vector public interface
+
+The successor batch surface exposes the existing split-coordinate kernel without
+changing the matrix route. `FlinnEngdahlLookup` provides public geographical and
+seismic `*_from_vectors(longitude, latitude)` methods; the package root provides
+matching default-engine convenience functions. The public methods delegate to the
+established split validation/kernel so there is one coordinate-ownership
+implementation rather than a second algorithm.
+
+The split contract is deliberately narrow: both inputs are one-dimensional real
+numeric array-like values with identical shapes, and no broadcasting occurs.
+Empty vectors and non-contiguous one-dimensional NumPy views are valid. Validation
+preserves each source dtype through finiteness, range, quadrant, and absolute-index
+selection. Geographical results are `uint16[n]`; seismic results are `uint8[n]` and
+reuse the selected engine's hierarchy. A geographical-only explicit engine raises
+`SeismicDataUnavailableError` for the seismic method.
+
+The existing `(n, 2)` batch methods remain independent supported entry points and
+are not implemented by stacking split vectors. This avoids adding a full coordinate-
+sized temporary to the established matrix route. pandas can call the public engine
+split methods because its longitude and latitude columns already satisfy that shape
+model; pandas name-materialization behavior remains governed separately by
+`DEC-069`. Private split helpers remain internal implementation/benchmark seams and
+are not user-facing aliases.
+
+Performance evidence compares the public split and matrix operations on identical
+values in alternating/repeated same-host measurements. Caller `column_stack` timing
+is retained only as separate context. The public split interface is justified by
+callers that already hold separate vectors; no claim is made that users should split
+an existing matrix merely to call it.
+
+## 13. Compatibility and residual limits
 
 The numeric FE mapping and public function names follow the declared public
 contract. Ambiguous structured input fails instead of silently losing data.

@@ -1,5 +1,35 @@
 # Changelog
 
+## 0.6.0a5 — 2026-10-14
+
+- Normalize the cumulative 0.6 split-vector lineage onto exact committed `0.5.0b6`, retaining its documented local benchmark comparison and preserving all substantive `0.6.0a1` through `0.6.0a4` API, exhaustive-boundary, source-tree verification, review-closure, and direct split-benchmark work.
+- Preserve `0.5.0b6` history and identifiers; `DEC-076` records this lineage normalization after the earlier `0.5.0b5` rebase in `DEC-075`. Existing matrix lookup remains supported and is not deprecated.
+
+## 0.6.0a4 — 2026-10-14
+
+- Rebase the 0.6 split-vector line onto the exact committed `0.5.0b5` handoff so the 0.6 API inherits the later 0.5 provenance, delivery-hardening, review-closure, formatting, strict-mypy, and 0.5-on-0.4.0b10 lineage changes rather than superseding them.
+- Preserve the substantive 0.6 API and assurance work from `0.6.0a1` through `0.6.0a3`: additive public split-vector geographical/seismic lookup, direct exhaustive boundary evidence, reproducible large-batch split benchmarking, invocation-stable source-tree verification, and maintained-target consistency remain in force.
+- Reconcile identifiers without rewriting issued history: committed 0.5 keeps `DEC-072`, `DEC-073`, `REQ-TEST-023`, and `REQ-PERF-032`; the current split API is recorded as `DEC-074`, the 0.6 rebase as `DEC-075`, split regression evidence as `REQ-TEST-024`, and split performance evidence as `REQ-PERF-033`. Historical 0.6.0a1-a3 records retain their as-issued identifiers.
+- Existing `(n, 2)` matrix APIs remain supported and are not deprecated. No FE data, lookup-result, CLI, GeoJSON, dependency, or public result-representation change is introduced by the rebase itself.
+
+## 0.6.0a3 — 2026-10-14
+
+- Close the second isolated 0.6 review without changing lookup behavior. The maintained source-tree verifier now excludes interpreter-created `__pycache__` directories from its digest domain, reports both digest and file count, supports explicit expected-value checks, and has an integration regression demonstrating identical results for direct-script and `python -m` invocation despite module bytecode side effects.
+- Reconcile maintained contract target metadata on the `0.6.0` release core: engineering requirements, design, quality assurance, and verification traceability now agree. Add a semantic repository regression that derives the target core from package metadata and rejects stale current/implemented-target declarations such as the previous `0.5` headers.
+- Preserve the exact fresh-extraction verifier command, expected digest, expected file count, environment, and direct/module replay results in delivery evidence. Runtime split/matrix APIs, FE data, output representations, dependencies, and deprecation state remain unchanged from `0.6.0a2`.
+
+## 0.6.0a2 — 2026-10-13
+
+- Close the isolated `0.6.0a1` review findings without redesigning the split-vector runtime API. Exhaustive synthetic grid probes now include direct public seismic split lookup with an independently constructed identity crosswalk, so both FE levels exercise representable cell interiors and integer-boundary neighborhoods under the explicit `REQ-TEST-023` evidence route.
+- Retain the exact large-batch public matrix-versus-split procedure in `benchmarks/public_split_benchmark.py`. The harness records deterministic seed/load rules, correctness checks, warmup, timing boundaries, raw samples, and forward/reverse alternating operation order for the maintained 100K/1M/5M `REQ-PERF-032` comparison.
+- Correct current verification traceability so `DEC-072` is the controlling adopted split-interface decision, add a maintained path-ordered source-tree digest verifier, and make the successor delivery manifest state both the precise digest ordering and the intentional `uv.lock` source-handoff exclusion. Runtime lookup behavior, FE data, matrix compatibility, output representations, dependencies, and deprecation status are unchanged from `0.6.0a1`.
+
+## 0.6.0a1 — 2026-10-12
+
+- Add the `0.6` public split-vector NumPy interface selected by `DEC-072`: `lookup_geographic_numbers_from_vectors(longitude, latitude)` and `lookup_seismic_numbers_from_vectors(longitude, latitude)` are available both on `FlinnEngdahlLookup` and at the package root. They require equal-shape one-dimensional real numeric inputs, do not broadcast, preserve matrix lookup FE ownership/error semantics, and return `uint16[n]`/`uint8[n]` results.
+- Keep every existing `(n, 2)` matrix batch interface supported without deprecation. Empty and non-contiguous one-dimensional vectors are supported; explicit geographical-only engines continue to reject seismic operations with `SeismicDataUnavailableError`. pandas now consumes the public engine split methods rather than private twins while preserving its existing output contract.
+- Add predecessor-sensitive/public API, exhaustive-boundary, typing, documentation, and direct matrix-versus-public-split performance requirements/evidence hooks (`REQ-NP-011..013`, `REQ-TEST-023`, `REQ-PERF-032`, `QG-SPLIT`). No FE data, naming source, hierarchy, CLI, GeoJSON, dependency, or public result-representation change is introduced.
+
 ## 0.5.0b6 — 2026-10-14
 
 - Extend `docs/benchmark-results.md` with the local `0.4.0b10` to `0.5.0b5` ASV integration comparison: exact commits and environment, seven-load throughput table, correctness/preflight checks, complete regression decision without a trigger, and measurement limits. Link it from the cumulative user guide and optimization investigation.

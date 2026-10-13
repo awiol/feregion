@@ -332,6 +332,21 @@ uv run --locked --group benchmark \
 These cases retain private split-vector, caller-stacking, and pandas in-place evidence.
 They are diagnostic contracts, not public runtime API.
 
+For the `0.6` public matrix-versus-split decision, retain the exact direct large-batch
+procedure separately from the general ASV gate:
+
+```bash
+python -m benchmarks.public_split_benchmark \
+  --sizes 100000 1000000 5000000 \
+  --repetitions 9 \
+  --output public-split-large-batch-benchmark.json
+```
+
+This procedure needs only the package base environment. It records its deterministic seed,
+loads, warmup, correctness checks, matrix/stack timing boundaries, raw samples, and
+forward/reverse alternating operation order. It is `REQ-PERF-033` interface evidence; it
+does not replace the ASV release-regression gate.
+
 For the `0.5` mechanism investigation, retain aggregate ASV context with:
 
 ```bash

@@ -6,7 +6,7 @@ These harnesses measure the in-process lookup interfaces:
 - scalar `Region` lookup;
 - scalar region-number-to-name conversion;
 - NumPy batch region-number lookup;
-- matrix-versus-split internal batch representation diagnostics;
+- matrix-versus-public-split batch representation diagnostics;
 - geographical and seismic batch lookup;
 - batch region-number-to-name conversion; and
 - pandas lookup with and without names.
@@ -22,9 +22,13 @@ retained for compatibility checks, investigation, and historical provenance; the
 not the primary release-performance authority.
 
 The standalone harness directly compares batch lookup with the source-table scanner on
-identical deterministic arrays and retains matrix/caller-stacking/internal-split/seismic
-composition diagnostics. Private split-vector measurements are implementation evidence,
-not public API. The predecessor Python matrix records per-interpreter dependency identity
+identical deterministic arrays and retains matrix/caller-stacking/public-split/seismic
+composition diagnostics. Public split-vector measurements are direct interface evidence,
+not a universal performance guarantee. The exact large-batch public split experiment used
+for `REQ-PERF-033` is retained separately in `public_split_benchmark.py`; unlike the broader
+standalone harness it needs only NumPy/feregion and records its seed, maintained load set,
+warmup, correctness checks, timing boundaries, raw samples, and alternating operation order.
+The predecessor Python matrix records per-interpreter dependency identity
 and normalized representative metrics, while the raw release comparator rejects
 incompatible environment/workload records before applying its historical threshold.
 

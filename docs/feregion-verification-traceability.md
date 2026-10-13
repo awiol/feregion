@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| Status | Current beta traceability |
-| Current target | `0.5.0` evidence-backed optimization implementation; public contract unchanged |
+| Status | Current alpha traceability |
+| Current target | `0.6.0` additive split-vector public interface; matrix contract retained |
 
 The ASV-derived path is the primary benchmark authority; the 0.4 migration is closed.
 
@@ -121,7 +121,7 @@ This document identifies how each current requirement is assessed. It separates 
 | `REQ-OPT-002` | `benchmarks/optimization_probe.py`, retained pre-change JSON evidence, aggregate ASV conversion case | Stable single host for mechanism evidence; ASV benchmark host for retained aggregate history | Public geo→seismic timing is decomposed into bounds, name-slot, active-mask, and direct crosswalk stages on identical IDs. | Stage timings are diagnostic and host-specific. |
 | `REQ-OPT-003` | `benchmarks/optimization_probe.py`, public name-conversion ASV cases | Stable single host; NumPy name tables from exact target | Public geographical/seismic name timing is compared with validation and direct table-gather stages with per-element costs. | Unicode allocation/cache behavior is environment-sensitive and needs candidate remeasurement after optimization. |
 | `REQ-OPT-004` | optimization probe plus existing pandas copy/in-place ASV cases and pandas sensitivity campaign | pandas-enabled benchmark environment | Copy, extraction, split lookup, name materialization, and column assignment are separately observable while aggregate pandas contracts remain measured. | Stage probe is current-source investigation, not historical adapter authority. |
-| `REQ-OPT-005` | `DEC-066`, optimization investigation report, later candidate decision/review | Project decision owner with exact retained evidence | The bounded geographical validation, seismic validation, and pandas name-output implementations are authorized by `DEC-067`, `DEC-068`, and `DEC-069`; `DEC-070` closes the `0.5` public-shape gate without changing the public interface. | The deferred `0.6` split-vector interface still requires its own compatibility/design decision; no deprecation is authorized. |
+| `REQ-OPT-005` | `DEC-066..075`, optimization investigation report, candidate decision/review | Project decision owner with exact retained evidence | The bounded geographical validation, seismic validation, and pandas name-output implementations are authorized by `DEC-067`, `DEC-068`, and `DEC-069`; `DEC-070` closes the `0.5` public-shape gate, `DEC-074` adopts the additive `0.6` split-vector interface, and `DEC-075` rebases that interface onto committed b5 before `DEC-076` normalizes it onto committed b6. | `DEC-074` does not authorize matrix-API deprecation, broadcasting, or a result-representation change; those remain separate future decisions. |
 | `REQ-PKG-001` | tests/test_project_metadata.py, CI workflow, distribution build/wheel verification | Python 3.13 local plus delivery evidence; hosted CI where configured | Release-specific result is recorded in delivery or CI evidence. | Method coverage is not a claim outside the recorded environment. |
 | `REQ-PKG-002` | tests/test_project_metadata.py, CI workflow, distribution build/wheel verification | Python 3.13 local plus delivery evidence; hosted CI where configured | Release-specific result is recorded in delivery or CI evidence. | Method coverage is not a claim outside the recorded environment. |
 | `REQ-PKG-003` | tests/test_project_metadata.py, CI workflow, distribution build/wheel verification | Python 3.13 local plus delivery evidence; hosted CI where configured | Release-specific result is recorded in delivery or CI evidence. | Method coverage is not a claim outside the recorded environment. |
@@ -206,10 +206,16 @@ This document identifies how each current requirement is assessed. It separates 
 | `REQ-PKG-020` | pyproject mypy config, .pre-commit-config.yaml, tests/typing/public_api.py, quality CI job | Local pre-commit and hosted quality environments | Ruff remains lint/format evidence; mypy checks public modules and downstream built-in/NumPy scalar use. | Local execution may be unavailable without resolved dev dependencies. |
 | `REQ-PKG-021` | .github/workflows/ci.yml and tests/test_project_metadata.py | Scheduled/manual hosted CI | Live ISC fetch/semantic verification is isolated from ordinary PR tests. | A configured job is not evidence that a hosted run occurred. |
 
+| `REQ-NP-011` | tests/test_split_vector_api.py, tests/test_public_api.py, tests/typing/public_api.py | Runtime suite plus mypy public typing | Engine and module split functions exist at both FE levels, require equal one-dimensional shapes without broadcasting, and matrix APIs remain exported. | Additive compatibility does not imply future matrix deprecation. |
+| `REQ-NP-012` | tests/test_split_vector_api.py plus exhaustive boundary suite | Runtime suite across maintained numeric dtypes | Split results preserve `uint16[n]`/`uint8[n]`, empty behavior, caller-array immutability, and source-dtype-preserving ownership. | Wider `longdouble` precision is platform-conditional. |
+| `REQ-NP-013` | tests/test_split_vector_api.py, tests/test_exhaustive_grid_boundaries.py, tests/test_public_api.py | Runtime suite | Error classes, non-contiguous vector support, custom-engine behavior, and geographical-only seismic failure match the declared contract. | Exact error-message text remains non-contractual. |
+| `REQ-TEST-024` | tests/test_split_vector_api.py, predecessor sensitivity record, exhaustive grid tests | Exact 0.5 predecessor plus exact candidate | New public tests fail on the predecessor for missing surface and pass on the candidate; synthetic table/crosswalk probes directly exercise geographic and seismic public split lookup across exhaustive representable cell interiors and integer-boundary neighborhoods. | Predecessor sensitivity establishes absence of the surface, not general correctness by itself. |
+| `REQ-PERF-033` | benchmarks/public_split_benchmark.py plus retained candidate JSON; benchmarks/run_benchmark.py compatibility diagnostics | Same-host repeated measurement environment | The retained standalone procedure fixes seed/load/warmup/timing boundaries and alternating operation order, uses identical coordinate values with correctness checks, and separates caller stacking from matrix timing; beta promotion requires retained material large-batch split advantage or design reassessment. | The direct split benchmark is interface-specific evidence and does not replace the general ASV release-regression gate. |
+
 ## Release evidence record
 
 For each delivered version, the external verification record must state the exact source identity, command or assessment, environment, observed result, skipped or unavailable scope, and known limitation. The quality-assurance document defines the release gates that consume these records.
 
 ## Traceability acceptance
 
-This target contains **188 unique requirement IDs**. Repository synchronization tests verify that every current requirement ID appears in this document and that no current requirement ID is duplicated across requirement files.
+This target contains **193 unique requirement IDs**. Repository synchronization tests verify that every current requirement ID appears in this document and that no current requirement ID is duplicated across requirement files.

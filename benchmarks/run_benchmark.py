@@ -173,12 +173,12 @@ def benchmark_batch(repeats: int) -> list[dict[str, float | int]]:
 
 
 def benchmark_internal_batch_optimization(repeats: int) -> list[dict[str, Any]]:
-    """Benchmark matrix, stacking, and package-internal split-vector paths.
+    """Benchmark matrix, stacking, and public split-vector paths.
 
-    This diagnostic records the representation and hierarchy-composition costs
-    that motivated ``PERF-INV-001``. Private timings do not declare a public
-    split-array API. Every timed path is checked against the public matrix result
-    before measurements are reported.
+    This diagnostic preserves the representation and hierarchy-composition
+    comparison that motivated ``PERF-INV-001`` while exercising the supported
+    split-vector wrapper selected by ``DEC-074``. Every timed path is checked
+    against the public matrix result before measurements are reported.
     """
 
     engine = feregion.get_default_lookup()
@@ -200,10 +200,10 @@ def benchmark_internal_batch_optimization(repeats: int) -> list[dict[str, Any]]:
             return engine.lookup_geographic_numbers(np.column_stack((longitude, latitude)))
 
         split_geographic = partial(
-            engine._lookup_geographic_numbers_from_vectors, longitude, latitude
+            engine.lookup_geographic_numbers_from_vectors, longitude, latitude
         )
         matrix_seismic = partial(engine.lookup_seismic_numbers, matrix)
-        split_seismic = partial(engine._lookup_seismic_numbers_from_vectors, longitude, latitude)
+        split_seismic = partial(engine.lookup_seismic_numbers_from_vectors, longitude, latitude)
 
         for run in (matrix_geographic, stack_geographic, split_geographic):
             np.testing.assert_array_equal(run(), expected_geographic)
@@ -215,9 +215,9 @@ def benchmark_internal_batch_optimization(repeats: int) -> list[dict[str, Any]]:
                 "points": size,
                 "matrix_geographic": summarize(timed(matrix_geographic, repeats), size),
                 "stack_plus_geographic": summarize(timed(stack_geographic, repeats), size),
-                "split_geographic_private": summarize(timed(split_geographic, repeats), size),
+                "split_geographic_public": summarize(timed(split_geographic, repeats), size),
                 "matrix_seismic": summarize(timed(matrix_seismic, repeats), size),
-                "split_seismic_private": summarize(timed(split_seismic, repeats), size),
+                "split_seismic_public": summarize(timed(split_seismic, repeats), size),
             }
         )
     return rows
@@ -414,8 +414,8 @@ def main(argv: list[str] | None = None) -> int:
             "ObsPy is measured only when installed; it is never a runtime dependency.",
             "Results are environment-specific microbenchmarks, not a performance SLA.",
             (
-                "Private split-vector timings are diagnostic implementation evidence and "
-                "do not declare a public split-array API."
+                "Public split-vector timings are direct interface evidence and "
+                "are compared separately from caller-side stacking cost."
             ),
             (
                 "CPU power/frequency policy is not measured by this harness and must be "

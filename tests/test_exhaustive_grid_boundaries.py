@@ -51,10 +51,22 @@ def grid_index_probe_engines() -> tuple[FlinnEngdahlLookup, ...]:
     ).copy()
 
     def engine(table: np.ndarray) -> FlinnEngdahlLookup:
-        """Build one valid geographical-only engine for a probe table."""
+        """Build one valid geographic/seismic engine for a probe table.
+
+        The seismic crosswalk is the identity mapping for probe IDs 1..182.
+        Expected seismic values can therefore be constructed from the independent
+        cell/quadrant identities above without calling any production lookup path.
+        """
 
         names = np.asarray([""] + [f"PROBE_{number}" for number in range(1, 183)])
-        return FlinnEngdahlLookup(table=table, names=names)
+        crosswalk = np.arange(183, dtype=np.uint8)
+        seismic_names = np.asarray([""] + [f"SEISMIC_PROBE_{number}" for number in range(1, 183)])
+        return FlinnEngdahlLookup(
+            table=table,
+            names=names,
+            seismic_by_geographic=crosswalk,
+            seismic_names=seismic_names,
+        )
 
     return engine(quadrant), engine(latitude), engine(longitude)
 
@@ -286,7 +298,15 @@ def _assert_index_probes(
     ):
         np.testing.assert_array_equal(engine.lookup_geographic_numbers(coordinates), expected)
         np.testing.assert_array_equal(
+            engine.lookup_geographic_numbers_from_vectors(longitude, latitude), expected
+        )
+        np.testing.assert_array_equal(
             engine._lookup_geographic_numbers_from_vectors(longitude, latitude), expected
+        )
+        expected_seismic = np.asarray(expected, dtype=np.uint8)
+        np.testing.assert_array_equal(engine.lookup_seismic_numbers(coordinates), expected_seismic)
+        np.testing.assert_array_equal(
+            engine.lookup_seismic_numbers_from_vectors(longitude, latitude), expected_seismic
         )
 
 

@@ -224,6 +224,34 @@ class FlinnEngdahlLookup:
         _validate_coordinate_values(longitude, latitude)
         return self._lookup_validated(longitude, latitude)
 
+    def lookup_geographic_numbers_from_vectors(
+        self, longitude: npt.ArrayLike, latitude: npt.ArrayLike
+    ) -> GeographicNumberArray:
+        """Return geographical-region numbers from separate coordinate vectors.
+
+        Args:
+            longitude: One-dimensional numeric longitude values in ``[-180, 180]``.
+            latitude: One-dimensional numeric latitude values in ``[-90, 90]`` with
+                the same shape as ``longitude``.
+
+        Returns:
+            A one-dimensional ``uint16`` array with the same length as the inputs.
+
+        Raises:
+            CoordinateShapeError: If either input is not one-dimensional or the
+                two shapes differ. Broadcasting is not performed.
+            CoordinateTypeError: If either input dtype is unsupported.
+            CoordinateValueError: If a coordinate is not finite.
+            CoordinateRangeError: If a coordinate is outside the supported range.
+
+        Notes:
+            Non-contiguous one-dimensional inputs are supported. The method does
+            not modify caller-owned arrays and preserves each validated source
+            dtype until FE cell ownership is selected.
+        """
+
+        return self._lookup_geographic_numbers_from_vectors(longitude, latitude)
+
     def _lookup_geographic_numbers_from_vectors(
         self, longitude: npt.ArrayLike, latitude: npt.ArrayLike
     ) -> GeographicNumberArray:
@@ -421,6 +449,30 @@ class FlinnEngdahlLookup:
 
         geographic = self.lookup_geographic_numbers(coordinates)
         return self._seismic_numbers_for_lookup_result(geographic)
+
+    def lookup_seismic_numbers_from_vectors(
+        self, longitude: npt.ArrayLike, latitude: npt.ArrayLike
+    ) -> SeismicNumberArray:
+        """Return seismic-region numbers from separate coordinate vectors.
+
+        Args:
+            longitude: One-dimensional numeric longitude values in ``[-180, 180]``.
+            latitude: One-dimensional numeric latitude values in ``[-90, 90]`` with
+                the same shape as ``longitude``.
+
+        Returns:
+            A one-dimensional ``uint8`` array with the same length as the inputs.
+
+        Raises:
+            CoordinateShapeError: If either input is not one-dimensional or the
+                two shapes differ. Broadcasting is not performed.
+            CoordinateTypeError: If either input dtype is unsupported.
+            CoordinateValueError: If a coordinate is not finite.
+            CoordinateRangeError: If a coordinate is outside the supported range.
+            SeismicDataUnavailableError: If this engine has no seismic hierarchy.
+        """
+
+        return self._lookup_seismic_numbers_from_vectors(longitude, latitude)
 
     def _lookup_seismic_numbers_from_vectors(
         self, longitude: npt.ArrayLike, latitude: npt.ArrayLike
@@ -705,8 +757,8 @@ def _coordinate_vectors(
 ) -> tuple[np.ndarray, np.ndarray]:
     """Validate separate coordinate-vector shape and dtype without copying.
 
-    The package-internal split path accepts only one-dimensional vectors with
-    identical shapes. It intentionally does not broadcast inputs. Value
+    Split lookup accepts only one-dimensional vectors with identical shapes.
+    It intentionally does not broadcast inputs. Value
     validation remains separate so finiteness and range checks run in each
     source dtype.
     """

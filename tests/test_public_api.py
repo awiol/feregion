@@ -71,6 +71,7 @@ def test_exported_callable_names_have_direct_routing_coverage() -> None:
         "lookup_geographic_number",
         "lookup_geographic_region",
         "lookup_geographic_numbers",
+        "lookup_geographic_numbers_from_vectors",
         "geographic_number_to_name",
         "geographic_numbers_to_names",
         "geographic_to_seismic_number",
@@ -78,6 +79,7 @@ def test_exported_callable_names_have_direct_routing_coverage() -> None:
         "lookup_seismic_number",
         "lookup_seismic_region",
         "lookup_seismic_numbers",
+        "lookup_seismic_numbers_from_vectors",
         "seismic_number_to_name",
         "seismic_numbers_to_names",
         "lookup_number",
@@ -157,6 +159,8 @@ def test_geographical_only_engine_rejects_all_public_seismic_operations() -> Non
     with raises_exact(SeismicDataUnavailableError):
         engine.lookup_seismic_numbers(np.asarray([[12.0, 48.0]]))
     with raises_exact(SeismicDataUnavailableError):
+        engine.lookup_seismic_numbers_from_vectors([12.0], [48.0])
+    with raises_exact(SeismicDataUnavailableError):
         engine.seismic_number_to_name(36)
     with raises_exact(SeismicDataUnavailableError):
         engine.seismic_numbers_to_names(np.asarray([36], dtype=np.uint8))
@@ -169,6 +173,7 @@ def test_explicit_public_function_docstrings_expose_call_contract() -> None:
         feregion.lookup_geographic_number,
         feregion.lookup_geographic_region,
         feregion.lookup_geographic_numbers,
+        feregion.lookup_geographic_numbers_from_vectors,
         feregion.geographic_number_to_name,
         feregion.geographic_numbers_to_names,
         feregion.geographic_to_seismic_number,
@@ -176,6 +181,7 @@ def test_explicit_public_function_docstrings_expose_call_contract() -> None:
         feregion.lookup_seismic_number,
         feregion.lookup_seismic_region,
         feregion.lookup_seismic_numbers,
+        feregion.lookup_seismic_numbers_from_vectors,
         feregion.seismic_number_to_name,
         feregion.seismic_numbers_to_names,
     )

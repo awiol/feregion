@@ -117,14 +117,14 @@ def lookup_dataframe(
     latitude = _coordinate_values(target[latitude_column])
     engine = lookup if lookup is not None else get_default_lookup()
     if level == "geographic":
-        geographic_numbers = engine._lookup_geographic_numbers_from_vectors(longitude, latitude)
+        geographic_numbers = engine.lookup_geographic_numbers_from_vectors(longitude, latitude)
         target[resolved_number_column] = geographic_numbers
         if include_names:
             target[resolved_name_column] = _trusted_name_values(
                 engine, geographic_numbers, level="geographic"
             )
     else:
-        seismic_numbers = engine._lookup_seismic_numbers_from_vectors(longitude, latitude)
+        seismic_numbers = engine.lookup_seismic_numbers_from_vectors(longitude, latitude)
         target[resolved_number_column] = seismic_numbers
         if include_names:
             target[resolved_name_column] = _trusted_name_values(

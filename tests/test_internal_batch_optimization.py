@@ -1,8 +1,8 @@
 """Internal batch optimization contracts and trusted hierarchy composition.
 
-These tests protect the package-internal split-vector path used by adapters and
-its trusted coordinate-to-seismic composition. The public matrix API remains the
-supported external batch contract.
+These tests protect the private split-vector implementation seam retained for
+historical optimization evidence and its trusted coordinate-to-seismic
+composition. Public matrix and split-vector behavior is covered separately.
 """
 
 from __future__ import annotations
