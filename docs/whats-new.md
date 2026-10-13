@@ -193,7 +193,22 @@ annotated = lookup_dataframe(frame, level="seismic", include_names=True)
 
 For detailed 0.5 mechanism evidence, see `docs/optimization-investigation.md`.
 
+The later local ASV geographical batch comparison of `0.4.0b10` with `0.5.0b5`
+completed all seven maintained release loads from 10k through 1M points without
+triggering the project regression rule. Observed throughput changes ranged from
+-5.79% to +0.55% on the measured host. This comparison covers the geographical
+numeric batch path; it does not remeasure the conversion and pandas-name gains
+described above. See [benchmark-results.md](benchmark-results.md) for the exact
+revisions, environment, table, and evidence limits.
+
 ### Candidate-by-candidate detail
+
+### 0.5.0b6 — 2026-10-14
+
+Extend the maintained benchmark results with the local b10-to-b5 ASV integration
+comparison, including its seven-load throughput table, correctness and environment
+checks, and the completed regression decision. The measurements remain attributed
+to `0.5.0b5`; this documentation release preserves the runtime implementation.
 
 ### 0.5.0b5 — 2026-10-14
 

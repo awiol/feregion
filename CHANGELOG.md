@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.0b6 — 2026-10-14
+
+- Extend `docs/benchmark-results.md` with the local `0.4.0b10` to `0.5.0b5` ASV integration comparison: exact commits and environment, seven-load throughput table, correctness/preflight checks, complete regression decision without a trigger, and measurement limits. Link it from the cumulative user guide and optimization investigation.
+- Preserve historical measurements and their original scope. The new documentation attributes the local timings to `0.5.0b5`; direct ASV evidence remains outside tracked source. This documentation release introduces no runtime or public-interface change.
+
 ## 0.5.0b5 — 2026-10-14
 
 - Carry the rebased `0.5.0b4` candidate forward with bounded Ruff formatting/import fixes and a strict-mypy typing correction in trusted pandas name gathering. Runtime behavior and public interfaces are unchanged.

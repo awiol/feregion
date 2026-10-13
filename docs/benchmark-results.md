@@ -2,9 +2,68 @@
 
 ## Purpose and evidence status
 
-This document records benchmark observations accepted for the `0.4` benchmark-migration
-closeout on 2026-09-19. It is an **observational snapshot**, not a universal performance
-guarantee and not a substitute for retained machine-readable evidence.
+This document records the local `0.5` beta integration comparison from 2026-10-13 UTC
+and benchmark observations accepted for the `0.4` benchmark-migration closeout on
+2026-09-19. Each section retains its measured revisions, environment, and scope.
+These are **observational snapshots**, not universal performance guarantees or
+substitutes for retained machine-readable evidence.
+
+## Local 0.5 beta integration comparison — 2026-10-13 UTC
+
+After the rebased `0.5` source was integrated locally, the maintained ASV
+`integration` workflow completed a `smoke` campaign and a bounded `release-compare`
+campaign. The comparison measured:
+
+- baseline: `v0.4.0b10`, commit `ec5b469d549a632ccbf4c001c76cf737efe5cd3c`;
+- candidate: `v0.5.0b5`, commit `0aea9077336817195f8f48803175417b068b9e1e`;
+- case: `lookup_geographic_numbers`, semantic case version 1;
+- machine: `awiol-ryzen3600`;
+- environment: `release-history`, CPython 3.12.9, NumPy 1.26.4, pandas 2.1.4;
+- runner: ASV 0.6.6 with asv-runner 0.3.1;
+- timing contract: five repetitions over three rounds, with samples retained.
+
+The environment preflight confirmed the requested dependency versions, successful
+imports, and a passing `pip check`. Correctness checks passed for every measured
+baseline and candidate load. The candidate smoke run also passed at 100 and 10,000
+points, and the local report was rebuilt from retained results.
+
+| Load | 0.4.0b10 throughput | 0.5.0b5 throughput | Candidate throughput change |
+|---:|---:|---:|---:|
+| 10k | 57.73 M points/s | 54.38 M points/s | -5.79% |
+| 20k | 67.43 M points/s | 66.66 M points/s | -1.14% |
+| 50k | 76.26 M points/s | 76.68 M points/s | +0.55% |
+| 100k | 80.83 M points/s | 80.25 M points/s | -0.72% |
+| 200k | 82.94 M points/s | 82.10 M points/s | -1.01% |
+| 500k | 76.94 M points/s | 74.48 M points/s | -3.20% |
+| 1M | 62.63 M points/s | 61.74 M points/s | -1.42% |
+
+The normalized comparison is complete for all seven loads on both revisions and
+does not trigger the project regression rule: a throughput slowdown greater than
+25% at two adjacent maintained loads of at least 10,000 points. The largest observed
+slowdown was 5.79% at 10k. These measurements establish the result of this bounded
+comparison on one host; they do not establish a universal speed guarantee or a
+causal explanation for the small differences.
+
+This campaign measures geographical numeric batch lookup. It does not remeasure
+the hierarchy-conversion, seismic-name, or pandas-name optimizations introduced in
+`0.5.0a2` through `0.5.0a4`, or the full load grid and dependency/interpreter portfolio.
+Their earlier mechanism measurements remain recorded in
+[optimization-investigation.md](optimization-investigation.md) and
+[whats-new.md](whats-new.md), with their original environments and limitations.
+The local comparison does not turn those earlier diagnostics into new measurements
+on the rebased candidate or establish hosted-CI completion.
+
+The normalized local record is retained at
+`dist/benchmarks/release-compare-evidence.json`, SHA-256
+`38610b0c4317f4fda8094f24a3b8638dee57dd4deb082b2634472dc6014d26a5`.
+Its effective plan has SHA-256
+`bbf9e72a546b86b11d6676242bd34bd8507611a7b3e78c4919e48ac1cfe464a9`.
+Direct ASV files, normalized evidence, and generated reports remain local ignored
+artifacts; this source document retains their human-readable interpretation.
+`0.5.0b6` adds this documentation and does not identify a newly measured runtime
+revision.
+
+## Historical 0.4 benchmark-migration checkpoint
 
 The principal accepted checkpoint is the post-b3 machine-readable benchmark handoff,
 SHA-256 `087990a7aff4e7c2efaaba4a7bbd0445f4a1edcd2fb4fae8c3776341209848a3`. It
@@ -298,7 +357,7 @@ regeneration command. `python -m benchmarks.evidence_bundle` preserves raw resul
 state/run/environment/report evidence, normalized evidence, predecessor outputs, and
 configuration without relying on derived HTML.
 
-## Current interpretation
+## 0.4 migration interpretation at closeout
 
 The accepted evidence covers current/history/dependency/supported-Python ASV campaigns,
 verified direct ObsPy/source comparison, restored diagnostics, fresh predecessor

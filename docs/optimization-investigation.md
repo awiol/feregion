@@ -200,3 +200,10 @@ With this decision, intended `0.5` functionality is substantially complete and t
   one process can hide per-case allocation peaks. Use fresh-process resource evidence
   before making a memory-improvement claim.
 - The observations do not establish a public API deprecation decision.
+
+## Later beta integration comparison
+
+[benchmark-results.md](benchmark-results.md) records the local ASV comparison of
+exact `0.4.0b10` and `0.5.0b5` on the rebased lineage. That bounded campaign covers
+geographical numeric batch lookup and does not remeasure the mechanism-stage
+results or the conversion and pandas-name optimizations in this investigation.
