@@ -407,3 +407,22 @@ def test_decision_ids_are_unique_and_all_references_resolve() -> None:
     for path in paths:
         referenced.update(re.findall(r"\bDEC-\d{3}\b", path.read_text(encoding="utf-8")))
     assert referenced <= known
+
+
+def test_ai_provenance_metadata_and_sdist_contract() -> None:
+    """AI provenance stays separate from authorship/license metadata and ships in source."""
+
+    data = _pyproject()["project"]
+    assert data["authors"] == [{"name": "awiol"}]
+    assert data["license"] == "LGPL-3.0-only"
+    assert data["license-files"] == [
+        "LICENSE",
+        "LICENSES/GPL-3.0.txt",
+        "THIRD_PARTY_NOTICES.md",
+    ]
+    assert (PROJECT_ROOT / "AI_PROVENANCE.md").is_file()
+    assert "include AI_PROVENANCE.md" in (PROJECT_ROOT / "MANIFEST.in").read_text(encoding="utf-8")
+    readme = (PROJECT_ROOT / "README.md").read_text(encoding="utf-8")
+    assert "AI_PROVENANCE.md" in readme
+    decisions = (DOCS / "feregion-decisions.md").read_text(encoding="utf-8")
+    assert decisions.count("`DEC-065`") == 1

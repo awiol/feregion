@@ -286,8 +286,10 @@ headers, surplus fields, and missing fields must raise `CsvInputError` instead
 of discarding or synthesizing input data.
 
 **REQ-CLI-011** — When atomic filesystem publication replaces an existing CSV,
-the replacement must preserve the destination permission bits. A new CSV must
-use normal file-creation permissions as modified by the process umask.
+the temporary sibling must never be created with permission bits broader than the
+existing destination. Before replacement, the published file must preserve the
+destination permission bits exactly. A new CSV must use normal file-creation permissions
+as modified by the process umask.
 
 **REQ-CLI-012** — Filesystem CSV input must be valid UTF-8 and must satisfy
 strict CSV syntax. Text-decoding and CSV-parser failures must be reported

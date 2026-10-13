@@ -12,10 +12,11 @@ This document uses the normative profile defined by `feregion-requirements.md`.
 ## Governing guidance for the 0.4 benchmark target
 
 The user-approved release-core decision dedicates `0.4.0` to benchmark-system
-work. The reviewed post-b3 evidence satisfies the migration-parity requirement below;
-ASV plus the project-owned campaign/evidence/regression layers are now the primary
-performance-evidence path. The predecessor harness remains runnable compatibility/
-reference tooling and historical provenance. The following method sources govern the
+work. `DEC-062` establishes ASV plus the project-owned campaign/evidence/regression
+layers as the primary performance-evidence path. Release-specific migration/parity
+results belong in retained release/delivery evidence. The predecessor harness remains
+runnable compatibility/reference tooling and historical provenance. The following method
+sources govern the
 benchmark-target design and its review. They guide
 engineering work; they do not create runtime package requirements unless a requirement
 below adopts them.
@@ -106,6 +107,17 @@ hierarchy declarations it protects. A name or membership change must fail
 ordinary verification until an explicit source-review decision updates the
 literal semantic identity.
 
+
+**REQ-DATA-017** — Malformed, empty, or truncated packaged NumPy lookup assets
+must fail through the package-owned `DataFileError` boundary. The loader must not
+expose NumPy serialization exceptions as public package behavior and must not cache
+a failed asset load.
+
+**REQ-DATA-018** — Online source-acquisition tools must enforce an explicit response-byte
+limit in addition to network timeouts. Declared oversized content may fail early, but
+the actual received byte count must remain bounded when length metadata is absent or
+incorrect.
+
 **REQ-NP-005** — The vectorized dense-table implementation must use compact
 integer indices suitable for the fixed FE grid and must store region numbers as
 `uint16`. This is an engineering constraint, not a requirement on caller input
@@ -167,6 +179,13 @@ the implementation version.
 sensitivity to the targeted incorrect behavior before the correction, or the
 release evidence must record another credible sensitivity demonstration when
 direct pre-fix execution is unavailable or unsafe.
+
+
+**REQ-TEST-023** — Review-closure regression coverage for the `0.4` line must exercise
+same-commit release-comparison rejection, exact campaign TOML typing, exact benchmark
+selection, symlink/archive-boundary rejection, restrictive CSV temporary permissions,
+truncated packaged assets, delivery-manifest completeness, and bounded source-response
+reading.
 
 **REQ-TEST-015** — Tests must verify that the tracked runtime asset bytes match
 the SHA-256 values recorded for those generated assets in packaged provenance
@@ -431,6 +450,13 @@ on later iterations, and how
 to distinguish benchmark execution, report generation, preview, and external
 publication.
 
+
+**REQ-PERF-032** — Routine release comparison must resolve the accepted baseline and
+candidate to distinct Git commits before planning, timing, comparison, or release-check
+evidence can be accepted. Campaign configuration must preserve exact TOML value types
+without lossy coercion, and benchmark selectors must not include unselected cases merely
+because their names share a prefix.
+
 **REQ-PERF-022** — The operator CLI must provide a project-owned release check
 that consumes retained ASV result files without rerunning measurements, writes
 normalized benchmark evidence, and applies the maintained release-regression rule. The check must require
@@ -637,3 +663,19 @@ scalar API intentionally supports.
 live ISC semantic comparison that fetches the declared standards page and
 verifies it against the independently retained reviewed semantic identity.
 Ordinary pull-request tests must remain network-independent.
+
+
+## Final 0.4 closure
+
+**REQ-CLOSE-001** — Before final `0.4`, maintained user/maintainer documentation must
+cover package purpose, representative usage, public inputs/outputs, important nuances
+and limitations, optional integrations, compatibility guidance, and performance.
+Performance claims must cite retained measurements with workload, environment, version,
+method, and interpretation limits rather than imply hardware-independent guarantees.
+
+**REQ-CLOSE-002** — Before final `0.4`, every public behavior already covered by an
+adopted project decision requiring removal or a material incompatible change in `0.5`
+must have an explicit deprecation path where technically appropriate. The warning must
+be suppressible, preserve `0.4` behavior, identify the planned `0.5` transition, and
+point to a replacement when one exists. Proposed-only changes must not be deprecated as
+if decided.

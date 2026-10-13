@@ -3,16 +3,21 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
 import hashlib
 import json
+import os
+import stat
 import subprocess
 import sys
+import tempfile
 import tomllib
 import zipfile
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Iterator, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import BinaryIO
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
@@ -36,22 +41,95 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def _files_under(root: Path, archive_root: str, family: str) -> list[EvidenceFile]:
-    """Return regular files below ``root`` with stable archive paths."""
+class EvidenceBundleError(RuntimeError):
+    """Raised when retained evidence crosses the declared preservation boundary."""
 
-    if not root.is_dir():
+
+@contextlib.contextmanager
+def _regular_stream(path: Path) -> Iterator[tuple[BinaryIO, os.stat_result]]:
+    """Open one evidence file without intentionally following a leaf symlink."""
+
+    flags = os.O_RDONLY | getattr(os, "O_BINARY", 0) | getattr(os, "O_NOFOLLOW", 0)
+    try:
+        descriptor = os.open(path, flags)
+    except OSError as exc:
+        raise EvidenceBundleError(f"cannot open retained evidence file safely: {path}") from exc
+    try:
+        file_stat = os.fstat(descriptor)
+        if not stat.S_ISREG(file_stat.st_mode):
+            raise EvidenceBundleError(f"retained evidence path is not a regular file: {path}")
+        with os.fdopen(descriptor, "rb") as stream:
+            descriptor = -1
+            yield stream, file_stat
+    finally:
+        if descriptor >= 0:
+            os.close(descriptor)
+
+
+def _regular_file(path: Path, archive_path: str, family: str) -> EvidenceFile:
+    """Classify one retained path without dereferencing symbolic links."""
+
+    try:
+        file_stat = path.lstat()
+    except FileNotFoundError as exc:
+        raise EvidenceBundleError(f"retained evidence path disappeared: {path}") from exc
+    if stat.S_ISLNK(file_stat.st_mode):
+        raise EvidenceBundleError(f"symbolic links are not valid retained evidence: {path}")
+    if not stat.S_ISREG(file_stat.st_mode):
+        raise EvidenceBundleError(f"retained evidence path is not a regular file: {path}")
+    return EvidenceFile(path, archive_path, family)
+
+
+def _files_under(root: Path, archive_root: str, family: str) -> list[EvidenceFile]:
+    """Return non-symlink regular files below one retained-evidence root."""
+
+    try:
+        root_stat = root.lstat()
+    except FileNotFoundError:
         return []
-    return [
-        EvidenceFile(path, f"{archive_root}/{path.relative_to(root).as_posix()}", family)
-        for path in sorted(root.rglob("*"))
-        if path.is_file()
-    ]
+    if stat.S_ISLNK(root_stat.st_mode):
+        raise EvidenceBundleError(f"evidence root must not be a symbolic link: {root}")
+    if not stat.S_ISDIR(root_stat.st_mode):
+        raise EvidenceBundleError(f"evidence root is not a directory: {root}")
+    files: list[EvidenceFile] = []
+    for current, directory_names, file_names in os.walk(root, topdown=True, followlinks=False):
+        current_path = Path(current)
+        for directory_name in tuple(directory_names):
+            directory = current_path / directory_name
+            directory_stat = directory.lstat()
+            if stat.S_ISLNK(directory_stat.st_mode):
+                raise EvidenceBundleError(
+                    f"symbolic-link directory is not valid retained evidence: {directory}"
+                )
+            if not stat.S_ISDIR(directory_stat.st_mode):
+                raise EvidenceBundleError(f"evidence path is not a directory: {directory}")
+        for file_name in file_names:
+            path = current_path / file_name
+            relative = path.relative_to(root).as_posix()
+            files.append(_regular_file(path, f"{archive_root}/{relative}", family))
+    return sorted(files, key=lambda item: item.archive_path)
 
 
 def _optional_file(path: Path, archive_path: str, family: str) -> list[EvidenceFile]:
-    """Return one evidence item when the source path exists."""
+    """Return one regular evidence item when the source path exists."""
 
-    return [EvidenceFile(path, archive_path, family)] if path.is_file() else []
+    try:
+        path.lstat()
+    except FileNotFoundError:
+        return []
+    return [_regular_file(path, archive_path, family)]
+
+
+def _regular_file_identity(path: Path) -> tuple[int, str]:
+    """Return byte count and SHA-256 from one safely opened regular file."""
+
+    digest = hashlib.sha256()
+    count = 0
+    with _regular_stream(path) as (stream, _):
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            count += len(chunk)
+            digest.update(chunk)
+    return count, digest.hexdigest()
 
 
 def _git_output(args: Sequence[str]) -> str | None:
@@ -173,13 +251,13 @@ def build_manifest(files: Iterable[EvidenceFile]) -> dict[str, object]:
     inventory = []
     families: dict[str, int] = {}
     for item in files:
-        size = item.source.stat().st_size
+        size, digest = _regular_file_identity(item.source)
         inventory.append(
             {
                 "path": item.archive_path,
                 "family": item.family,
                 "size": size,
-                "sha256": _sha256(item.source),
+                "sha256": digest,
             }
         )
         families[item.family] = families.get(item.family, 0) + 1
@@ -230,13 +308,31 @@ def create_bundle(output: Path) -> tuple[Path, dict[str, object]]:
     files = [item for item in collect_evidence_files() if item.source.resolve() != output]
     manifest = build_manifest(files)
     output.parent.mkdir(parents=True, exist_ok=True)
-    with zipfile.ZipFile(output, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as archive:
-        for item in files:
-            archive.write(item.source, item.archive_path)
-        archive.writestr(
-            "benchmark-evidence-manifest.json",
-            json.dumps(manifest, indent=2, sort_keys=True) + "\n",
-        )
+    descriptor, temporary_name = tempfile.mkstemp(
+        prefix=f".{output.name}.", suffix=".tmp", dir=output.parent
+    )
+    os.close(descriptor)
+    temporary: Path | None = Path(temporary_name)
+    try:
+        with zipfile.ZipFile(
+            temporary, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9
+        ) as archive:
+            for item in files:
+                with (
+                    _regular_stream(item.source) as (source, _),
+                    archive.open(item.archive_path, "w", force_zip64=True) as target,
+                ):
+                    for chunk in iter(lambda: source.read(1024 * 1024), b""):
+                        target.write(chunk)
+            archive.writestr(
+                "benchmark-evidence-manifest.json",
+                json.dumps(manifest, indent=2, sort_keys=True) + "\n",
+            )
+        os.replace(temporary, output)
+        temporary = None
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
     return output, manifest
 
 

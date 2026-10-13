@@ -183,9 +183,11 @@ broader storage-transaction guarantee:
 
 1. reject input/output aliasing;
 2. open the input;
-3. create an exclusive temporary sibling with normal process-umask semantics;
+3. create an exclusive temporary sibling; for an existing destination its initial
+   permission bits are no broader than the destination, while a new destination uses
+   normal process-umask semantics;
 4. validate and process all input into the sibling;
-5. if a destination exists, copy its permission bits to the sibling;
+5. if a destination exists, apply its exact permission bits to the sibling;
 6. close the sibling; and
 7. publish it with `os.replace()`.
 
@@ -255,26 +257,18 @@ geographical IDs 172, 299, and 550 receive no fabricated geometry.
 
 ### 9.1 Current implementation and 0.4 target boundary
 
-The `0.3` beta source is the migration baseline. It uses the standalone timer,
-`pytest-benchmark`, Tox benchmark-Python environments, a custom cross-Python
-reducer, and the custom release comparator documented in `benchmarks/README.md`.
-The reviewed post-b3 vertical slice satisfies `REQ-PERF-017`. ASV plus the project-
-owned campaign/evidence/regression layers are the **primary performance-evidence path**.
-The predecessor paths remain runnable compatibility/reference tooling and historical
-provenance; they are no longer a second co-equal authority.
+The `0.3` beta source is the migration baseline. `DEC-062` establishes ASV plus the
+project-owned campaign/evidence/regression layers as the primary performance-evidence
+path for the `0.4` line. Predecessor benchmark tooling remains runnable compatibility/
+reference tooling and historical provenance; it is not a second co-equal authority.
 
 The implemented target core is `0.4.0`, dedicated to benchmark-system work. Beta
 stabilization preserves the source implementation established and review-corrected in
 alpha. The `0.4` target does not authorize unrelated runtime lookup features or
 performance optimizations. Measurements may identify such work, but adoption of
-that work requires its own compatibility/scope decision. Implementation status,
-maturity, and verification status remain separate; maintainer-host ASV current/history,
-dependency, supported-Python, pinned-source reference, diagnostic, and corrected b2
-ObsPy execution is now observed. Fresh b2 predecessor/Tox evidence is also retained. b3
-binds normalized evidence to the campaign environment profile and retains report-rebuild
-provenance. Reviewed post-b3 release-gate and report-replay evidence satisfies
-`REQ-PERF-017`; `DEC-062` establishes the ASV-derived path as primary benchmark
-authority.
+that work requires its own compatibility/scope decision. Implementation status, maturity, and verification status remain separate. Candidate-
+specific benchmark execution, parity observations, report-rebuild results, and digests
+belong in release/delivery evidence rather than this maintained design contract.
 
 Routine benchmark semantics continue to cover in-process scalar, batch,
 name-conversion, hierarchy, and pandas interfaces. CLI and GeoJSON timing remain

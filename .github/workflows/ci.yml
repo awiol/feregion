@@ -152,6 +152,11 @@ jobs:
         run: uv run --locked mypy
       - name: Build distributions
         run: uv build
+      - name: Verify AI provenance is present in the sdist
+        run: >-
+          python -c "import pathlib, tarfile; p=next(pathlib.Path('dist').glob('*.tar.gz'));
+          a=tarfile.open(p); names=a.getnames();
+          assert any(n.endswith('/AI_PROVENANCE.md') for n in names), names"
       - name: Verify wheel in an isolated environment
         run: >-
           uv run --locked python -m tools.verify_wheel

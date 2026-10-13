@@ -363,6 +363,11 @@ The maintained contract set uses stable filenames. Git history records document 
 
 ## License and provenance
 
+`feregion` has been developed with extensive generative-AI assistance under
+human-directed requirements, design, evaluation, and release control. See
+`AI_PROVENANCE.md` for the project-level development-provenance statement and its
+limitations.
+
 The `feregion` project is distributed under LGPL-3.0-only. That project license
 does not by itself establish the license of upstream FE source data. See
 `THIRD_PARTY_NOTICES.md` and `src/feregion/data/metadata.json` for the recorded

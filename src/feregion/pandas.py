@@ -61,6 +61,8 @@ def lookup_dataframe(
         DataFrameColumnError: If coordinate selection or output schema is invalid.
         PandasDependencyError: If pandas is not installed.
         CoordinateTypeError: If a coordinate column is not numeric.
+        CoordinateValueError: If a coordinate contains a non-finite value.
+        CoordinateRangeError: If a coordinate is outside the supported coordinate range.
     """
 
     try:

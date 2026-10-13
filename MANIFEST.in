@@ -1,6 +1,7 @@
 include .gitignore
 include .pre-commit-config.yaml
 include CHANGELOG.md
+include AI_PROVENANCE.md
 include LICENSE
 include pyproject.toml
 include README.md

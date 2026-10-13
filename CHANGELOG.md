@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.4.0b8 — 2026-10-13
+
+- Apply the scoped Ruff formatting and lint corrections required to integrate b7,
+  including the equivalent combination of nested archive and source context managers.
+  No intended runtime behavior changes.
+
+## 0.4.0b7 — 2026-10-12
+
+- Close the isolated b6 review findings across release-comparison integrity, campaign
+  typing/selectors, evidence/repository export boundaries, CSV temporary permissions,
+  packaged-data error normalization, bounded source acquisition, delivery-manifest
+  conformance, and maintained documentation/API consistency.
+- Add explicit AI-development provenance in `AI_PROVENANCE.md`, remove OpenAI from
+  package author metadata, add the concise README disclosure, include the provenance
+  notice in source distributions, and record `DEC-065`. LGPL-3.0-only and the recorded
+  FE/ISC/ObsPy upstream-rights disposition are unchanged.
+- Keep provenance, software licensing, upstream scientific-data rights, scientific
+  verification, and future citation identity separate. Existing Git history is not
+  rewritten and `CITATION.cff` remains deferred.
+- Record final-0.4 closure gates for high-quality purpose/usage/nuance/performance
+  documentation and for suppressible warnings only where an adopted 0.5 decision
+  actually requires an incompatible change or removal. No such public deprecation is
+  invented in this candidate.
+
 ## 0.4.0b6 — 2026-09-20
 
 - Remove per-candidate source churn from the routine release gate. `release-compare.toml` now keeps a stable `__BASELINE__` placeholder; `campaign plan/run/compare/check` require the accepted prior candidate explicitly with `--baseline`, resolve it to an immutable commit, and retain that identity in the existing content-addressed effective plan.

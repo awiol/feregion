@@ -51,7 +51,7 @@ def _read_packaged_assets() -> AssetBundle:
             seismic_names = np.load(stream, allow_pickle=False)
     except FileNotFoundError as exc:
         raise DataFileError("packaged Flinn-Engdahl lookup data is missing") from exc
-    except (OSError, ValueError) as exc:
+    except (OSError, ValueError, EOFError) as exc:
         raise DataFileError("packaged Flinn-Engdahl lookup data cannot be read") from exc
 
     _validate_assets(table, names, seismic_by_geographic, seismic_names)

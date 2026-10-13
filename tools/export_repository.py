@@ -29,6 +29,7 @@ from pathlib import Path, PurePosixPath
 
 _ARCHIVE_TIMESTAMP = (1980, 1, 1, 0, 0, 0)
 _EXCLUDED_TRACKED_PATHS = {PurePosixPath("uv.lock")}
+_CONTROL_CHARACTERS = frozenset(map(chr, range(32))) | {"\x7f"}
 
 
 class RepositoryExportError(RuntimeError):
@@ -185,7 +186,9 @@ def export_repository(
             omitted.append(str(relative))
             continue
         source_path = root / Path(relative)
-        if not source_path.exists():
+        try:
+            source_path.lstat()
+        except FileNotFoundError:
             # A tracked file deleted in the working tree should remain deleted in
             # the handoff rather than resurrecting its index/HEAD bytes.
             continue
@@ -209,7 +212,7 @@ def export_repository(
             compresslevel=9,
         ) as archive:
             for relative, source_path in included:
-                archive_path = archive_root / relative
+                archive_path = _archive_member_path(archive_root, relative)
                 info = _zip_info(archive_path, source_path)
                 archive.writestr(info, source_path.read_bytes(), compresslevel=9)
         os.replace(temporary, output)
@@ -225,6 +228,40 @@ def export_repository(
         untracked_files=tuple(str(path) for path in untracked),
         sha256=digest,
     )
+
+
+def _safe_identity_component(value: object, field: str, metadata_path: Path) -> str:
+    """Return one project identity value safe for a single archive component."""
+
+    if not isinstance(value, str):
+        raise RepositoryExportError(f"{field} in {metadata_path} must be a string")
+    component = value.strip()
+    if (
+        not component
+        or component in {".", ".."}
+        or "/" in component
+        or "\\" in component
+        or any(character in _CONTROL_CHARACTERS for character in component)
+    ):
+        raise RepositoryExportError(
+            f"{field} in {metadata_path} must be one non-empty path-safe component"
+        )
+    return component
+
+
+def _archive_member_path(archive_root: PurePosixPath, relative: PurePosixPath) -> PurePosixPath:
+    """Return one ZIP member that remains below the intended archive root."""
+
+    if relative.is_absolute() or ".." in relative.parts:
+        raise RepositoryExportError(f"tracked path is unsafe for handoff archive: {relative}")
+    member = archive_root / relative
+    if member.is_absolute() or ".." in member.parts:
+        raise RepositoryExportError(f"archive member escapes handoff root: {member}")
+    try:
+        member.relative_to(archive_root)
+    except ValueError as exc:
+        raise RepositoryExportError(f"archive member escapes handoff root: {member}") from exc
+    return member
 
 
 def _project_identity(root: Path) -> tuple[str, str]:
@@ -250,15 +287,10 @@ def _project_identity(root: Path) -> tuple[str, str]:
         raise RepositoryExportError(
             f"cannot determine project identity from {metadata_path}"
         ) from exc
-    if not isinstance(name, str) or not name.strip() or "/" in name or "\\" in name:
-        raise RepositoryExportError(
-            f"project.name in {metadata_path} must be a non-empty path-safe string"
-        )
-    if not isinstance(version, str) or not version.strip():
-        raise RepositoryExportError(
-            f"project.version in {metadata_path} must be a non-empty string"
-        )
-    return name.strip(), version.strip()
+    return (
+        _safe_identity_component(name, "project.name", metadata_path),
+        _safe_identity_component(version, "project.version", metadata_path),
+    )
 
 
 def _default_output(start: Path) -> Path:

@@ -11,6 +11,7 @@ from html.parser import HTMLParser
 from pathlib import Path
 from urllib.request import Request, urlopen
 
+from tools._bounded_http import read_bounded_response
 from tools.isc_fe_source import (
     DEFAULT_ISC_SOURCE,
     EXPECTED_SEMANTIC_SHA256,
@@ -21,6 +22,9 @@ from tools.isc_fe_source import (
 
 _REGION_RE = re.compile(r"^Seismic Region\s+(\d+)$", re.IGNORECASE)
 _GEOGRAPHIC_RE = re.compile(r"^(\d+)\s+(.+)$")
+# The page describes 50 seismic regions and 754 active geographical memberships;
+# 2 MiB leaves substantial layout headroom while keeping the response bounded.
+ISC_SOURCE_MAX_BYTES = 2 * 1024 * 1024
 
 
 class _TextExtractor(HTMLParser):
@@ -49,11 +53,13 @@ class _TextExtractor(HTMLParser):
 
 
 def download_bytes(url: str = ISC_FE_URL) -> bytes:
-    """Download the current ISC FE standards page with a bounded timeout."""
+    """Download the current ISC FE standards page with bounded time and size."""
 
     request = Request(url, headers={"User-Agent": "feregion-source-fetch/0.2"})
     with urlopen(request, timeout=30) as response:
-        return response.read()
+        return read_bounded_response(
+            response, max_bytes=ISC_SOURCE_MAX_BYTES, label="ISC FE source response"
+        )
 
 
 def _visible_lines(html: bytes) -> list[str]:

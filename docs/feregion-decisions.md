@@ -1335,3 +1335,27 @@ changed rationale as historical fact.
 - **Review trigger:** Baseline selection becomes safely derivable from an authorized
   external release registry, campaign scope semantics change, or promotion evidence
   requirements materially change.
+
+## `DEC-065` — Separate AI development provenance from authorship, licensing, and scientific-source rights
+
+- **Context:** Project material has been substantially generated or revised with
+  generative-AI systems. Historical package metadata listed OpenAI as an author and
+  historical commit subjects used “AI-authored”, conflating development provenance
+  with legal or scholarly authorship. Software licensing and upstream FE-data rights
+  are separate questions.
+- **Decision:** Maintain top-level `AI_PROVENANCE.md` as the development-provenance
+  record. Record AI systems there as tooling/provenance, not package authors. Package
+  author metadata identifies responsible human project authors/contributors. Avoid
+  “AI-authored” terminology for new release/commit labels. Keep LGPL-3.0-only unchanged
+  unless separately decided. Preserve upstream FE-data rights as a separate unresolved
+  matter. Do not add citation metadata until an actual citation object/basis exists.
+- **Alternatives considered:** retain OpenAI as package author; encode AI disclosure in
+  the license; add custom AI licensing terms; omit AI provenance; rewrite existing Git
+  history; add `CITATION.cff` preemptively.
+- **Consequence:** This decision changes development provenance and package authorship
+  metadata only. It does not change software permissions, API/runtime/scientific output,
+  upstream-data rights, or historical Git records.
+- **Review trigger:** outgoing-license policy is reconsidered; material outside
+  contributors appear; the AI development process changes substantially; formal
+  publication/citation identity emerges; warranties, indemnities, or institutional IP
+  ownership become relevant; or material legal developments change the analysis.

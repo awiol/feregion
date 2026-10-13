@@ -79,6 +79,14 @@ path may override that default. The archive must be deterministic for unchanged
 working-tree bytes and a fixed output identity, and must use the stable
 `feregion/` internal root.
 
+**REQ-REPO-011** — Repository handoff and retained-evidence export must not
+silently cross a filesystem or archive containment boundary. Tracked symbolic links,
+including broken symbolic links, and retained-evidence symbolic links or special files
+must fail explicitly instead of being dereferenced or omitted as if absent. Project and
+version values used as archive identity components must be safe single path components,
+and every final ZIP member path must be relative, contain no parent traversal, and remain
+under the intended internal archive root.
+
 ## Iterative delivery contract
 
 **REQ-DEL-001** — Each iterative source delivery must provide a complete

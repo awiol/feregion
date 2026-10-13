@@ -91,6 +91,56 @@ REFERENCE_CONSTRAINTS = Path("benchmarks/constraints/reference-comparison.txt")
 DEFAULT_MACHINE_POLICY = "same-machine-environment-case-version"
 SUPPORTED_REPORT_STEPS = frozenset({"asv-site"})
 EXPLICIT_BASELINE_MARKER = "__BASELINE__"
+RELEASE_COMPARISON_CAMPAIGN_ID = "release-compare"
+
+
+def _require_string(config: dict[str, Any], key: str, default: str | None = None) -> str:
+    """Return one campaign string without coercing another TOML type."""
+
+    value = config.get(key, default)
+    if not isinstance(value, str):
+        raise ValueError(f"campaign {key!r} must be a string")
+    return value
+
+
+def _require_string_list(
+    config: dict[str, Any], key: str, default: Sequence[str] | None = None
+) -> tuple[str, ...]:
+    """Return one campaign string array with exact item types."""
+
+    value = config.get(key, list(default) if default is not None else None)
+    if not isinstance(value, list) or any(not isinstance(item, str) for item in value):
+        raise ValueError(f"campaign {key!r} must be an array of strings")
+    return tuple(value)
+
+
+def _require_integer(config: dict[str, Any], key: str, default: int) -> int:
+    """Return one campaign integer while rejecting bools and numeric coercion."""
+
+    value = config.get(key, default)
+    if type(value) is not int:
+        raise ValueError(f"campaign {key!r} must be an integer")
+    return value
+
+
+def _require_integer_list(
+    config: dict[str, Any], key: str, default: Sequence[int]
+) -> tuple[int, ...]:
+    """Return one campaign integer array without truncating floats or bools."""
+
+    value = config.get(key, list(default))
+    if not isinstance(value, list) or any(type(item) is not int for item in value):
+        raise ValueError(f"campaign {key!r} must be an array of integers")
+    return tuple(value)
+
+
+def _require_bool(config: dict[str, Any], key: str, default: bool) -> bool:
+    """Return one campaign Boolean without truthiness coercion."""
+
+    value = config.get(key, default)
+    if type(value) is not bool:
+        raise ValueError(f"campaign {key!r} must be a Boolean")
+    return value
 
 
 def benchmark_tool_versions() -> dict[str, str | None]:
@@ -212,6 +262,19 @@ def resolve_revisions(campaign: Campaign, *, repository: Path) -> tuple[Resolved
     )
 
 
+def validate_release_revision_pair(
+    campaign: Campaign, resolved_revisions: Sequence[ResolvedRevision]
+) -> None:
+    """Reject a vacuous baseline-versus-candidate routine release comparison."""
+
+    if campaign.campaign_id != RELEASE_COMPARISON_CAMPAIGN_ID:
+        return
+    if len(resolved_revisions) != 2:
+        raise ValueError("release comparison requires exactly two resolved revisions")
+    if resolved_revisions[0].commit == resolved_revisions[1].commit:
+        raise ValueError("release comparison requires distinct baseline and candidate commits")
+
+
 @dataclass(frozen=True, slots=True)
 class Campaign:
     """Resolved operator intent for one benchmark campaign."""
@@ -235,18 +298,20 @@ class Campaign:
         with path.open("rb") as handle:
             data = tomllib.load(handle)
         config = data.get("campaign", data)
+        if not isinstance(config, dict):
+            raise ValueError("campaign configuration must be a TOML table")
         campaign = cls(
-            campaign_id=str(config["id"]),
-            purpose=str(config.get("purpose", "benchmark campaign")),
-            revisions=tuple(str(value) for value in config["revisions"]),
-            cases=tuple(str(value) for value in config.get("cases", CASES)),
-            load_sizes=tuple(int(value) for value in config.get("load_sizes", STANDARD_LOAD_SIZES)),
-            repetitions=int(config.get("repetitions", 5)),
-            rounds=int(config.get("rounds", 3)),
-            environment_profile=str(config.get("environment_profile", "release-history")),
-            record_samples=bool(config.get("record_samples", True)),
-            machine_policy=str(config.get("machine_policy", DEFAULT_MACHINE_POLICY)),
-            report_steps=tuple(str(value) for value in config.get("report_steps", ())),
+            campaign_id=_require_string(config, "id"),
+            purpose=_require_string(config, "purpose", "benchmark campaign"),
+            revisions=_require_string_list(config, "revisions"),
+            cases=_require_string_list(config, "cases", tuple(CASES)),
+            load_sizes=_require_integer_list(config, "load_sizes", STANDARD_LOAD_SIZES),
+            repetitions=_require_integer(config, "repetitions", 5),
+            rounds=_require_integer(config, "rounds", 3),
+            environment_profile=_require_string(config, "environment_profile", "release-history"),
+            record_samples=_require_bool(config, "record_samples", True),
+            machine_policy=_require_string(config, "machine_policy", DEFAULT_MACHINE_POLICY),
+            report_steps=_require_string_list(config, "report_steps", ()),
         )
         campaign.validate()
         return campaign
@@ -376,10 +441,6 @@ def build_asv_config(
 
 def benchmark_regex(campaign: Campaign) -> str:
     """Return an ASV regex selecting the requested semantic cases and load parameters."""
-
-    escaped_cases = [re.escape(case) for case in campaign.cases]
-    if set(campaign.load_sizes) == set(STANDARD_LOAD_SIZES):
-        return "|".join(escaped_cases)
 
     scalar_cases = [
         re.escape(case) for case in campaign.cases if not CASES[case].load_parameterized
@@ -574,6 +635,7 @@ def check_release_campaign(
 
     if len(resolved_revisions) != 2:
         raise ValueError("check requires exactly two campaign revisions")
+    validate_release_revision_pair(campaign, resolved_revisions)
     if campaign.environment_profile != "release-history":
         raise ValueError("check requires the fixed release-history environment profile")
     if "lookup_geographic_numbers" not in campaign.cases:
@@ -655,6 +717,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     repository = Path(__file__).resolve().parents[1]
     try:
         resolved_revisions = resolve_revisions(campaign, repository=repository)
+        validate_release_revision_pair(campaign, resolved_revisions)
     except ValueError as exc:
         raise SystemExit(str(exc)) from exc
 

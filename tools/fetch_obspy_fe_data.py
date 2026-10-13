@@ -9,6 +9,7 @@ from collections.abc import Callable, Mapping
 from pathlib import Path
 from urllib.request import Request, urlopen
 
+from tools._bounded_http import read_bounded_response_with_sha256
 from tools.obspy_fe_source import (
     DEFAULT_SOURCE_DIR,
     OBSPY_COMMIT,
@@ -20,14 +21,24 @@ from tools.obspy_fe_source import (
 )
 
 FetchBytes = Callable[[str], bytes]
+OBSPY_SOURCE_MAX_BYTES = 64 * 1024
 
 
-def download_bytes(url: str) -> bytes:
-    """Download one upstream file with a bounded network timeout."""
+def _download_bytes_with_sha256(url: str) -> tuple[bytes, str]:
+    """Download one pinned table and hash it incrementally while reading."""
 
     request = Request(url, headers={"User-Agent": "feregion-source-fetch/0.1"})
     with urlopen(request, timeout=30) as response:
-        return response.read()
+        return read_bounded_response_with_sha256(
+            response, max_bytes=OBSPY_SOURCE_MAX_BYTES, label="ObsPy FE source response"
+        )
+
+
+def download_bytes(url: str) -> bytes:
+    """Download one pinned table with bounded time and response size."""
+
+    data, _ = _download_bytes_with_sha256(url)
+    return data
 
 
 def fetch_source_data(
@@ -50,8 +61,11 @@ def fetch_source_data(
             continue
 
         url = f"{RAW_BASE_URL}/{name}"
-        data = fetch_bytes(url)
-        observed_sha256 = sha256_bytes(data)
+        if fetch_bytes is download_bytes:
+            data, observed_sha256 = _download_bytes_with_sha256(url)
+        else:
+            data = fetch_bytes(url)
+            observed_sha256 = sha256_bytes(data)
         if observed_sha256 != expected_digest:
             raise ValueError(
                 f"downloaded {name} from ObsPy {OBSPY_REVISION} ({OBSPY_COMMIT}) "

@@ -59,6 +59,22 @@ def compare_release_evidence(
 
     baseline_records = [record for record in baseline if record.case_id == case_id]
     candidate_records = [record for record in candidate if record.case_id == case_id]
+    baseline_revisions = {record.revision for record in baseline_records}
+    candidate_revisions = {record.revision for record in candidate_records}
+    if len(baseline_revisions) != 1 or len(candidate_revisions) != 1:
+        return RegressionDecision(
+            False,
+            False,
+            (),
+            "release comparison requires one baseline revision and one candidate revision",
+        )
+    if baseline_revisions == candidate_revisions:
+        return RegressionDecision(
+            False,
+            False,
+            (),
+            "baseline and candidate evidence identify the same revision",
+        )
     baseline_contexts = {(record.machine, record.environment) for record in baseline_records}
     candidate_contexts = {(record.machine, record.environment) for record in candidate_records}
     common_contexts = baseline_contexts & candidate_contexts

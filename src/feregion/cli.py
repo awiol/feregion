@@ -239,15 +239,18 @@ def _process_csv_to_file(
 ) -> None:
     """Publish a CSV file atomically after complete successful processing.
 
-    If the destination already exists, preserve its permission bits. If the
-    destination is new, create the temporary sibling with normal file-creation
-    permissions so the process umask determines the resulting mode.
+    If the destination already exists, create the temporary sibling no more
+    permissively than that destination and preserve its exact final permission bits.
+    A new destination uses normal file-creation permissions subject to the process umask.
     """
 
     temporary_path: Path | None = None
     destination_mode = stat.S_IMODE(output_path.stat().st_mode) if output_path.exists() else None
     try:
-        temporary_path, output_stream = _open_csv_temporary(output_path)
+        creation_mode = 0o666 if destination_mode is None else destination_mode & 0o777
+        temporary_path, output_stream = _open_csv_temporary(
+            output_path, creation_mode=creation_mode
+        )
         with output_stream:
             _process_csv(
                 input_stream,
@@ -269,8 +272,8 @@ def _process_csv_to_file(
             temporary_path.unlink(missing_ok=True)
 
 
-def _open_csv_temporary(output_path: Path) -> tuple[Path, TextIO]:
-    """Create an exclusive temporary sibling using normal umask semantics."""
+def _open_csv_temporary(output_path: Path, *, creation_mode: int = 0o666) -> tuple[Path, TextIO]:
+    """Create an exclusive temporary sibling with the requested maximum mode."""
 
     for _ in range(100):
         temporary_path = output_path.parent / (f".{output_path.name}.{secrets.token_hex(8)}.tmp")
@@ -278,7 +281,7 @@ def _open_csv_temporary(output_path: Path) -> tuple[Path, TextIO]:
             descriptor = os.open(
                 temporary_path,
                 os.O_WRONLY | os.O_CREAT | os.O_EXCL,
-                0o666,
+                creation_mode,
             )
         except FileExistsError:
             continue

@@ -57,32 +57,18 @@ stronger product claim by itself.
 | `QG-PERF` | Performance claims remain bounded by evidence | After accepted `REQ-PERF-017` migration evidence, ASV plus the project-owned campaign/evidence/regression layers are the primary performance-evidence path; predecessor tooling remains compatibility/reference evidence and provenance. | Correctness-sensitive evidence exists on one comparable context; median throughput slowdown exceeds 25% at no two adjacent maintained loads without disposition; direct ObsPy/source comparisons are cited only when actually run; otherwise the gate is incomplete. | Project decision owner | retained ASV result/state/run/environment/report evidence, normalized release comparison, and parity review; predecessor evidence when relevant |
 | `QG-PROV` | Upstream and generated-data identity is known to the stated level | Pinned ObsPy source hashes; literal reviewed ISC semantic hash independent from hierarchy declarations; generated-asset SHA-256 checks; multi-source metadata and third-party notice review | Identity checks pass and unresolved license/provenance limitations remain explicit; live ISC comparison is scheduled/manual integration evidence | Source-data license disposition requires qualified/human decision | semantic-pin record, metadata, notices, verification record |
 | `QG-DOC` | Maintained knowledge matches the target behavior | Contract/document synchronization tests plus semantic review | Current requirements/design/quality/decision/traceability set matches the changed public and repository behavior | Project decision owner | source documents and review record |
+| `QG-CLOSE-DOC` | Final `0.4` user/maintainer documentation is fit for migration and use | Documentation review against public interfaces plus retained performance evidence | Purpose, usage, nuances, limitations, optional integrations, compatibility guidance, and bounded measured performance are documented | Project decision owner | final documentation review and cited measurement evidence |
+| `QG-CLOSE-DEPRECATION` | Final `0.4` warns for adopted `0.5` incompatibilities without breaking early | Adopted `0.5` decision inventory plus warning emission/suppression tests | Every applicable adopted incompatibility has a suppressible warning and replacement guidance where available; proposed-only changes are excluded | Project decision owner | adopted decision inventory and deprecation regressions |
 | `QG-DELIVERY` | The exported source handoff is replayable | Full source archive, exact-baseline patch, manifest, checksums, patch application and tree comparison | Patch reconstructs target byte-for-byte; archive safety and checksums pass | Project decision owner | delivery manifest, checksums, patch, verification record |
 
 ## Maturity and release-validation decision
 
-Prerelease identifiers describe maturity for one target line and remain separate
-from release-validation status. The `0.4` line is now the active beta target. Its
-intended benchmark-system functionality is substantially complete after the a10
-review corrections; beta work is stabilization, evidence reconciliation, and migration
-closure rather than discretionary benchmark-surface expansion.
-
-The `0.4.0` target remains dedicated to the benchmark system described in the
-engineering requirements and design. Repository contract tests cover the project-owned
-benchmark model, campaign planning, semantic oracle, evidence normalization, explicit
-result states, and release-decision logic. Maintainer-host ASV current/history numeric
-execution is now observed, including real diagnostic and pinned-source reference cases.
-Corrected b2 direct ObsPy/reference execution and fresh predecessor/Tox evidence are
-retained. b3 fixes cross-profile normalized-evidence contamination and adds retained
-report-rebuild proof. Reviewed post-b3 same-profile release-check and report-rebuild
-evidence satisfy `REQ-PERF-017`; `DEC-062` therefore promotes the ASV-derived path to
-primary benchmark authority. This migration decision remains separate from unrelated
-release-validation and publication gates.
-
-`QG-BENCH` applies to implementation and promotion of the `0.4` benchmark target.
-It is not retroactively added as a blocker for `0.3` beta stabilization. The accepted `0.4` migration passes `QG-BENCH` and `REQ-PERF-017`; `QG-PERF` now
-uses the ASV-derived path. Predecessor benchmark evidence remains available for
-compatibility/reference use and historical provenance.
+Prerelease identifiers describe maturity for one target line and remain separate from
+release-validation status. The `0.4` line is the active beta target. `DEC-062` establishes
+the ASV-derived path as primary benchmark authority; exact candidate execution results,
+migration/parity observations, report-rebuild outcomes, and digests remain release/
+delivery evidence rather than maintained-contract state. Predecessor benchmark evidence
+remains available for compatibility/reference use and historical provenance.
 
 Alpha or beta maturity does not mean that all applicable release gates passed,
 that scientific validation is complete, or that public distribution is approved.
