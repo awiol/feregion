@@ -87,6 +87,25 @@ matrix/split, `1.33x` seismic matrix/split, and `1.58x` caller stack+lookup/spli
 support avoiding representation conversion when the caller already owns separate vectors; they
 do not make the matrix API obsolete.
 
+### 0.6.0b2 — 2026-10-17
+
+`0.6.0b2` is a distinct successor beta release identity. It starts from the accepted
+`0.6.0b1` source state, but it does **not** replace, rename, or retroactively repair the
+identity of either the original b1 delivery or the later b1 packaging-evidence repair.
+Those artifacts remain historical provenance with their own hashes.
+
+The reason for b2 is packaging-evidence integrity. Isolated review of the original b1
+delivery found that its retained source distribution differed from the authoritative b1
+source archive by one trailing blank line in `docs/feregion-decisions.md`. Runtime and
+document meaning were unaffected, but the sdist could not be treated as exact-target
+packaging evidence. b2 therefore freezes a new source identity, builds distributions only
+from that frozen source, and verifies every source-controlled sdist member byte-for-byte
+against the source-recovery authority before the distribution is accepted.
+
+The new `tools/verify_sdist.py` check and `REQ-PKG-022`/`DEC-078` make that provenance
+boundary durable. Installed runtime behavior is intentionally unchanged from b1 except for
+the package version identity.
+
 ### 0.6.0b1 — 2026-10-17
 
 `0.6.0b1` is the first beta candidate. It intentionally keeps the `0.6.0a5` FE lookup/runtime

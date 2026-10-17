@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.0b2 — 2026-10-17
+
+- Issue a distinct successor beta identity from the accepted `0.6.0b1` source state after isolated review found that the original b1 delivery's retained sdist had been built one byte-state before the final authoritative source archive. The prior b1 source, original b1 delivery, and later b1 packaging-evidence repair remain distinct historical identities and are not redefined by this release.
+- Strengthen `QG-PKG` with exact source-recovery-authority to sdist member parity and add `tools/verify_sdist.py` plus regression coverage so a retained source distribution cannot silently differ from the authoritative source state while still being presented as exact-target packaging evidence.
+- Rebuild the b2 wheel and sdist only after the b2 source is frozen, then bind their hashes and source-member parity evidence to the new b2 delivery. No FE table, hierarchy, lookup algorithm, public API, dependency, CLI, pandas, GeoJSON, matrix/split semantics, or compatibility-alias behavior is intentionally changed.
+
 ## 0.6.0b1 — 2026-10-17
 
 - Enter beta without changing FE lookup semantics after the split-vector interface converged under isolated review, exact `0.6.0a5` hosted CI passed the configured Python 3.11–3.14/static/package/source-oracle jobs, and the maintained `0.5.0b6`→`0.6.0a5` release-performance comparison completed without triggering the project regression rule.

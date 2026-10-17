@@ -699,6 +699,8 @@ verifies it against the independently retained reviewed semantic identity.
 Ordinary pull-request tests must remain network-independent.
 
 
+**REQ-PKG-022** — A source distribution retained as exact-target package or release evidence must be built from the frozen source-recovery authority. Every source-controlled file represented in the sdist must match the authoritative source bytes exactly. Generated packaging metadata may be additional members but must be identifiable as generated output. A source/sdist mismatch must fail the packaging gate rather than be explained away by matching version metadata or a successful wheel build.
+
 ## Final 0.4 closure
 
 **REQ-CLOSE-001** — Before final `0.4`, maintained user/maintainer documentation must
