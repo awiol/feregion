@@ -107,6 +107,20 @@ their stated limitations. The guide is explanatory user documentation: it must
 not override requirements, decisions, verification status, or `CHANGELOG.md`.
 `README.md` must link to the stable guide.
 
+**REQ-REPO-013** — The repository must maintain one stable task-oriented user guide at
+`docs/user-guide.md`. The guide must help a caller choose the public interface that
+matches the input representation and requested FE result; explain coordinate ordering,
+range/reference-frame conventions, matrix versus split-vector semantics, output dtypes,
+important validation/error behavior, name and hierarchy conversion, pandas/CSV/GeoJSON
+nuances, explicit-engine behavior, and material limitations; and distinguish compatibility
+aliases from the preferred explicit geographical/seismic interfaces. Performance guidance
+must identify the measured revision, workload, environment, method, and interpretation
+limits for quantitative claims, and must separate scalar, batch, interface-shape, and
+release-regression evidence rather than presenting them as one universal speed claim.
+`README.md` must remain a usable quick start and link to the task-oriented guide. When a
+public interface, nuance, limitation, or decision-relevant performance observation changes,
+the affected user guide section must be reviewed in the same source change.
+
 ## Iterative delivery contract
 
 **REQ-DEL-001** — Each iterative source delivery must provide a complete

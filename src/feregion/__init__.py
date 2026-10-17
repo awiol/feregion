@@ -9,7 +9,7 @@ from ._default import get_default_lookup
 from .core import FlinnEngdahlLookup, ScalarCoordinate
 from .types import GeographicRegion, Region, SeismicRegion
 
-__version__ = "0.6.0a5"
+__version__ = "0.6.0b1"
 
 
 def lookup_geographic_number(longitude: ScalarCoordinate, latitude: ScalarCoordinate) -> int:
@@ -91,6 +91,11 @@ def lookup_geographic_numbers_from_vectors(
         CoordinateTypeError: If either input dtype is not a supported real numeric type.
         CoordinateValueError: If a coordinate is not finite.
         CoordinateRangeError: If a coordinate is outside the supported range.
+
+    Notes:
+        Empty and non-contiguous one-dimensional inputs are supported. Caller-owned
+        arrays are not modified, and validation preserves each source dtype through
+        FE cell-ownership selection.
     """
 
     return get_default_lookup().lookup_geographic_numbers_from_vectors(longitude, latitude)
@@ -246,6 +251,11 @@ def lookup_seismic_numbers_from_vectors(
         CoordinateValueError: If a coordinate is not finite.
         CoordinateRangeError: If a coordinate is outside the supported range.
         SeismicDataUnavailableError: If the selected engine has no seismic hierarchy.
+
+    Notes:
+        Empty and non-contiguous one-dimensional inputs are supported. Caller-owned
+        arrays are not modified. Geographic ownership is selected with the same
+        source-dtype-preserving path used by the public geographic split lookup.
     """
 
     return get_default_lookup().lookup_seismic_numbers_from_vectors(longitude, latitude)

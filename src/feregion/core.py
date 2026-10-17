@@ -470,6 +470,11 @@ class FlinnEngdahlLookup:
             CoordinateValueError: If a coordinate is not finite.
             CoordinateRangeError: If a coordinate is outside the supported range.
             SeismicDataUnavailableError: If this engine has no seismic hierarchy.
+
+        Notes:
+            Non-contiguous one-dimensional inputs are supported. The method does
+            not modify caller-owned arrays. Geographic ownership is selected with
+            the same source-dtype-preserving path as the geographic split lookup.
         """
 
         return self._lookup_seismic_numbers_from_vectors(longitude, latitude)

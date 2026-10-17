@@ -8,10 +8,12 @@ Normal lookup uses packaged processed data. Runtime lookup, names, hierarchy
 conversion, and GeoJSON generation do not require ObsPy, ISC network access, or
 another source service. pandas and Shapely remain optional interface dependencies.
 
+For task-oriented usage, API selection, edge cases, error behavior, optional
+integrations, and evidence-bounded performance guidance, see `docs/user-guide.md`.
 For the maintained user-oriented release history, including rationale, practical
 impact, compatibility notes, and usage examples for every minor line, see
-`docs/whats-new.md`. The guide is updated with every release candidate;
-`CHANGELOG.md` remains the concise release-by-release historical record.
+`docs/whats-new.md`. `CHANGELOG.md` remains the concise release-by-release
+historical record.
 
 ## Install with uv
 
@@ -41,14 +43,16 @@ not use a Makefile.
 
 ## Python API
 
+Prefer the explicit geographical and seismic interfaces in new code:
+
 ```python
 import numpy as np
 import feregion
 
-feregion.lookup_number(12.0, 48.0)
+feregion.lookup_geographic_number(12.0, 48.0)
 # 543
 
-feregion.lookup_region(12.0, 48.0)
+feregion.lookup_geographic_region(12.0, 48.0)
 # GeographicRegion(number=543, name='GERMANY')
 
 coordinates = np.array(
@@ -57,16 +61,17 @@ coordinates = np.array(
         [-60.0, -30.0],
     ]
 )
-numbers = feregion.lookup_numbers(coordinates)
+geographic = feregion.lookup_geographic_numbers(coordinates)
 # array([543, 133], dtype=uint16)
 
-# If longitude and latitude are already separate vectors, avoid stacking them.
+# If longitude and latitude already exist separately, do not stack them only
+# to satisfy the matrix API.
 longitude = coordinates[:, 0].copy()
 latitude = coordinates[:, 1].copy()
-split_numbers = feregion.lookup_geographic_numbers_from_vectors(longitude, latitude)
+split_geographic = feregion.lookup_geographic_numbers_from_vectors(longitude, latitude)
 # array([543, 133], dtype=uint16)
 
-feregion.numbers_to_names(numbers)
+feregion.geographic_numbers_to_names(geographic)
 # array(['GERMANY', 'NORTHEASTERN ARGENTINA'], dtype='<U...')
 
 feregion.lookup_seismic_number(12.0, 48.0)
@@ -78,6 +83,18 @@ feregion.lookup_seismic_region(12.0, 48.0)
 feregion.geographic_to_seismic_number(543)
 # 36
 ```
+
+Choose the batch form that matches the representation you already have:
+
+| Existing input | Geographical lookup | Seismic lookup |
+|---|---|---|
+| `(n, 2)` coordinates | `lookup_geographic_numbers()` | `lookup_seismic_numbers()` |
+| separate 1-D longitude/latitude vectors | `lookup_geographic_numbers_from_vectors()` | `lookup_seismic_numbers_from_vectors()` |
+
+Both batch forms use the same FE ownership kernel. Do not reshape data solely to
+select the other interface. `docs/user-guide.md` gives the complete task-oriented
+API-selection table and describes result dtypes, validation, boundary behavior,
+conversions, errors, pandas, CLI, GeoJSON, custom engines, and performance evidence.
 
 A coordinate array always uses `[longitude, latitude]` column order. By package
 convention, these values are interpreted as WGS84 geographic degrees. The
@@ -98,8 +115,8 @@ retained in the packaged source-derived name array.
 
 The pre-existing generic functions (`lookup_number`, `lookup_region`,
 `lookup_numbers`, `number_to_name`, and `numbers_to_names`) remain geographical
-compatibility interfaces. New code can use the explicit `geographic_*` and
-`seismic_*` forms when the level matters.
+compatibility interfaces. New code should prefer the explicit `geographic_*` and
+`seismic_*` forms so the FE level is part of the call contract.
 
 Plural region-number conversion functions accept NumPy-compatible array-like
 values and always return NumPy arrays. A scalar input returns a
@@ -338,8 +355,14 @@ needs that evidence.
 
 `benchmarks/README.md` describes benchmark architecture and contributor-facing semantics.
 `docs/benchmark-results.md` summarizes bounded observed evidence,
-`docs/obspy-or-feregion.md` gives user-selection guidance, and
+`docs/obspy-or-feregion.md` gives user-selection guidance, `docs/user-guide.md`
+turns current performance evidence into task-oriented API guidance, and
 `docs/benchmark-migration-parity.md` preserves the completed migration record.
+
+For the 0.6 beta promotion source, the maintained exact `0.5.0b6` to exact
+`0.6.0a5` release comparison completed without triggering the project regression
+rule. The comparison and its ten-round follow-up remain same-host observations;
+they are not hardware-independent guarantees.
 
 The predecessor standalone/pytest-benchmark/Tox tools remain available for compatibility,
 investigation, and historical provenance; they are not co-equal release authority.

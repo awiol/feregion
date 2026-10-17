@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.0b1 — 2026-10-17
+
+- Enter beta without changing FE lookup semantics after the split-vector interface converged under isolated review, exact `0.6.0a5` hosted CI passed the configured Python 3.11–3.14/static/package/source-oracle jobs, and the maintained `0.5.0b6`→`0.6.0a5` release-performance comparison completed without triggering the project regression rule.
+- Add `docs/user-guide.md` and `REQ-REPO-013`/`DEC-077` so task-oriented usage, interface selection, coordinate/boundary/dtype nuances, conversions, pandas/CSV/GeoJSON behavior, explicit-engine semantics, error diagnosis, provenance limits, and bounded performance guidance remain maintained user-facing knowledge rather than one-off beta prose.
+- Make README examples teach explicit geographical/seismic interfaces before the historical generic geographical aliases, update the ObsPy comparison and maintained benchmark-results record with current 0.6 evidence, and strengthen public split-vector docstrings and documentation synchronization tests.
+- No FE tables, hierarchy, public result representation, dependency, CLI, pandas, GeoJSON, matrix/split semantics, or compatibility-alias behavior is intentionally changed.
+
 ## 0.6.0a5 — 2026-10-14
 
 - Normalize the cumulative 0.6 split-vector lineage onto exact committed `0.5.0b6`, retaining its documented local benchmark comparison and preserving all substantive `0.6.0a1` through `0.6.0a4` API, exhaustive-boundary, source-tree verification, review-closure, and direct split-benchmark work.

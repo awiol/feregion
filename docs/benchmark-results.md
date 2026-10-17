@@ -2,11 +2,143 @@
 
 ## Purpose and evidence status
 
-This document records the local `0.5` beta integration comparison from 2026-10-13 UTC
-and benchmark observations accepted for the `0.4` benchmark-migration closeout on
-2026-09-19. Each section retains its measured revisions, environment, and scope.
+This document records the `0.6` full-suite and extended comparison observations from
+2026-10-14 UTC, the maintained `0.6` release comparison from 2026-10-17 UTC, the local
+`0.5` beta integration comparison from 2026-10-13 UTC, and benchmark observations
+accepted for the `0.4` benchmark-migration closeout on 2026-09-19. Each section retains
+its measured revisions, environment, and scope.
 These are **observational snapshots**, not universal performance guarantees or
 substitutes for retained machine-readable evidence.
+
+## Local 0.6 full suite and extended release comparisons — 2026-10-14 UTC
+
+The candidate was commit `7a13674efd3db83a01a7a467fbc2624d6113bd9f`
+(`v0.6.0a5` lineage) on machine `awiol-ryzen3600`. The full `head-full` campaign
+covered all 12 maintained benchmark cases on the 24-load grid from 1 through
+50,000,000 points, using the `release-history` environment profile, CPython 3.12.9,
+NumPy 1.26.4, pandas 2.1.4, ASV 0.6.6, asv-runner 0.3.1, five repetitions, and three
+rounds.
+
+The initial full-campaign invocation returned status 2 because
+`TimeSeismicNames.time_seismic_numbers_to_names` at 50,000,000 points exceeded ASV's
+default 60-second timeout. That single parameter was rerun with a 180-second timeout
+under the same five-repetition/three-round contract and passed (about 5.19 seconds per
+operation). The retained raw result file then contained all 12 expected cases and all
+24 measurements for each parameterized case. Thus the measurement grid is complete;
+the original campaign invocation itself remains recorded as incomplete. The local ASV
+HTML report was rebuilt successfully from the retained results.
+
+### Maintained release-performance comparison — 2026-10-17 UTC
+
+The maintained `release-compare` campaign was then run with the exact baseline
+`v0.5.0b6` (commit `f351bb16c3e03494f04b42a7aa7fa30d6df87217`) and candidate
+`v0.6.0a5` (commit `7a13674efd3db83a01a7a467fbc2624d6113bd9f`). It measured
+`lookup_geographic_numbers` (case version 1) at the campaign's seven loads from 10k
+through 1M points, with five repetitions and three rounds. The environment was
+CPython 3.12.9, NumPy 1.26.4, pandas 2.1.4, ASV 0.6.6, and asv-runner 0.3.1 on
+`awiol-ryzen3600`. All 14 baseline/candidate records passed correctness checks; the
+project regression check completed and did not trigger.
+
+| Load | 0.5.0b6 throughput | 0.6.0a5 throughput | Candidate change |
+|---:|---:|---:|---:|
+| 10k | 56.76 M points/s | 56.18 M points/s | -1.02% |
+| 20k | 67.69 M points/s | 68.22 M points/s | +0.78% |
+| 50k | 76.11 M points/s | 77.07 M points/s | +1.25% |
+| 100k | 80.83 M points/s | 80.32 M points/s | -0.63% |
+| 200k | 83.30 M points/s | 82.85 M points/s | -0.54% |
+| 500k | 77.81 M points/s | 79.19 M points/s | +1.78% |
+| 1M | 64.11 M points/s | 63.25 M points/s | -1.34% |
+
+Positive change means higher candidate throughput. The largest slowdown was 1.34% at
+1M points, below the project's >25% slowdown at two adjacent maintained loads trigger.
+The normalized evidence is retained locally at
+`dist/benchmarks/release-compare-evidence.json`; direct ASV results and normalized
+evidence remain ignored local artifacts.
+
+#### Ten-round follow-up — 2026-10-17 UTC
+
+To check whether the smaller differences persisted with more samples, the same exact
+revisions, environment, and loads were rerun with five repetitions over ten rounds
+(50 retained samples per revision/load). The maintained check completed and did not
+trigger. Positive values below mean lower candidate throughput. The interval is an
+exploratory 95% percentile bootstrap interval for the candidate-to-baseline median
+duration ratio, resampling the 50 retained samples independently within each revision
+for 20,000 draws.
+
+| Load | Candidate slowdown | Exploratory 95% interval |
+|---:|---:|---:|
+| 10k | -0.53% | -1.14% to +0.68% |
+| 20k | +1.72% | -0.10% to +4.13% |
+| 50k | -0.21% | -1.82% to +0.89% |
+| 100k | +0.89% | -0.24% to +2.13% |
+| 200k | +2.89% | +1.40% to +6.53% |
+| 500k | +1.48% | -1.15% to +5.00% |
+| 1M | +2.94% | +0.59% to +5.09% |
+
+The expanded sample supports a small slowdown at 200k and 1M on this host; the other
+loads' intervals overlap zero. The effect is modest and remains far below the project
+release trigger. These intervals are descriptive: they do not adjust for checking seven
+loads, and the comparison ran all baseline measurements before all candidate
+measurements, so they are not independent confirmation against time-varying host load.
+The normalized 10-round evidence is retained locally at
+`dist/benchmarks/release-compare-v0.5.0b6-to-v0.6.0a5-20261017-10rounds.json`; the
+prior three-round evidence is preserved as
+`dist/benchmarks/release-compare-v0.5.0b6-to-v0.6.0a5-20261017-3rounds.json`.
+
+### Geographic lookup comparisons through 10M
+
+Both comparisons measured `lookup_geographic_numbers` (case version 1) at 10k through
+10M points with five repetitions and three rounds. Correctness checks passed on every
+baseline and candidate measurement, and both project regression checks completed
+without triggering the release gate. Environment for both comparisons: CPython 3.12.9,
+NumPy 1.26.4, pandas 2.1.4 (`uv-py3.12-numpy1.26.4-pandas2.1.4`), ASV 0.6.6,
+asv-runner 0.3.1, machine `awiol-ryzen3600`. Negative change means lower candidate
+throughput than the baseline.
+
+Against `v0.5.0b6` (baseline commit
+`f351bb16c3e03494f04b42a7aa7fa30d6df87217`):
+
+| Load | 0.5.0b6 throughput | 0.6.0a5 throughput | Candidate change |
+|---:|---:|---:|---:|
+| 10k | 56.18 M points/s | 55.68 M points/s | -0.89% |
+| 20k | 67.31 M points/s | 67.07 M points/s | -0.36% |
+| 50k | 75.43 M points/s | 75.98 M points/s | +0.73% |
+| 100k | 80.13 M points/s | 79.96 M points/s | -0.21% |
+| 200k | 80.16 M points/s | 78.80 M points/s | -1.69% |
+| 500k | 75.81 M points/s | 74.80 M points/s | -1.33% |
+| 1M | 60.50 M points/s | 62.25 M points/s | +2.89% |
+| 2M | 57.00 M points/s | 59.10 M points/s | +3.68% |
+| 5M | 49.63 M points/s | 50.80 M points/s | +2.34% |
+| 10M | 51.05 M points/s | 52.47 M points/s | +2.79% |
+
+Against `v0.3.0b1` (baseline commit
+`248d038c53ec34c26b5f0147e5c0d43202807bb5`):
+
+| Load | 0.3.0b1 throughput | 0.6.0a5 throughput | Candidate change |
+|---:|---:|---:|---:|
+| 10k | 55.11 M points/s | 55.68 M points/s | +1.02% |
+| 20k | 67.95 M points/s | 67.07 M points/s | -1.31% |
+| 50k | 75.66 M points/s | 75.98 M points/s | +0.42% |
+| 100k | 80.11 M points/s | 79.96 M points/s | -0.19% |
+| 200k | 81.14 M points/s | 78.80 M points/s | -2.88% |
+| 500k | 74.24 M points/s | 74.80 M points/s | +0.76% |
+| 1M | 61.02 M points/s | 62.25 M points/s | +2.02% |
+| 2M | 59.32 M points/s | 59.10 M points/s | -0.38% |
+| 5M | 50.83 M points/s | 50.80 M points/s | -0.06% |
+| 10M | 52.92 M points/s | 52.47 M points/s | -0.85% |
+
+The largest observed throughput regressions were 1.69% versus 0.5.0b6 and 2.88%
+versus 0.3.0b1, both at 200k. Neither approached the project's >25% slowdown at two
+adjacent maintained loads release trigger. These are same-host observations for the
+stated environment and do not establish a causal explanation or a general performance
+guarantee.
+
+The normalized comparison records are retained locally at
+`dist/benchmarks/release-compare-v0.6.0a5-vs-v0.5.0b6-through-10m.json` and
+`dist/benchmarks/release-compare-v0.6.0a5-vs-v0.3.0b1-through-10m.json`. The raw full
+suite result is under `.asv/results/awiol-ryzen3600/`; the head-full run record is under
+`.asv/feregion-runs/head-full/`. Direct ASV results, normalized evidence, and generated
+reports remain local ignored artifacts and are not committed as source documentation.
 
 ## Local 0.5 beta integration comparison — 2026-10-13 UTC
 
@@ -53,10 +185,12 @@ Their earlier mechanism measurements remain recorded in
 The local comparison does not turn those earlier diagnostics into new measurements
 on the rebased candidate or establish hosted-CI completion.
 
-The normalized local record is retained at
-`dist/benchmarks/release-compare-evidence.json`, SHA-256
+The normalized local record at the time had SHA-256
 `38610b0c4317f4fda8094f24a3b8638dee57dd4deb082b2634472dc6014d26a5`.
-Its effective plan has SHA-256
+Its former default path, `dist/benchmarks/release-compare-evidence.json`, was reused
+by the maintained `0.6.0a5` comparison on 2026-10-17 and now contains that newer
+result. The historical values above remain recorded here. The original effective plan
+had SHA-256
 `bbf9e72a546b86b11d6676242bd34bd8507611a7b3e78c4919e48ac1cfe464a9`.
 Direct ASV files, normalized evidence, and generated reports remain local ignored
 artifacts; this source document retains their human-readable interpretation.

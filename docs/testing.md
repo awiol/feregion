@@ -49,12 +49,20 @@ candidate on a new minor line also adds the new chapter, including its purpose,
 practical impact, compatibility/migration context, and representative usage
 examples when an interface changes.
 
+`docs/user-guide.md` is the stable task-oriented user guide. Review it whenever a
+public interface, important nuance/limitation, or decision-relevant performance
+observation changes. README remains the quick start and must link to both the user
+guide and cumulative release history. Quantitative user-facing performance claims
+must retain the measured revision, workload/environment basis, and interpretation
+limits rather than becoming unqualified speed claims.
+
 Run the repository metadata tests before packaging. They verify that every exact
 version in `CHANGELOG.md` appears once in `docs/whats-new.md`, every changelog
 minor line has exactly one chapter, the current package version is represented,
-and README links the stable guide. These checks establish structural maintenance
-coverage; semantic review is still required to ensure that explanatory claims
-match the maintained contract and retained evidence.
+README links the stable guides, and the task-oriented guide retains the semantic
+anchors required by `REQ-REPO-013`. These checks establish structural maintenance
+coverage; semantic/task review is still required to ensure that explanatory claims
+match the maintained contract, caller task, and retained evidence.
 
 ## Test layers
 
@@ -71,8 +79,8 @@ match the maintained contract and retained evidence.
    output, and publication behavior.
 6. GeoJSON tests verify geographical/seismic area-cell coverage, compact and
    explicit property selections, collection metadata, and the boundary limitation.
-7. Repository metadata tests detect version, dependency, contract-file, cumulative
-   release-history, CI matrix, and traceability drift.
+7. Repository metadata tests detect version, dependency, contract-file, task-oriented
+   user-guide, cumulative release-history, CI matrix, and traceability drift.
 8. Benchmark harnesses measure geographical and seismic scalar/batch paths,
    hierarchy conversion, name conversion, and pandas interfaces. Routine
    benchmarks exclude CLI and GeoJSON.

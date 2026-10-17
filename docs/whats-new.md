@@ -51,14 +51,51 @@ are supported. Geographical results use `uint16`; seismic results use `uint8`. T
 most useful when separate coordinate vectors already exist: constructing or splitting a matrix
 solely to change API shape is not part of the performance claim.
 
+### Choosing the batch interface
+
+Use the representation the application already has. If coordinates are already an `(n, 2)`
+matrix, call `lookup_geographic_numbers()` or `lookup_seismic_numbers()` directly. If longitude
+and latitude are already separate one-dimensional vectors, call the corresponding
+`*_from_vectors()` function directly. Do not construct or split a coordinate matrix solely to
+select the other API. `docs/user-guide.md` contains the complete task-oriented selection table
+and the coordinate, dtype, error, integration, and boundary nuances that matter to callers.
+
 ### Compatibility and evidence
 
 The change is additive. Matrix lookup, scalar lookup, compatibility aliases, pandas output, CLI,
 GeoJSON, FE assignments, names, and hierarchy remain supported as before. `DEC-074` requires
 predecessor-sensitive public-surface tests, exhaustive matrix/split semantic equivalence, and
-direct repeated public matrix/split measurements. The initial alpha can carry incomplete hosted
-release evidence, but beta promotion requires retained evidence that the split route still has a
-material advantage at a maintained large batch load or a design reassessment.
+direct repeated public matrix/split measurements. Exact `0.6.0a5` hosted CI passed the
+configured Python 3.11–3.14, lower-bound, Ruff, typing, packaging, source-reproduction, and
+installed-ObsPy oracle jobs. The maintained `0.5.0b6`→`0.6.0a5` release comparison also
+completed without triggering the performance regression rule. Those observations support beta
+maturity but remain bounded to their exact revisions and environments.
+
+### Performance at beta entry
+
+The maintained release comparison measured exact `v0.5.0b6` against exact `v0.6.0a5` on the
+Ryzen 5 3600 benchmark host with CPython 3.12.9, NumPy 1.26.4, pandas 2.1.4, ASV 0.6.6,
+five repetitions, and three rounds. Across the maintained 10k–1M grid, candidate throughput
+changed between `-1.34%` and `+1.78%`; the regression gate did not trigger. A ten-round
+follow-up found small same-host slowdowns around `2.9%` at 200k and 1M, still far below the
+project threshold. An extended comparison through 10M also did not trigger. See
+`benchmark-results.md` for the full tables and limitations.
+
+The direct public split benchmark remains a separate claim. On exact `0.6.0a5` with Python
+3.13.5 / NumPy 2.3.5, the retained 5M-point medians were about `1.35x` geographical
+matrix/split, `1.33x` seismic matrix/split, and `1.58x` caller stack+lookup/split. These values
+support avoiding representation conversion when the caller already owns separate vectors; they
+do not make the matrix API obsolete.
+
+### 0.6.0b1 — 2026-10-17
+
+`0.6.0b1` is the first beta candidate. It intentionally keeps the `0.6.0a5` FE lookup/runtime
+semantics and focuses the promotion change on user-facing knowledge quality. A CPS/SQG
+pre-beta self-review led to the stable `docs/user-guide.md`, explicit-interface-first README
+examples, current 0.6 benchmark and ObsPy-selection guidance, stronger split-vector docstrings,
+and repository checks that keep the task-oriented guide linked and semantically structured.
+`REQ-REPO-013` and `DEC-077` make this documentation maintenance an ongoing repository
+obligation rather than a one-time beta cleanup.
 
 ### 0.6.0a5 — 2026-10-14
 

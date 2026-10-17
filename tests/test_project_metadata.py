@@ -156,6 +156,60 @@ def test_cumulative_whats_new_covers_release_history() -> None:
     )
 
 
+def test_task_oriented_user_guide_exposes_current_usage_contract() -> None:
+    """The stable user guide must keep current interface, nuance, and evidence guidance visible.
+
+    This regression protects the information architecture adopted for the 0.6 beta: the
+    README is the quick start, while ``docs/user-guide.md`` is the stable task-oriented
+    source for choosing an interface and understanding important behavioral/performance
+    boundaries. It deliberately checks semantic anchors rather than exact prose so the
+    guide can evolve without turning wording into an accidental contract.
+    """
+
+    readme = (PROJECT_ROOT / "README.md").read_text(encoding="utf-8")
+    relative = "docs/user-guide.md"
+    assert relative in readme
+
+    guide = (PROJECT_ROOT / relative).read_text(encoding="utf-8")
+    for heading in (
+        "## Choose the interface that matches your data",
+        "## Coordinate semantics",
+        "## Batch lookup from an existing matrix",
+        "## Batch lookup from separate vectors",
+        "## Errors and diagnosis",
+        "## Performance guidance",
+        "## Source provenance and scientific limits",
+    ):
+        assert heading in guide
+
+    for public_name in (
+        "lookup_geographic_number()",
+        "lookup_seismic_number()",
+        "lookup_geographic_numbers()",
+        "lookup_seismic_numbers()",
+        "lookup_geographic_numbers_from_vectors()",
+        "lookup_seismic_numbers_from_vectors()",
+        "lookup_dataframe()",
+    ):
+        assert public_name in guide
+
+    for evidence_boundary in (
+        "0.5.0b6",
+        "0.6.0a5",
+        "CPython 3.12.9",
+        "NumPy 1.26.4",
+        "not universal",
+    ):
+        assert evidence_boundary in guide
+
+    python_api = readme.split("## Python API", 1)[1].split("## pandas", 1)[0]
+    first_code = python_api.split("```python", 1)[1].split("```", 1)[0]
+    assert "lookup_geographic_number(" in first_code
+    assert "lookup_seismic_number(" in first_code
+    assert "lookup_number(" not in first_code
+    assert "lookup_numbers(" not in first_code
+
+
 def test_readme_lists_every_maintained_contract_document() -> None:
     """The repository entry point links every maintained contract by its stable path."""
 

@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Behavioral contract series | `0.2` |
-| Status | Current alpha design |
+| Status | Current beta design |
 | Implemented target | `0.6.0` additive split-vector public interface through `DEC-074`; initially rebased onto `0.5.0b5` by `DEC-075`, then normalized onto committed `0.5.0b6` by `DEC-076`; matrix API retained; `0.4` ASV authority retained |
 
 The ASV-derived path is the primary benchmark authority; the 0.4 migration is closed.

@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Status | Current alpha engineering contract |
+| Status | Current beta engineering contract |
 | Current target | `0.6.0` additive split-vector public interface under `DEC-074`; initially rebased onto `0.5.0b5` by `DEC-075`, then normalized onto committed `0.5.0b6` by `DEC-076`; matrix contract retained |
 
 The ASV-derived path is the primary benchmark authority; the 0.4 migration is closed.
